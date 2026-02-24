@@ -1,4 +1,3 @@
-import type { Icon } from 'lucide-react'
 
 export interface Metric {
   id: string
@@ -7,7 +6,7 @@ export interface Metric {
   change: string
   trend: 'up' | 'down'
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
-  icon: Icon
+  icon: React.ElementType
 }
 
 export interface Activity {

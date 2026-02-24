@@ -28,16 +28,17 @@ export function BarChartComponent({ title, data, chartConfig }: BarChartComponen
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <BarChart accessibilityLayer data={data}>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
             <XAxis
               dataKey="name"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
               tickFormatter={(value) => value}
+              className="text-xs"
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="value" radius={8} />
+            <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
+            <Bar dataKey="value" fill="var(--color-value)" radius={8} />
           </BarChart>
         </ChartContainer>
       </CardContent>

@@ -1,4 +1,4 @@
-import { Metric, Activity } from './typings'
+import type { Metric, Activity } from './typings'
 import { UserPlus, Users, TrendingUp, DollarSign, CheckSquare } from 'lucide-react'
 
 export const MOCK_METRICS: Metric[] = [
@@ -116,13 +116,13 @@ import type { ChartConfig } from '@/components/ui/chart'
 export const PIPELINE_CHART_CONFIG: ChartConfig = {
   value: {
     label: 'Leads',
-    color: 'hsl(var(--primary))',
+    color: 'oklch(0.65 0.18 150)', // Success green
   },
 }
 
 export const REVENUE_CHART_CONFIG: ChartConfig = {
   value: {
-    label: 'Revenue',
-    color: 'hsl(var(--primary))',
+    label: 'Revenue (K)',
+    color: 'oklch(0.58 0.22 245)', // Primary blue
   },
 }

@@ -1,4 +1,3 @@
-import type { Icon } from 'lucide-react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -8,7 +7,7 @@ interface MetricCardProps {
   value: string | number
   change: string
   trend: 'up' | 'down'
-  icon: Icon
+  icon: React.ElementType
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
 }
 
