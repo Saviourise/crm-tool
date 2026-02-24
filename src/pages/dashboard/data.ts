@@ -111,16 +111,18 @@ export const REVENUE_TREND_DATA = [
   { name: 'Jun', value: 124 },
 ]
 
-export const PIPELINE_CHART_CONFIG = {
+import type { ChartConfig } from '@/components/ui/chart'
+
+export const PIPELINE_CHART_CONFIG: ChartConfig = {
   value: {
     label: 'Leads',
     color: 'hsl(var(--primary))',
   },
-} satisfies import('@/components/ui/chart').ChartConfig
+}
 
-export const REVENUE_CHART_CONFIG = {
+export const REVENUE_CHART_CONFIG: ChartConfig = {
   value: {
     label: 'Revenue',
     color: 'hsl(var(--primary))',
   },
-} satisfies import('@/components/ui/chart').ChartConfig
+}
