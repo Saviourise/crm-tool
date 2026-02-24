@@ -95,18 +95,32 @@ export const MOCK_ACTIVITIES: Activity[] = [
 ]
 
 export const LEAD_PIPELINE_DATA = [
-  { label: 'New Leads', value: 145, color: 'oklch(0.58 0.22 245)' },
-  { label: 'Contacted', value: 98, color: 'oklch(0.60 0.20 280)' },
-  { label: 'Qualified', value: 67, color: 'oklch(0.65 0.18 150)' },
-  { label: 'Proposal', value: 43, color: 'oklch(0.70 0.20 60)' },
-  { label: 'Negotiation', value: 28, color: 'oklch(0.60 0.24 27)' },
+  { name: 'New', value: 145 },
+  { name: 'Contacted', value: 98 },
+  { name: 'Qualified', value: 67 },
+  { name: 'Proposal', value: 43 },
+  { name: 'Negotiation', value: 28 },
 ]
 
 export const REVENUE_TREND_DATA = [
-  { label: 'Jan', value: 85000, color: 'oklch(0.58 0.22 245)' },
-  { label: 'Feb', value: 92000, color: 'oklch(0.58 0.22 245)' },
-  { label: 'Mar', value: 78000, color: 'oklch(0.58 0.22 245)' },
-  { label: 'Apr', value: 105000, color: 'oklch(0.58 0.22 245)' },
-  { label: 'May', value: 98000, color: 'oklch(0.58 0.22 245)' },
-  { label: 'Jun', value: 124300, color: 'oklch(0.58 0.22 245)' },
+  { name: 'Jan', value: 85 },
+  { name: 'Feb', value: 92 },
+  { name: 'Mar', value: 78 },
+  { name: 'Apr', value: 105 },
+  { name: 'May', value: 98 },
+  { name: 'Jun', value: 124 },
 ]
+
+export const PIPELINE_CHART_CONFIG = {
+  value: {
+    label: 'Leads',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies import('@/components/ui/chart').ChartConfig
+
+export const REVENUE_CHART_CONFIG = {
+  value: {
+    label: 'Revenue',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies import('@/components/ui/chart').ChartConfig

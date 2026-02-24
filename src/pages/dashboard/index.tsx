@@ -1,12 +1,15 @@
 import { MetricCard } from './components/MetricCard'
 import { QuickActions } from './components/QuickActions'
 import { RecentActivity } from './components/RecentActivity'
-import { PerformanceChart } from './components/PerformanceChart'
+import { BarChartComponent } from './components/PerformanceChart'
+import { LineChartComponent } from './components/LineChartComponent'
 import {
   MOCK_METRICS,
   MOCK_ACTIVITIES,
   LEAD_PIPELINE_DATA,
   REVENUE_TREND_DATA,
+  PIPELINE_CHART_CONFIG,
+  REVENUE_CHART_CONFIG,
 } from './data'
 
 export default function Dashboard() {
@@ -37,15 +40,15 @@ export default function Dashboard() {
 
       {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2">
-        <PerformanceChart
+        <BarChartComponent
           title="Lead Pipeline Funnel"
           data={LEAD_PIPELINE_DATA}
-          type="bar"
+          chartConfig={PIPELINE_CHART_CONFIG}
         />
-        <PerformanceChart
-          title="Revenue Trend (6 Months)"
+        <LineChartComponent
+          title="Revenue Trend (Last 6 Months)"
           data={REVENUE_TREND_DATA}
-          type="line"
+          chartConfig={REVENUE_CHART_CONFIG}
         />
       </div>
 
