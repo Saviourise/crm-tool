@@ -1,11 +1,62 @@
+import { MetricCard } from './components/MetricCard'
+import { QuickActions } from './components/QuickActions'
+import { RecentActivity } from './components/RecentActivity'
+import { PerformanceChart } from './components/PerformanceChart'
+import {
+  MOCK_METRICS,
+  MOCK_ACTIVITIES,
+  LEAD_PIPELINE_DATA,
+  REVENUE_TREND_DATA,
+} from './data'
+
 export default function Dashboard() {
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome to your CRM dashboard. Track your leads, contacts, and deals at a glance.
+          Welcome back! Here's what's happening with your sales pipeline today.
         </p>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {MOCK_METRICS.map((metric) => (
+          <MetricCard
+            key={metric.id}
+            title={metric.label}
+            value={metric.value}
+            change={metric.change}
+            trend={metric.trend}
+            icon={metric.icon}
+            color={metric.color}
+          />
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <PerformanceChart
+          title="Lead Pipeline Funnel"
+          data={LEAD_PIPELINE_DATA}
+          type="bar"
+        />
+        <PerformanceChart
+          title="Revenue Trend (6 Months)"
+          data={REVENUE_TREND_DATA}
+          type="line"
+        />
+      </div>
+
+      {/* Bottom Row: Activity + Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <RecentActivity activities={MOCK_ACTIVITIES} />
+        </div>
+        <div>
+          <QuickActions />
+        </div>
       </div>
     </div>
   )
