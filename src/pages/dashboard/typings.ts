@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react'
+import type { Icon } from 'lucide-react'
 
 export interface Metric {
   id: string
@@ -7,7 +7,7 @@ export interface Metric {
   change: string
   trend: 'up' | 'down'
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
-  icon: LucideIcon
+  icon: Icon
 }
 
 export interface Activity {
