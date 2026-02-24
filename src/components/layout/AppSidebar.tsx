@@ -73,10 +73,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b px-6 py-5 group-data-[collapsible=icon]:px-5 group-data-[collapsible=icon]:py-8">
+      <SidebarHeader className="border-b px-6 py-5 group-data-[collapsible=icon]:px-4 group-data-[collapsible=icon]:py-6">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0 group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11">
-            <Zap className="h-5 w-5 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10">
+            <Zap className="h-5 w-5" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold">CRM Tool</span>
@@ -84,13 +84,13 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-4 py-4 group-data-[collapsible=icon]:py-6">
+      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-3 py-4">
         <SidebarGroup className="group-data-[collapsible=icon]:px-0">
           <SidebarGroupLabel className="px-2 group-data-[collapsible=icon]:hidden">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
-            <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:gap-4 group-data-[collapsible=icon]:w-full">
+            <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:gap-3 group-data-[collapsible=icon]:w-full">
               {menuItems.map((item) => {
                 const isActive = location.pathname === item.url
                 return (
@@ -99,10 +99,10 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="h-10 px-3 group-data-[collapsible=icon]:h-14 group-data-[collapsible=icon]:w-14 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground transition-all duration-200"
+                      className="h-10 px-3 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground transition-all duration-200"
                     >
                       <Link to={item.url}>
-                        <item.icon className="h-4 w-4 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
+                        <item.icon className="h-4 w-4 group-data-[collapsible=icon]:h-5 group-data-[collapsible=icon]:w-5" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -113,9 +113,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t p-4 group-data-[collapsible=icon]:px-5 group-data-[collapsible=icon]:py-6 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-        <Button variant="outline" className="w-full justify-start group-data-[collapsible=icon]:w-14 group-data-[collapsible=icon]:h-14 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0" size="sm">
-          <Zap className="h-4 w-4 mr-2 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
+      <SidebarFooter className="border-t p-4 group-data-[collapsible=icon]:p-4 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+        <Button variant="outline" className="w-full justify-start group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0" size="sm">
+          <Zap className="h-4 w-4 mr-2 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:h-5 group-data-[collapsible=icon]:w-5" />
           <span className="group-data-[collapsible=icon]:hidden">Upgrade Plan</span>
         </Button>
       </SidebarFooter>
