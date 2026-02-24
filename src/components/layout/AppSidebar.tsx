@@ -84,13 +84,13 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-3 py-4">
+      <SidebarContent className="px-2 group-data-[collapsible=icon]:px-0 py-4">
         <SidebarGroup className="group-data-[collapsible=icon]:px-0">
           <SidebarGroupLabel className="px-2 group-data-[collapsible=icon]:hidden">
             Navigation
           </SidebarGroupLabel>
-          <SidebarGroupContent className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
-            <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:gap-3 group-data-[collapsible=icon]:w-full">
+          <SidebarGroupContent className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-3">
+            <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:w-full">
               {menuItems.map((item) => {
                 const isActive = location.pathname === item.url
                 return (
@@ -99,7 +99,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="h-10 px-3 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground transition-all duration-200"
+                      className="h-10 px-3 group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground transition-all duration-200"
                     >
                       <Link to={item.url}>
                         <item.icon className="h-4 w-4 group-data-[collapsible=icon]:h-5 group-data-[collapsible=icon]:w-5" />
