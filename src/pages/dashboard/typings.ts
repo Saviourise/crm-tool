@@ -1,3 +1,5 @@
+import { LucideIcon } from 'lucide-react'
+
 export interface Metric {
   id: string
   label: string
@@ -5,6 +7,7 @@ export interface Metric {
   change: string
   trend: 'up' | 'down'
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
+  icon: LucideIcon
 }
 
 export interface Activity {
@@ -12,13 +15,7 @@ export interface Activity {
   type: 'lead' | 'contact' | 'task' | 'deal'
   title: string
   description: string
-  timestamp: Date
+  timestamp: string
   user: string
-}
-
-export interface QuickAction {
-  id: string
-  label: string
-  icon: string
-  action: () => void
+  status?: string
 }
