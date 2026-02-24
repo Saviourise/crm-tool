@@ -73,9 +73,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b px-4 py-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <SidebarHeader className="border-b px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Zap className="h-5 w-5" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
@@ -84,11 +84,11 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {menuItems.map((item) => {
                 const isActive = location.pathname === item.url
                 return (
@@ -97,7 +97,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                      className="h-10 px-3 data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                     >
                       <Link to={item.url}>
                         <item.icon className="h-4 w-4" />
