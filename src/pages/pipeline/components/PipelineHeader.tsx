@@ -1,15 +1,18 @@
-import { Plus, LayoutGrid, List } from 'lucide-react'
+import { Plus, LayoutGrid, List, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AddDealDialog } from './AddDealDialog'
-import type { PipelineView } from '../typings'
+import { BoardConfigSheet } from './BoardConfigSheet'
+import type { PipelineView, BoardConfig } from '../typings'
 
 interface PipelineHeaderProps {
   total: number
   view: PipelineView
   onViewChange: (view: PipelineView) => void
+  config: BoardConfig
+  onConfigChange: (config: BoardConfig) => void
 }
 
-export function PipelineHeader({ total, view, onViewChange }: PipelineHeaderProps) {
+export function PipelineHeader({ total, view, onViewChange, config, onConfigChange }: PipelineHeaderProps) {
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -41,6 +44,20 @@ export function PipelineHeader({ total, view, onViewChange }: PipelineHeaderProp
             List
           </Button>
         </div>
+
+        {/* Board config — only shown in kanban view */}
+        {view === 'kanban' && (
+          <BoardConfigSheet
+            config={config}
+            onConfigChange={onConfigChange}
+            trigger={
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <SlidersHorizontal className="h-4 w-4" />
+                Configure
+              </Button>
+            }
+          />
+        )}
 
         <AddDealDialog
           trigger={

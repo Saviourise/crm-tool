@@ -3,12 +3,13 @@ import { PipelineHeader } from './components/PipelineHeader'
 import { PipelineStats } from './components/PipelineStats'
 import { KanbanBoard } from './components/KanbanBoard'
 import { OpportunityList } from './components/OpportunityList'
-import { MOCK_OPPORTUNITIES } from './data'
-import type { Opportunity, PipelineView, Stage } from './typings'
+import { MOCK_OPPORTUNITIES, DEFAULT_BOARD_CONFIG } from './data'
+import type { Opportunity, PipelineView, Stage, BoardConfig } from './typings'
 
 export default function Pipeline() {
   const [view, setView] = useState<PipelineView>('kanban')
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES)
+  const [boardConfig, setBoardConfig] = useState<BoardConfig>(DEFAULT_BOARD_CONFIG)
 
   const handleMoveOpportunity = (id: string, newStage: Stage) => {
     setOpportunities((prev) =>
@@ -22,6 +23,8 @@ export default function Pipeline() {
         total={opportunities.length}
         view={view}
         onViewChange={setView}
+        config={boardConfig}
+        onConfigChange={setBoardConfig}
       />
       <PipelineStats opportunities={opportunities} />
 
@@ -29,6 +32,7 @@ export default function Pipeline() {
         <div className="-mx-4 md:-mx-6 lg:-mx-8">
           <KanbanBoard
             opportunities={opportunities}
+            config={boardConfig}
             onMoveOpportunity={handleMoveOpportunity}
           />
         </div>

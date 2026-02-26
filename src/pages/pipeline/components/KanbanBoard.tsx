@@ -41,11 +41,11 @@ import {
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { cn } from '@/lib/utils'
 import { currencyFormat } from '../utils'
-import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
+import { PIPELINE_STAGES, STAGE_CONFIG, STAGE_COLORS } from '../data'
 import { AddDealDialog } from './AddDealDialog'
-import type { Opportunity, Stage } from '../typings'
+import type { Opportunity, Stage, BoardConfig, ColorConfig, CardFieldSettings, StageSettings } from '../typings'
 
-// ─── Edit Deal Dialog ────────────────────────────────────────────────────────
+// ─── Edit Deal Dialog ─────────────────────────────────────────────────────────
 
 function EditDealDialog({ opportunity, open, onOpenChange }: {
   opportunity: Opportunity
@@ -154,18 +154,21 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
   )
 }
 
-// ─── Deal Card Content (shared between card and overlay) ──────────────────────
+// ─── Deal Card Content ────────────────────────────────────────────────────────
 
 function DealCardContent({
   opportunity,
+  colorConfig,
+  cardFields,
   dragListeners,
   isOverlay = false,
 }: {
   opportunity: Opportunity
+  colorConfig: ColorConfig
+  cardFields: CardFieldSettings
   dragListeners?: Record<string, unknown>
   isOverlay?: boolean
 }) {
-  const config = STAGE_CONFIG[opportunity.stage]
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
@@ -175,15 +178,17 @@ function DealCardContent({
     .map((n) => n[0])
     .join('')
 
+  const showFooter = cardFields.closeDate || cardFields.assignee
+
   return (
-    <div className={cn('bg-card rounded-lg border border-border/60 shadow-sm', config.cardBorderClass)}>
+    <div className={cn('bg-card rounded-lg border border-border/60 shadow-sm', colorConfig.cardBorderClass)}>
       <div className="p-3">
-        {/* Header: drag handle + actions */}
+        {/* Drag handle + actions */}
         <div className="flex items-start justify-between mb-2">
           <button
             {...(dragListeners ?? {})}
             className={cn(
-              'text-muted-foreground/50 hover:text-muted-foreground transition-colors mt-0.5',
+              'text-muted-foreground/40 hover:text-muted-foreground transition-colors mt-0.5',
               isOverlay ? 'cursor-grabbing' : 'cursor-grab'
             )}
             tabIndex={-1}
@@ -221,37 +226,53 @@ function DealCardContent({
           )}
         </div>
 
-        {/* Deal name + company */}
+        {/* Deal name */}
         <p className="font-semibold text-sm leading-snug mb-0.5 line-clamp-2">{opportunity.name}</p>
-        <p className="text-xs text-muted-foreground mb-3">{opportunity.company}</p>
+
+        {/* Company */}
+        {cardFields.company && (
+          <p className="text-xs text-muted-foreground mb-2">{opportunity.company}</p>
+        )}
 
         {/* Value */}
-        <p className={cn('text-base font-bold mb-2', config.textColor)}>
-          {currencyFormat.format(opportunity.value)}
-        </p>
+        {cardFields.value && (
+          <p className={cn('text-base font-bold mb-2', colorConfig.textColor)}>
+            {currencyFormat.format(opportunity.value)}
+          </p>
+        )}
 
         {/* Probability bar */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${opportunity.probability}%` }}
-            />
+        {cardFields.probability && (
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${opportunity.probability}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground tabular-nums w-7 text-right">
+              {opportunity.probability}%
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground tabular-nums w-7 text-right">
-            {opportunity.probability}%
-          </span>
-        </div>
+        )}
 
         {/* Footer: close date + assignee */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{opportunity.expectedCloseDate}</span>
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
-              {assigneeInitials}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+        {showFooter && (
+          <div className="flex items-center justify-between mt-1">
+            {cardFields.closeDate ? (
+              <span className="text-xs text-muted-foreground">{opportunity.expectedCloseDate}</span>
+            ) : (
+              <span />
+            )}
+            {cardFields.assignee && (
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
+                  {assigneeInitials}
+                </AvatarFallback>
+              </Avatar>
+            )}
+          </div>
+        )}
       </div>
 
       {!isOverlay && (
@@ -267,7 +288,15 @@ function DealCardContent({
 
 // ─── Draggable Deal Card ──────────────────────────────────────────────────────
 
-function DealCard({ opportunity }: { opportunity: Opportunity }) {
+function DealCard({
+  opportunity,
+  colorConfig,
+  cardFields,
+}: {
+  opportunity: Opportunity
+  colorConfig: ColorConfig
+  cardFields: CardFieldSettings
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: opportunity.id,
     data: { opportunity },
@@ -279,7 +308,12 @@ function DealCard({ opportunity }: { opportunity: Opportunity }) {
       {...attributes}
       className={cn('transition-opacity', isDragging && 'opacity-30')}
     >
-      <DealCardContent opportunity={opportunity} dragListeners={listeners} />
+      <DealCardContent
+        opportunity={opportunity}
+        colorConfig={colorConfig}
+        cardFields={cardFields}
+        dragListeners={listeners}
+      />
     </div>
   )
 }
@@ -287,23 +321,33 @@ function DealCard({ opportunity }: { opportunity: Opportunity }) {
 // ─── Droppable Kanban Column ──────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage,
+  settings,
   opportunities,
+  cardFields,
+  columnWidth,
 }: {
-  stage: Stage
+  settings: StageSettings
   opportunities: Opportunity[]
+  cardFields: CardFieldSettings
+  columnWidth: number
 }) {
-  const config = STAGE_CONFIG[stage]
-  const { setNodeRef, isOver } = useDroppable({ id: stage })
+  const colorConfig = STAGE_COLORS[settings.color]
+  const { setNodeRef, isOver } = useDroppable({ id: settings.stage })
 
   const totalValue = opportunities.reduce((sum, o) => sum + o.value, 0)
 
   return (
-    <div className="flex flex-col w-[272px] shrink-0">
+    <div className="flex flex-col shrink-0" style={{ width: columnWidth }}>
       {/* Column header */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-2">
-          <span className={cn('text-sm font-semibold', config.textColor)}>{config.label}</span>
+          <div
+            className="h-2.5 w-2.5 rounded-full shrink-0"
+            style={{ backgroundColor: colorConfig.dot }}
+          />
+          <span className={cn('text-sm font-semibold', colorConfig.textColor)}>
+            {settings.label}
+          </span>
           <Badge variant="secondary" className="text-xs h-5 px-1.5">
             {opportunities.length}
           </Badge>
@@ -317,17 +361,22 @@ function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 rounded-xl p-2 space-y-2 min-h-[120px] transition-colors border-2 border-dashed border-transparent',
-          config.columnBgClass,
+          'flex-1 rounded-xl p-2 space-y-2 min-h-[120px] transition-all border-2 border-dashed border-transparent',
+          colorConfig.columnBgClass,
           isOver && 'border-primary/40 bg-primary/10'
         )}
       >
         {opportunities.map((opp) => (
-          <DealCard key={opp.id} opportunity={opp} />
+          <DealCard
+            key={opp.id}
+            opportunity={opp}
+            colorConfig={colorConfig}
+            cardFields={cardFields}
+          />
         ))}
 
         <AddDealDialog
-          defaultStage={stage}
+          defaultStage={settings.stage}
           trigger={
             <button className="w-full flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors">
               <Plus className="h-3.5 w-3.5" />
@@ -344,20 +393,23 @@ function KanbanColumn({
 
 interface KanbanBoardProps {
   opportunities: Opportunity[]
+  config: BoardConfig
   onMoveOpportunity: (id: string, newStage: Stage) => void
 }
 
-export function KanbanBoard({ opportunities, onMoveOpportunity }: KanbanBoardProps) {
+export function KanbanBoard({ opportunities, config, onMoveOpportunity }: KanbanBoardProps) {
   const [activeOpp, setActiveOpp] = useState<Opportunity | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
+  const visibleStages = config.stages.filter((s) => s.visible)
+
   const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveOpp((active.data.current as { opportunity: Opportunity } | undefined)?.opportunity ?? null)
+    setActiveOpp(
+      (active.data.current as { opportunity: Opportunity } | undefined)?.opportunity ?? null
+    )
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -368,11 +420,21 @@ export function KanbanBoard({ opportunities, onMoveOpportunity }: KanbanBoardPro
     const draggedOpp = opportunities.find((o) => o.id === String(active.id))
     if (!draggedOpp || draggedOpp.stage === newStage) return
 
+    // Use the configured label for the stage name in the toast
+    const stageName =
+      config.stages.find((s) => s.stage === newStage)?.label ?? newStage
+
     toast.success('Deal moved', {
-      description: `"${draggedOpp.name}" moved to ${STAGE_CONFIG[newStage].label}.`,
+      description: `"${draggedOpp.name}" moved to ${stageName}.`,
     })
     onMoveOpportunity(String(active.id), newStage)
   }
+
+  // Resolve color config for the DragOverlay
+  const activeStageSettings = activeOpp
+    ? config.stages.find((s) => s.stage === activeOpp.stage)
+    : null
+  const activeColorConfig = STAGE_COLORS[activeStageSettings?.color ?? 'blue']
 
   return (
     <DndContext
@@ -383,19 +445,26 @@ export function KanbanBoard({ opportunities, onMoveOpportunity }: KanbanBoardPro
       onDragCancel={() => setActiveOpp(null)}
     >
       <div className="kanban-scroll flex gap-3 overflow-x-auto px-4 md:px-6 lg:px-8 pt-1 pb-5">
-        {PIPELINE_STAGES.map((stage) => (
+        {visibleStages.map((settings) => (
           <KanbanColumn
-            key={stage}
-            stage={stage}
-            opportunities={opportunities.filter((o) => o.stage === stage)}
+            key={settings.stage}
+            settings={settings}
+            opportunities={opportunities.filter((o) => o.stage === settings.stage)}
+            cardFields={config.cardFields}
+            columnWidth={config.columnWidth}
           />
         ))}
       </div>
 
       <DragOverlay dropAnimation={{ duration: 150, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
         {activeOpp && (
-          <div className="rotate-2 opacity-95 shadow-xl">
-            <DealCardContent opportunity={activeOpp} isOverlay />
+          <div className="rotate-2 opacity-95 shadow-xl" style={{ width: config.columnWidth }}>
+            <DealCardContent
+              opportunity={activeOpp}
+              colorConfig={activeColorConfig}
+              cardFields={config.cardFields}
+              isOverlay
+            />
           </div>
         )}
       </DragOverlay>
