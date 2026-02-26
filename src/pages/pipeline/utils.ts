@@ -1,22 +1,16 @@
-import { Opportunity, Stage } from './typings'
+import type { Opportunity } from './typings'
 
-// Pipeline utility functions
-export const calculateWeightedValue = (value: number, probability: number): number => {
-  return value * (probability / 100)
+export const currencyFormat = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
+
+export function getTotalPipelineValue(opportunities: Opportunity[]): number {
+  return opportunities.reduce((sum, o) => sum + o.value, 0)
 }
 
-export const getStageColor = (stage: Stage): string => {
-  const colors = {
-    prospecting: 'gray',
-    qualification: 'blue',
-    proposal: 'purple',
-    negotiation: 'orange',
-    'closed-won': 'green',
-    'closed-lost': 'red',
-  }
-  return colors[stage]
-}
-
-export const getTotalPipelineValue = (opportunities: Opportunity[]): number => {
-  return opportunities.reduce((sum, opp) => sum + opp.value, 0)
+export function getWeightedPipelineValue(opportunities: Opportunity[]): number {
+  return opportunities.reduce((sum, o) => sum + o.value * (o.probability / 100), 0)
 }

@@ -4,19 +4,14 @@ export interface Opportunity {
   id: string
   name: string
   company: string
+  contact: string
   value: number
   stage: Stage
   probability: number
-  expectedCloseDate: Date
+  expectedCloseDate: string
   assignedTo: string
-  contactId: string
-  createdAt: Date
-  updatedAt: Date
+  notes?: string
+  createdAt: string
 }
 
-export interface Forecast {
-  stage: Stage
-  totalValue: number
-  count: number
-  weightedValue: number
-}
+export type PipelineView = 'kanban' | 'list'
