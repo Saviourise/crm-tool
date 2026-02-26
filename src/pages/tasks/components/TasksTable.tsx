@@ -8,6 +8,7 @@ import {
   Circle,
   RotateCcw,
   Clock,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -398,14 +399,81 @@ function buildColumns(
   ]
 }
 
+// ─── Bulk Actions Bar ─────────────────────────────────────────────────────────
+
+function BulkActionsBar({
+  count,
+  onComplete,
+  onMarkTodo,
+  onDelete,
+  onClear,
+}: {
+  count: number
+  onComplete: () => void
+  onMarkTodo: () => void
+  onDelete: () => void
+  onClear: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-foreground text-background animate-in slide-in-from-top-2 duration-200">
+      <span className="text-sm font-medium tabular-nums shrink-0">
+        {count} task{count !== 1 ? 's' : ''} selected
+      </span>
+
+      <div className="h-4 w-px bg-background/20" />
+
+      <div className="flex items-center gap-1.5 flex-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs text-background hover:text-background hover:bg-background/15 gap-1.5"
+          onClick={onComplete}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Mark Complete
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs text-background hover:text-background hover:bg-background/15 gap-1.5"
+          onClick={onMarkTodo}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Reopen
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs text-background/80 hover:text-red-400 hover:bg-background/15 gap-1.5"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Delete
+        </Button>
+      </div>
+
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 text-background/60 hover:text-background hover:bg-background/15 shrink-0"
+        onClick={onClear}
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  )
+}
+
 // ─── Main TasksTable ──────────────────────────────────────────────────────────
 
 export function TasksTable({
   tasks,
   onToggleComplete,
+  onBulkAction,
 }: {
   tasks: Task[]
   onToggleComplete: (id: string) => void
+  onBulkAction: (ids: string[], action: 'complete' | 'todo' | 'delete') => void
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -421,52 +489,71 @@ export function TasksTable({
     })
   }
 
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const handleBulk = (action: 'complete' | 'todo' | 'delete') => {
+    onBulkAction(Array.from(selectedIds), action)
+    clearSelection()
+  }
+
   const columns = buildColumns(onToggleComplete, selectedIds, handleSelectAll, handleSelectRow)
 
   return (
-    <DataTable
-      columns={columns}
-      data={tasks}
-      searchPlaceholder="Search tasks..."
-      toolbar={(table) => (
-        <>
-          <Select
-            value={(table.getColumn('status')?.getFilterValue() as TaskStatus | undefined) ?? 'all'}
-            onValueChange={(val) => {
-              table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
-              table.setPageIndex(0)
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {TASK_STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={(table.getColumn('priority')?.getFilterValue() as TaskPriority | undefined) ?? 'all'}
-            onValueChange={(val) => {
-              table.getColumn('priority')?.setFilterValue(val === 'all' ? undefined : val)
-              table.setPageIndex(0)
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All Priorities" />
-            </SelectTrigger>
-            <SelectContent>
-              {TASK_PRIORITY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
+    <div className="space-y-2">
+      {selectedIds.size > 0 && (
+        <BulkActionsBar
+          count={selectedIds.size}
+          onComplete={() => handleBulk('complete')}
+          onMarkTodo={() => handleBulk('todo')}
+          onDelete={() => handleBulk('delete')}
+          onClear={clearSelection}
+        />
       )}
-      emptyMessage="No tasks found"
-      emptyDescription="Try adjusting your search or filters, or create a new task."
-    />
+
+      <DataTable
+        columns={columns}
+        data={tasks}
+        searchPlaceholder="Search tasks..."
+        toolbar={(table) => (
+          <>
+            <Select
+              value={(table.getColumn('status')?.getFilterValue() as TaskStatus | undefined) ?? 'all'}
+              onValueChange={(val) => {
+                table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
+                table.setPageIndex(0)
+              }}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {TASK_STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={(table.getColumn('priority')?.getFilterValue() as TaskPriority | undefined) ?? 'all'}
+              onValueChange={(val) => {
+                table.getColumn('priority')?.setFilterValue(val === 'all' ? undefined : val)
+                table.setPageIndex(0)
+              }}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Priorities" />
+              </SelectTrigger>
+              <SelectContent>
+                {TASK_PRIORITY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+        emptyMessage="No tasks found"
+        emptyDescription="Try adjusting your search or filters, or create a new task."
+      />
+    </div>
   )
 }
