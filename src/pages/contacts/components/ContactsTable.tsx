@@ -1,4 +1,4 @@
-import { MoreHorizontal, Mail, Phone, Linkedin, ArrowUpDown } from 'lucide-react'
+import { MoreHorizontal, Mail, Phone, Linkedin, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { Contact, SortField, ContactFilters } from '../typings'
+import type { Contact, SortField, ContactFilters } from '../typings'
 
 const statusStyles: Record<Contact['status'], string> = {
   active: 'bg-[oklch(var(--metric-green))] text-[oklch(var(--success))] border-[oklch(var(--success))]/20',
@@ -40,13 +40,20 @@ function SortButton({ field, label, currentSort, onSort }: {
   onSort: (field: SortField) => void
 }) {
   const isActive = currentSort.sortField === field
+  const Icon = isActive
+    ? currentSort.sortDirection === 'asc' ? ArrowUp : ArrowDown
+    : ArrowUpDown
+
   return (
     <button
-      className="flex items-center gap-1 hover:text-foreground transition-colors"
+      className={cn(
+        'flex items-center gap-1 transition-colors',
+        isActive ? 'text-foreground font-semibold' : 'hover:text-foreground'
+      )}
       onClick={() => onSort(field)}
     >
       {label}
-      <ArrowUpDown className={cn('h-3 w-3', isActive ? 'text-primary' : 'text-muted-foreground')} />
+      <Icon className={cn('h-3 w-3', isActive ? 'text-primary' : 'text-muted-foreground')} />
     </button>
   )
 }
