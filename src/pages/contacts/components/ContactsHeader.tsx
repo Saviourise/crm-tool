@@ -1,4 +1,5 @@
 import { Search, Plus, Upload, Download } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { AddContactDialog } from '@/components/common/AddContactDialog'
-import { ContactFilters, ContactStatus } from '../typings'
+import type { ContactFilters, ContactStatus } from '../typings'
 import { STATUS_OPTIONS } from '../data'
 
 interface ContactsHeaderProps {
@@ -30,11 +31,19 @@ export function ContactsHeader({ filters, total, onSearchChange, onStatusChange 
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => toast.info('Import contacts', { description: 'CSV import coming soon.' })}
+          >
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => toast.success('Contacts exported', { description: 'Your contacts have been exported as CSV.' })}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
 
@@ -15,6 +16,7 @@ export default function AppLayout() {
           </main>
         </div>
       </div>
+      <Toaster richColors position="bottom-right" />
     </SidebarProvider>
   )
 }
