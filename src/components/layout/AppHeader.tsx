@@ -8,7 +8,7 @@ import { UserMenu } from '@/components/common/UserMenu'
 
 export function AppHeader() {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-10 flex h-18 items-center bg-sidebar gap-4 border-b px-4 md:px-6">
       <SidebarTrigger className="-ml-1" />
 
       <div className="flex-1 max-w-md">

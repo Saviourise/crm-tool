@@ -27,12 +27,3 @@ export interface Company {
   createdAt: string
 }
 
-export type SortField = 'name' | 'email' | 'company' | 'status' | 'lastContacted' | 'createdAt'
-export type SortDirection = 'asc' | 'desc'
-
-export interface ContactFilters {
-  search: string
-  status: ContactStatus | 'all'
-  sortField: SortField
-  sortDirection: SortDirection
-}

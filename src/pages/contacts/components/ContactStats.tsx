@@ -1,7 +1,7 @@
 import { Users, UserCheck, UserX, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Contact } from '../typings'
+import type { Contact } from '../typings'
 
 interface ContactStatsProps {
   contacts: Contact[]

@@ -25,8 +25,8 @@ export const CAMPAIGN_STATUS_CONFIG: Record<CampaignStatus, { label: string; cla
   },
   completed: {
     label: 'Completed',
-    className: 'bg-[oklch(var(--metric-purple))] text-[oklch(var(--secondary))] border-[oklch(var(--secondary))]/20',
-    dot: 'bg-[oklch(var(--secondary))]',
+    className: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800',
+    dot: 'bg-violet-500',
   },
 }
 
@@ -220,6 +220,21 @@ export const MOCK_TEMPLATES: EmailTemplate[] = [
     usageCount: 138,
     createdAt: 'Jan 20, 2026',
   },
+]
+
+// ─── Audience Leads (for campaign audience selector) ──────────────────────────
+
+export const AUDIENCE_LEADS: { id: string; name: string; company: string }[] = [
+  { id: 'al1', name: 'Sarah Chen', company: 'Apex Technologies' },
+  { id: 'al2', name: 'Marcus Johnson', company: 'BlueStar Retail' },
+  { id: 'al3', name: 'Priya Patel', company: 'Cloudify Inc.' },
+  { id: 'al4', name: 'Tom Weber', company: 'DataSync Corp.' },
+  { id: 'al5', name: 'Elena Rossi', company: 'FinEdge Solutions' },
+  { id: 'al6', name: 'James Okafor', company: 'GreenLeaf Ventures' },
+  { id: 'al7', name: 'Yuki Tanaka', company: 'HorizonAI' },
+  { id: 'al8', name: 'Amanda Torres', company: 'InnovateLabs' },
+  { id: 'al9', name: 'Derek Nguyen', company: 'JetStream Media' },
+  { id: 'al10', name: 'Lisa Park', company: 'KineticTech' },
 ]
 
 // ─── Mock AI Generations ──────────────────────────────────────────────────────

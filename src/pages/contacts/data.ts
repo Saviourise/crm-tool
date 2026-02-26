@@ -1,4 +1,4 @@
-import { Contact, Company } from './typings'
+import type { Contact, Company } from './typings'
 
 export const MOCK_CONTACTS: Contact[] = [
   {

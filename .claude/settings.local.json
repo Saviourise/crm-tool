@@ -5,7 +5,9 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git revert:*)"
     ]
   }
 }

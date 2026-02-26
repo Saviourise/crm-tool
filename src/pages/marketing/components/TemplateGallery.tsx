@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Copy, Pencil, Trash2, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -42,50 +42,160 @@ const CATEGORY_FILTER_OPTIONS: { value: TemplateCategory | 'all'; label: string 
   { value: 're-engagement', label: 'Re-engagement' },
 ]
 
+// ─── Shared form fields ───────────────────────────────────────────────────────
+
+interface TemplateFormFieldsProps {
+  name: string; setName: (v: string) => void
+  subject: string; setSubject: (v: string) => void
+  category: TemplateCategory; setCategory: (v: TemplateCategory) => void
+  body: string; setBody: (v: string) => void
+  idPrefix: string
+}
+
+function TemplateFormFields({ name, setName, subject, setSubject, category, setCategory, body, setBody, idPrefix }: TemplateFormFieldsProps) {
+  return (
+    <>
+      <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}Name`}>Template Name *</Label>
+        <Input
+          id={`${idPrefix}Name`}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Follow-up After Demo"
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}Subject`}>Subject Line *</Label>
+        <Input
+          id={`${idPrefix}Subject`}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="Great meeting you, {{first_name}}"
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}Category`}>Category</Label>
+        <Select value={category} onValueChange={(v) => setCategory(v as TemplateCategory)}>
+          <SelectTrigger id={`${idPrefix}Category`}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {CATEGORY_FILTER_OPTIONS.filter((o) => o.value !== 'all').map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}Body`}>Body *</Label>
+        <textarea
+          id={`${idPrefix}Body`}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={8}
+          required
+          placeholder={`Hi {{first_name}},\n\nThank you for your interest in our platform...\n\nBest,\n{{sender_name}}`}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+        />
+        <p className="text-xs text-muted-foreground">
+          Use <code className="bg-muted px-1 rounded">{"{{first_name}}"}</code>,{' '}
+          <code className="bg-muted px-1 rounded">{"{{company}}"}</code>,{' '}
+          <code className="bg-muted px-1 rounded">{"{{sender_name}}"}</code> as merge tags.
+        </p>
+      </div>
+    </>
+  )
+}
+
 // ─── New Template Dialog ──────────────────────────────────────────────────────
 
 function NewTemplateDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [name, setName] = useState('')
+  const [subject, setSubject] = useState('')
+  const [category, setCategory] = useState<TemplateCategory>('follow-up')
+  const [body, setBody] = useState('')
+
+  const handleClose = () => {
+    setName(''); setSubject(''); setCategory('follow-up'); setBody('')
+    onOpenChange(false)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const form = e.target as HTMLFormElement
-    const name = (form.elements.namedItem('tplName') as HTMLInputElement).value
     toast.success('Template created', { description: `"${name}" has been saved.` })
-    onOpenChange(false)
-    form.reset()
+    handleClose()
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>New Template</DialogTitle>
             <DialogDescription>Create a reusable email template for your campaigns.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="tplName">Template Name *</Label>
-              <Input id="tplName" name="tplName" placeholder="Follow-up After Demo" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tplSubject">Subject Line *</Label>
-              <Input id="tplSubject" name="tplSubject" placeholder="Great meeting you, {{first_name}}" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tplCategory">Category</Label>
-              <Select name="tplCategory" defaultValue="follow-up">
-                <SelectTrigger id="tplCategory"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORY_FILTER_OPTIONS.filter((o) => o.value !== 'all').map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <TemplateFormFields
+              name={name} setName={setName}
+              subject={subject} setSubject={setSubject}
+              category={category} setCategory={setCategory}
+              body={body} setBody={setBody}
+              idPrefix="new"
+            />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
             <Button type="submit">Save Template</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Edit Template Dialog ─────────────────────────────────────────────────────
+
+function EditTemplateDialog({ template, onClose }: { template: EmailTemplate | null; onClose: () => void }) {
+  const [name, setName] = useState('')
+  const [subject, setSubject] = useState('')
+  const [category, setCategory] = useState<TemplateCategory>('follow-up')
+  const [body, setBody] = useState('')
+
+  useEffect(() => {
+    if (template) {
+      setName(template.name)
+      setSubject(template.subject)
+      setCategory(template.category)
+      setBody(template.preview)
+    }
+  }, [template])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    toast.success('Template updated', { description: `"${name}" has been saved.` })
+    onClose()
+  }
+
+  return (
+    <Dialog open={!!template} onOpenChange={(v) => { if (!v) onClose() }}>
+      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Edit Template</DialogTitle>
+            <DialogDescription>Update your email template.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <TemplateFormFields
+              name={name} setName={setName}
+              subject={subject} setSubject={setSubject}
+              category={category} setCategory={setCategory}
+              body={body} setBody={setBody}
+              idPrefix="edit"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">Save Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -95,7 +205,7 @@ function NewTemplateDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
 // ─── Template Card ────────────────────────────────────────────────────────────
 
-function TemplateCard({ template }: { template: EmailTemplate }) {
+function TemplateCard({ template, onEdit }: { template: EmailTemplate; onEdit: (t: EmailTemplate) => void }) {
   const cfg = TEMPLATE_CATEGORY_CONFIG[template.category]
 
   return (
@@ -126,7 +236,7 @@ function TemplateCard({ template }: { template: EmailTemplate }) {
                 <Copy className="h-4 w-4 mr-2" />
                 Duplicate
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info('Edit coming soon')}>
+              <DropdownMenuItem onClick={() => onEdit(template)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </DropdownMenuItem>
@@ -168,6 +278,7 @@ export function TemplateGallery({ templates }: { templates: EmailTemplate[] }) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all')
   const [newOpen, setNewOpen] = useState(false)
+  const [editTemplate, setEditTemplate] = useState<EmailTemplate | null>(null)
 
   const filtered = templates.filter((t) => {
     const matchesSearch = search === '' ||
@@ -206,7 +317,9 @@ export function TemplateGallery({ templates }: { templates: EmailTemplate[] }) {
 
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((t) => <TemplateCard key={t.id} template={t} />)}
+          {filtered.map((t) => (
+            <TemplateCard key={t.id} template={t} onEdit={setEditTemplate} />
+          ))}
         </div>
       ) : (
         <div className="py-16 text-center">
@@ -216,6 +329,7 @@ export function TemplateGallery({ templates }: { templates: EmailTemplate[] }) {
       )}
 
       <NewTemplateDialog open={newOpen} onOpenChange={setNewOpen} />
+      <EditTemplateDialog template={editTemplate} onClose={() => setEditTemplate(null)} />
     </>
   )
 }
