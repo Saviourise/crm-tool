@@ -1,5 +1,14 @@
 export type CampaignStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'completed'
 export type CampaignType = 'email' | 'sms' | 'social' | 'multi-channel'
+export type TemplateCategory = 'welcome' | 'nurture' | 'promotional' | 'follow-up' | 'newsletter' | 're-engagement'
+export type AIContentType = 'email' | 'social' | 'ad-copy'
+
+export interface CampaignMetrics {
+  sent: number
+  opened: number
+  clicked: number
+  converted: number
+}
 
 export interface Campaign {
   id: string
@@ -7,30 +16,27 @@ export interface Campaign {
   type: CampaignType
   status: CampaignStatus
   targetAudience: string
-  startDate?: Date
-  endDate?: Date
-  metrics: {
-    sent: number
-    opened: number
-    clicked: number
-    converted: number
-  }
-  createdAt: Date
+  startDate?: string
+  endDate?: string
+  metrics: CampaignMetrics
+  createdAt: string
 }
 
 export interface EmailTemplate {
   id: string
   name: string
   subject: string
-  content: string
-  category: string
-  createdAt: Date
+  preview: string
+  category: TemplateCategory
+  usageCount: number
+  createdAt: string
 }
 
-export interface AIContent {
+export interface AIGeneration {
   id: string
-  type: 'email' | 'social' | 'ad-copy'
+  type: AIContentType
+  tone: string
   prompt: string
-  generatedContent: string
-  createdAt: Date
+  output: string
+  createdAt: string
 }

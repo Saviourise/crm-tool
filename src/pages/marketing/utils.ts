@@ -1,15 +1,21 @@
-// Marketing utility functions
-export const calculateOpenRate = (opened: number, sent: number): number => {
-  if (sent === 0) return 0
-  return (opened / sent) * 100
+import type { CampaignMetrics } from './typings'
+
+export function getOpenRate(metrics: CampaignMetrics): number {
+  if (metrics.sent === 0) return 0
+  return Math.round((metrics.opened / metrics.sent) * 100)
 }
 
-export const calculateClickRate = (clicked: number, opened: number): number => {
-  if (opened === 0) return 0
-  return (clicked / opened) * 100
+export function getClickRate(metrics: CampaignMetrics): number {
+  if (metrics.opened === 0) return 0
+  return Math.round((metrics.clicked / metrics.opened) * 100)
 }
 
-export const calculateConversionRate = (converted: number, sent: number): number => {
-  if (sent === 0) return 0
-  return (converted / sent) * 100
+export function getConversionRate(metrics: CampaignMetrics): number {
+  if (metrics.clicked === 0) return 0
+  return Math.round((metrics.converted / metrics.clicked) * 100)
+}
+
+export function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return String(n)
 }
