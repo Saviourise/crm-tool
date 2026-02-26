@@ -12,6 +12,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { DatePicker } from './DatePicker'
 
 interface NewTaskDialogProps {
   trigger?: React.ReactNode
@@ -21,6 +29,7 @@ interface NewTaskDialogProps {
 
 export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: NewTaskDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [dueDate, setDueDate] = useState<Date | undefined>()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
@@ -29,11 +38,17 @@ export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: N
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     toast.success('Task created', { description: 'Your task has been added to the list.' })
+    setDueDate(undefined)
     setOpen(false)
   }
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setDueDate(undefined)
+    setOpen(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
@@ -54,23 +69,30 @@ export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: N
             </div>
             <div className="grid gap-2">
               <Label htmlFor="taskDueDate">Due Date</Label>
-              <Input id="taskDueDate" type="datetime-local" />
+              <DatePicker
+                id="taskDueDate"
+                value={dueDate}
+                onChange={setDueDate}
+                placeholder="Pick a due date"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="taskPriority">Priority</Label>
-              <select
-                id="taskPriority"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+              <Select defaultValue="medium">
+                <SelectTrigger id="taskPriority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit">Create Task</Button>

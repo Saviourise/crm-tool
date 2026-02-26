@@ -38,9 +38,9 @@ import { LEAD_STATUS_OPTIONS, LEAD_SOURCE_OPTIONS } from '../data'
 const statusStyles: Record<LeadStatus, string> = {
   new: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
   contacted: 'bg-[oklch(var(--metric-orange))] text-[oklch(var(--warning))] border-[oklch(var(--warning))]/20',
-  qualified: 'bg-[oklch(var(--metric-green))] text-[oklch(var(--success))] border-[oklch(var(--success))]/20',
+  qualified: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
   unqualified: 'bg-muted text-muted-foreground border-border',
-  converted: 'bg-[oklch(var(--metric-purple))] text-[oklch(var(--secondary))] border-[oklch(var(--secondary))]/20',
+  converted: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800',
 }
 
 const sourceLabels: Record<LeadSource, string> = {

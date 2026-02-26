@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DatePicker } from '@/components/common/DatePicker'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
 
 interface AddDealDialogProps {
@@ -30,6 +31,7 @@ interface AddDealDialogProps {
 
 export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, defaultStage = 'prospecting' }: AddDealDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [closeDate, setCloseDate] = useState<Date | undefined>()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
@@ -40,12 +42,18 @@ export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, def
     const form = e.target as HTMLFormElement
     const name = (form.elements.namedItem('dealName') as HTMLInputElement).value
     toast.success('Deal created', { description: `"${name}" has been added to your pipeline.` })
+    setCloseDate(undefined)
     setOpen(false)
     form.reset()
   }
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setCloseDate(undefined)
+    setOpen(next)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
@@ -98,7 +106,12 @@ export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, def
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="closeDate">Expected Close</Label>
-                <Input id="closeDate" name="closeDate" type="date" />
+                <DatePicker
+                  id="closeDate"
+                  value={closeDate}
+                  onChange={setCloseDate}
+                  placeholder="Pick a date"
+                />
               </div>
             </div>
             <div className="grid gap-2">
@@ -107,7 +120,7 @@ export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, def
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
             <Button type="submit">Add Deal</Button>
           </DialogFooter>
         </form>
