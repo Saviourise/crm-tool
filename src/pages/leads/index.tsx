@@ -1,12 +1,14 @@
+import { LeadsHeader } from './components/LeadsHeader'
+import { LeadsStats } from './components/LeadsStats'
+import { LeadsTable } from './components/LeadsTable'
+import { MOCK_LEADS } from './data'
+
 export default function Leads() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-        <p className="text-muted-foreground">
-          Capture and qualify new leads. Convert prospects into customers.
-        </p>
-      </div>
+      <LeadsHeader total={MOCK_LEADS.length} />
+      <LeadsStats leads={MOCK_LEADS} />
+      <LeadsTable leads={MOCK_LEADS} />
     </div>
   )
 }

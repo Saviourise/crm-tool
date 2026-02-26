@@ -8,11 +8,13 @@ export interface Lead {
   email: string
   phone?: string
   company?: string
+  position?: string
   status: LeadStatus
   source: LeadSource
-  score?: number
+  score: number
+  value?: number
   assignedTo?: string
   notes?: string
-  createdAt: Date
-  updatedAt: Date
+  lastActivity?: string
+  createdAt: string
 }
