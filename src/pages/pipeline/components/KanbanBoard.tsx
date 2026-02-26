@@ -382,7 +382,7 @@ export function KanbanBoard({ opportunities, onMoveOpportunity }: KanbanBoardPro
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveOpp(null)}
     >
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      <div className="kanban-scroll flex gap-3 overflow-x-auto px-4 md:px-6 lg:px-8 pt-1 pb-5">
         {PIPELINE_STAGES.map((stage) => (
           <KanbanColumn
             key={stage}

@@ -156,3 +156,45 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Kanban horizontal scrollbar ─────────────────────────────────────────── */
+
+.kanban-scroll {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--kanban-scrollbar-thumb) transparent;
+
+  /* Scoped custom properties — light mode */
+  --kanban-scrollbar-thumb: oklch(0.75 0 0 / 0.45);
+  --kanban-scrollbar-thumb-hover: oklch(0.55 0 0 / 0.6);
+}
+
+.dark .kanban-scroll {
+  --kanban-scrollbar-thumb: oklch(0.55 0 0 / 0.5);
+  --kanban-scrollbar-thumb-hover: oklch(0.7 0 0 / 0.6);
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+.kanban-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.kanban-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+  margin: 0 8px;
+}
+
+.kankan-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--kanban-scrollbar-thumb);
+  border-radius: 999px;
+  transition: background-color 0.15s ease;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--kanban-scrollbar-thumb-hover);
+}

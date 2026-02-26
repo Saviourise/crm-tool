@@ -26,10 +26,12 @@ export default function Pipeline() {
       <PipelineStats opportunities={opportunities} />
 
       {view === 'kanban' ? (
-        <KanbanBoard
-          opportunities={opportunities}
-          onMoveOpportunity={handleMoveOpportunity}
-        />
+        <div className="-mx-4 md:-mx-6 lg:-mx-8">
+          <KanbanBoard
+            opportunities={opportunities}
+            onMoveOpportunity={handleMoveOpportunity}
+          />
+        </div>
       ) : (
         <OpportunityList opportunities={opportunities} />
       )}
