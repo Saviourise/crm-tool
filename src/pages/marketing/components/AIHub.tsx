@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, Copy, RotateCcw, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+import { Sparkles, Copy, RotateCcw, ChevronDown, ChevronUp, Clock, Mail, Megaphone, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,23 +19,23 @@ import { MOCK_GENERATIONS } from '../data'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const CONTENT_TYPES: { value: AIContentType; label: string; icon: string; description: string }[] = [
+const CONTENT_TYPES: { value: AIContentType; label: string; icon: React.ElementType; description: string }[] = [
   {
     value: 'email',
     label: 'Email Copy',
-    icon: '✉️',
+    icon: Mail,
     description: 'Subject lines, body copy, and CTAs for email campaigns',
   },
   {
     value: 'social',
     label: 'Social Post',
-    icon: '📣',
+    icon: Megaphone,
     description: 'Engaging posts for LinkedIn, Twitter, and other platforms',
   },
   {
     value: 'ad-copy',
     label: 'Ad Copy',
-    icon: '🎯',
+    icon: Target,
     description: 'Headlines and descriptions for paid ads and landing pages',
   },
 ]
@@ -135,6 +135,7 @@ CTA: Book a Demo`,
 function HistoryItem({ gen, onReuse }: { gen: AIGeneration; onReuse: (gen: AIGeneration) => void }) {
   const [expanded, setExpanded] = useState(false)
   const typeCfg = CONTENT_TYPES.find((t) => t.value === gen.type)!
+  const TypeIcon = typeCfg.icon
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -143,7 +144,7 @@ function HistoryItem({ gen, onReuse }: { gen: AIGeneration; onReuse: (gen: AIGen
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className="text-base shrink-0">{typeCfg.icon}</span>
+        <TypeIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium line-clamp-1">{gen.prompt}</p>
           <div className="flex items-center gap-2 mt-0.5">
@@ -275,7 +276,7 @@ export function AIHub() {
                         : 'border-border hover:border-muted-foreground/40 hover:bg-muted/30 text-muted-foreground'
                     )}
                   >
-                    <span className="text-xl">{type.icon}</span>
+                    <type.icon className={cn('h-5 w-5 shrink-0', contentType === type.value ? 'text-primary' : 'text-muted-foreground')} />
                     <div>
                       <p className={cn('text-sm font-medium', contentType === type.value && 'text-foreground')}>{type.label}</p>
                       <p className="text-xs text-muted-foreground leading-snug">{type.description}</p>

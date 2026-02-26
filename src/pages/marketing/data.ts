@@ -30,11 +30,11 @@ export const CAMPAIGN_STATUS_CONFIG: Record<CampaignStatus, { label: string; cla
   },
 }
 
-export const CAMPAIGN_TYPE_CONFIG: Record<CampaignType, { label: string; icon: string }> = {
-  email: { label: 'Email', icon: '✉️' },
-  sms: { label: 'SMS', icon: '💬' },
-  social: { label: 'Social', icon: '📣' },
-  'multi-channel': { label: 'Multi-channel', icon: '🔀' },
+export const CAMPAIGN_TYPE_CONFIG: Record<CampaignType, { label: string }> = {
+  email: { label: 'Email' },
+  sms: { label: 'SMS' },
+  social: { label: 'Social' },
+  'multi-channel': { label: 'Multi-channel' },
 }
 
 export const TEMPLATE_CATEGORY_CONFIG: Record<TemplateCategory, { label: string; color: string }> = {
@@ -187,7 +187,7 @@ export const MOCK_TEMPLATES: EmailTemplate[] = [
   {
     id: 't3',
     name: 'Monthly Newsletter',
-    subject: '📰 What\'s new in February',
+    subject: 'What\'s new in February',
     preview: 'This month we\'re covering the latest product updates, industry insights, and success stories from our community. Plus, an exclusive offer just for subscribers.',
     category: 'newsletter',
     usageCount: 96,
@@ -205,7 +205,7 @@ export const MOCK_TEMPLATES: EmailTemplate[] = [
   {
     id: 't5',
     name: 'Flash Sale Announcement',
-    subject: '⚡ 30% off — this weekend only',
+    subject: '30% off — this weekend only',
     preview: 'Our biggest promotion of the quarter is here. Upgrade your plan before Sunday at midnight and lock in 30% savings for the full year. No promo code needed.',
     category: 'promotional',
     usageCount: 62,
@@ -255,13 +255,13 @@ Best,
     type: 'social',
     tone: 'engaging',
     prompt: 'LinkedIn post about CRM adoption improving sales team performance',
-    output: `🚀 We just hit a milestone worth sharing.
+    output: `We just hit a milestone worth sharing.
 
 After rolling out our CRM platform to 3 enterprise clients last quarter, the numbers are in:
 
-✅ 42% faster lead response time
-✅ 28% increase in pipeline conversion
-✅ 15 hours/week saved per rep on admin tasks
+- 42% faster lead response time
+- 28% increase in pipeline conversion
+- 15 hours/week saved per rep on admin tasks
 
 The secret? It's not just the tool — it's the process behind it.
 

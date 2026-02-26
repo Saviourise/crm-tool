@@ -1,3 +1,4 @@
+import { Phone, Mail, Users, RefreshCw, Monitor, FileText, Tag } from 'lucide-react'
 import type { TaskPriority, TaskStatus, TaskCategory } from './typings'
 
 export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: string; dot: string }> = {
@@ -42,14 +43,14 @@ export const STATUS_CONFIG: Record<TaskStatus, { label: string; className: strin
   },
 }
 
-export const CATEGORY_ICONS: Record<TaskCategory, string> = {
-  call: '📞',
-  email: '✉️',
-  meeting: '👥',
-  'follow-up': '🔁',
-  demo: '💻',
-  proposal: '📄',
-  other: '📌',
+export const CATEGORY_ICONS: Record<TaskCategory, React.ElementType> = {
+  call: Phone,
+  email: Mail,
+  meeting: Users,
+  'follow-up': RefreshCw,
+  demo: Monitor,
+  proposal: FileText,
+  other: Tag,
 }
 
 // Returns true if due date string is in the past and task is not done

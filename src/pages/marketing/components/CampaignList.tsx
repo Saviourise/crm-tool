@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Pencil, Trash2, Copy, Play, Pause, Plus } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Copy, Play, Pause, Plus, Mail, MessageSquare, Share2, Shuffle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -155,10 +155,10 @@ const columns: ColumnDef<Campaign, unknown>[] = [
     size: 280,
     cell: ({ row }) => {
       const c = row.original
-      const cfg = CAMPAIGN_TYPE_CONFIG[c.type]
+      const TypeIcon = { email: Mail, sms: MessageSquare, social: Share2, 'multi-channel': Shuffle }[c.type]
       return (
         <div className="flex items-start gap-2.5">
-          <span className="text-base mt-0.5 shrink-0">{cfg.icon}</span>
+          <TypeIcon className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
           <div className="min-w-0">
             <p className="text-sm font-medium leading-snug line-clamp-1">{c.name}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{c.targetAudience}</p>

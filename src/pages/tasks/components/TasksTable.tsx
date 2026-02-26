@@ -9,6 +9,9 @@ import {
   RotateCcw,
   Clock,
   X,
+  Briefcase,
+  Target,
+  User,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -296,9 +299,13 @@ function buildColumns(
         const task = row.original
         const overdue = isOverdue(task.dueDate, task.status)
         const done = task.status === 'completed'
+        const CategoryIcon = CATEGORY_ICONS[task.category]
+        const RelatedIcon = task.relatedTo
+          ? task.relatedTo.type === 'deal' ? Briefcase : task.relatedTo.type === 'lead' ? Target : User
+          : null
         return (
           <div className="flex items-start gap-2.5">
-            <span className="text-base mt-0.5 shrink-0">{CATEGORY_ICONS[task.category]}</span>
+            <CategoryIcon className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className={cn('text-sm font-medium leading-snug', done && 'line-through text-muted-foreground')}>
                 {task.title}
@@ -306,9 +313,9 @@ function buildColumns(
               {task.description && (
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{task.description}</p>
               )}
-              {task.relatedTo && (
-                <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  {task.relatedTo.type === 'deal' ? '💼' : task.relatedTo.type === 'lead' ? '🎯' : '👤'}{' '}
+              {task.relatedTo && RelatedIcon && (
+                <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
+                  <RelatedIcon className="h-3 w-3 shrink-0" />
                   {task.relatedTo.name}
                 </p>
               )}
