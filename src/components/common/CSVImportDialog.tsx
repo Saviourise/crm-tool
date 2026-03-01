@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { CloudUpload, ChevronRight, Check, AlertTriangle, X } from 'lucide-react'
+import { CloudUpload, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -275,7 +275,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
               <table className="text-xs w-full">
                 <thead>
                   <tr className="bg-muted/50 border-b">
-                    {csvHeaders.map((h, idx) =>
+                    {csvHeaders.map((_, idx) =>
                       columnMapping[idx] !== 'Skip' ? (
                         <th key={idx} className="px-3 py-2 text-left font-medium whitespace-nowrap">
                           {columnMapping[idx]}

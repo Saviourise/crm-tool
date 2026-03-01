@@ -1,4 +1,4 @@
-import { LeadStatus } from './typings'
+import type { Lead, LeadStatus } from './typings'
 
 // Lead utility functions
 export const getLeadStatusColor = (status: LeadStatus): string => {
@@ -12,7 +12,7 @@ export const getLeadStatusColor = (status: LeadStatus): string => {
   return colors[status]
 }
 
-export const calculateLeadScore = (lead: any): number => {
+export const calculateLeadScore = (lead: Lead): number => {
   // Placeholder for lead scoring logic
-  return 0
+  return lead.score ?? 0
 }

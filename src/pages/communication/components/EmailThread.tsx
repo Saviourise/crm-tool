@@ -20,7 +20,7 @@ function EmailCard({ email }: { email: EmailMessage }) {
   const isOutbound = email.direction === 'outbound'
 
   return (
-    <div className={cn('rounded-lg border', !email.read && 'border-primary/30 bg-primary/[0.02]')}>
+    <div className={cn('rounded-lg border', !email.read && 'border-primary/30 bg-primary/2')}>
       <button
         type="button"
         className="w-full flex items-start gap-3 p-3 text-left hover:bg-muted/30 transition-colors rounded-t-lg"
@@ -85,7 +85,7 @@ function ComposeArea({ contact, onSaveDraft, initialDraft, onDraftOpened }: Comp
       setOpen(true)
       onDraftOpened?.()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDraft?.id])
 
   const handleSend = () => {
@@ -97,7 +97,9 @@ function ComposeArea({ contact, onSaveDraft, initialDraft, onDraftOpened }: Comp
   }
 
   const handleSaveDraft = () => {
-    onSaveDraft(subject, body)
+    if (onSaveDraft) {
+      onSaveDraft(subject, body)
+    }
     setSubject('')
     setBody('')
     setOpen(false)

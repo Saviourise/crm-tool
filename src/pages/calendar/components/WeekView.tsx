@@ -1,4 +1,4 @@
-import { startOfWeek, addDays, format, isSameDay, isToday } from 'date-fns'
+import { startOfWeek, addDays, format, isToday } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '../typings'
 

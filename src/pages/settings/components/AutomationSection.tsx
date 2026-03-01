@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Plus, Pencil, Trash2, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -22,11 +21,11 @@ import type {
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const TRIGGER_LABELS: Record<AutomationTrigger, string> = {
-  'lead-created':       'Lead Created',
+  'lead-created': 'Lead Created',
   'deal-stage-changed': 'Deal Stage Changed',
-  'task-overdue':       'Task Overdue',
-  'contact-tag-added':  'Contact Tag Added',
-  'form-submitted':     'Form Submitted',
+  'task-overdue': 'Task Overdue',
+  'contact-tag-added': 'Contact Tag Added',
+  'form-submitted': 'Form Submitted',
 }
 
 const TRIGGERS: AutomationTrigger[] = [
@@ -34,11 +33,11 @@ const TRIGGERS: AutomationTrigger[] = [
 ]
 
 const ACTION_TYPE_LABELS: Record<AutomationActionType, string> = {
-  'send-email':       'Send Email',
-  'create-task':      'Create Task',
-  'assign-user':      'Assign User',
-  'add-tag':          'Add Tag',
-  'move-deal-stage':  'Move Deal Stage',
+  'send-email': 'Send Email',
+  'create-task': 'Create Task',
+  'assign-user': 'Assign User',
+  'add-tag': 'Add Tag',
+  'move-deal-stage': 'Move Deal Stage',
   'send-notification': 'Send Notification',
 }
 
@@ -59,11 +58,11 @@ interface CreateAutomationDialogProps {
 }
 
 function CreateAutomationDialog({ open, onClose, onSave, initial }: CreateAutomationDialogProps) {
-  const [step, setStep]             = useState(1)
-  const [name, setName]             = useState(initial?.name ?? '')
-  const [trigger, setTrigger]       = useState<AutomationTrigger>(initial?.trigger ?? 'lead-created')
+  const [step, setStep] = useState(1)
+  const [name, setName] = useState(initial?.name ?? '')
+  const [trigger, setTrigger] = useState<AutomationTrigger>(initial?.trigger ?? 'lead-created')
   const [conditions, setConditions] = useState<AutomationCondition[]>(initial?.conditions ?? [])
-  const [actions, setActions]       = useState<AutomationAction[]>(initial?.actions ?? [{ type: 'send-email' }])
+  const [actions, setActions] = useState<AutomationAction[]>(initial?.actions ?? [{ type: 'send-email' }])
 
   const isEdit = !!initial
 
@@ -300,21 +299,21 @@ function CreateAutomationDialog({ open, onClose, onSave, initial }: CreateAutoma
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function AutomationSection() {
-  const [rules, setRules]         = useState<AutomationRule[]>(MOCK_AUTOMATION_RULES)
+  const [rules, setRules] = useState<AutomationRule[]>(MOCK_AUTOMATION_RULES)
   const [createOpen, setCreateOpen] = useState(false)
-  const [editRule, setEditRule]   = useState<AutomationRule | null>(null)
+  const [editRule, setEditRule] = useState<AutomationRule | null>(null)
 
-  const activeCount     = rules.filter((r) => r.enabled).length
+  const activeCount = rules.filter((r) => r.enabled).length
   const totalExecutions = rules.reduce((sum, r) => sum + r.executionsThisMonth, 0)
-  const avgSuccess      = rules.length
+  const avgSuccess = rules.length
     ? Math.round(rules.reduce((sum, r) => sum + r.successRate, 0) / rules.length)
     : 0
 
   const handleCreate = (data: Omit<AutomationRule, 'id' | 'executionsThisMonth' | 'successRate'>) => {
     const newRule: AutomationRule = {
-      id:                  `ar${Date.now()}`,
+      id: `ar${Date.now()}`,
       executionsThisMonth: 0,
-      successRate:         100,
+      successRate: 100,
       ...data,
     }
     setRules((prev) => [...prev, newRule])

@@ -5,7 +5,7 @@ import {
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,15 +17,15 @@ import { cn } from '@/lib/utils'
 // ─── SSO Settings Card ─────────────────────────────────────────────────────────
 
 function SSOSettingsCard() {
-  const [ssoEnabled, setSsoEnabled]   = useState(false)
-  const [idpUrl, setIdpUrl]           = useState('')
-  const [entityId, setEntityId]       = useState('')
+  const [ssoEnabled, setSsoEnabled] = useState(false)
+  const [idpUrl, setIdpUrl] = useState('')
+  const [entityId, setEntityId] = useState('')
   const [certificate, setCertificate] = useState('')
 
   const acsCallbackUrl = 'https://crm.example.com/sso/acs'
 
   const handleCopyAcs = () => {
-    navigator.clipboard.writeText(acsCallbackUrl).catch(() => {})
+    navigator.clipboard.writeText(acsCallbackUrl).catch(() => { })
     toast.success('ACS callback URL copied to clipboard')
   }
 
@@ -152,19 +152,19 @@ function SSOSettingsCard() {
 
 const DEVICE_ICONS: Record<SessionDevice, React.ElementType> = {
   desktop: Monitor,
-  mobile:  Smartphone,
-  tablet:  Tablet,
+  mobile: Smartphone,
+  tablet: Tablet,
 }
 
 // ─── Create API Key Dialog ─────────────────────────────────────────────────────
 
 const ALL_SCOPES = [
-  { value: 'contacts:read',  label: 'Contacts — Read' },
+  { value: 'contacts:read', label: 'Contacts — Read' },
   { value: 'contacts:write', label: 'Contacts — Write' },
-  { value: 'leads:read',     label: 'Leads — Read' },
-  { value: 'leads:write',    label: 'Leads — Write' },
-  { value: 'reports:read',   label: 'Reports — Read' },
-  { value: 'pipeline:read',  label: 'Pipeline — Read' },
+  { value: 'leads:read', label: 'Leads — Read' },
+  { value: 'leads:write', label: 'Leads — Write' },
+  { value: 'reports:read', label: 'Reports — Read' },
+  { value: 'pipeline:read', label: 'Pipeline — Read' },
 ]
 
 function CreateKeyDialog({
@@ -263,16 +263,16 @@ export function SecuritySection() {
   }
 
   const copyKey = (prefix: string) => {
-    navigator.clipboard.writeText(`${prefix}••••••••••••`).catch(() => {})
+    navigator.clipboard.writeText(`${prefix}••••••••••••`).catch(() => { })
     toast.success('Key prefix copied to clipboard')
   }
 
   const handleCreateKey = (name: string, scopes: string[]) => {
     const newKey: ApiKey = {
-      id:       `k${Date.now()}`,
+      id: `k${Date.now()}`,
       name,
-      prefix:   `crm_live_${Math.random().toString(36).slice(2, 6)}`,
-      created:  'Feb 27, 2026',
+      prefix: `crm_live_${Math.random().toString(36).slice(2, 6)}`,
+      created: 'Feb 27, 2026',
       lastUsed: 'Never',
       scopes,
     }

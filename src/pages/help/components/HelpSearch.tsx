@@ -1,17 +1,15 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { HelpArticle, HelpCategory } from '../typings'
+import type { HelpArticle } from '../typings'
 import { HELP_ARTICLES } from '../data'
 
 interface HelpSearchProps {
-  articles: HelpArticle[]
-  categories: HelpCategory[]
   onResults: (results: HelpArticle[]) => void
   onQueryChange: (searching: boolean) => void
 }
 
-export function HelpSearch({ articles, categories, onResults, onQueryChange }: HelpSearchProps) {
+export function HelpSearch({ onResults, onQueryChange }: HelpSearchProps) {
   const [query, setQuery] = useState('')
   const [resultCount, setResultCount] = useState(0)
 

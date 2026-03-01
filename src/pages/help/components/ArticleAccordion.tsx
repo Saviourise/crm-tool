@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { HelpArticle } from '../typings'
 
 interface ArticleAccordionProps {
-  articles: HelpArticle[]
+  articles?: HelpArticle[]
 }
 
-export function ArticleAccordion({ articles }: ArticleAccordionProps) {
+export function ArticleAccordion({ articles = [] }: ArticleAccordionProps) {
   const [openId, setOpenId] = useState<string | null>(null)
 
   return (

@@ -1,4 +1,4 @@
-import { ComposedChart, Bar, Line, CartesianGrid, XAxis, YAxis, Legend } from 'recharts'
+import { ComposedChart, Bar, Line, CartesianGrid, XAxis, YAxis, } from 'recharts'
 import { Target, TrendingUp, Layers, CheckCircle2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,21 +18,21 @@ import { formatCurrency, formatPercent, getProbabilityConfig } from '../utils'
 
 const forecastConfig: ChartConfig = {
   forecast: { label: 'Forecast', color: '#3b82f6' },
-  actual:   { label: 'Actual',   color: '#10b981' },
+  actual: { label: 'Actual', color: '#10b981' },
 }
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 
-const qForecast   = 273800
-const qTarget     = 280000
+const qForecast = 273800
+const qTarget = 280000
 const coverageRatio = 2.4
 const forecastAccuracy = 87.3
 
 const STATS = [
-  { label: 'Q1 Forecast',         value: formatCurrency(qForecast, true),    sub: `vs ${formatCurrency(qTarget, true)} target`, icon: Target,       border: 'border-l-blue-500',    icon_bg: 'bg-blue-50 dark:bg-blue-950/40',       icon_color: 'text-blue-600 dark:text-blue-400' },
-  { label: 'Q1 Target',           value: formatCurrency(qTarget, true),      sub: `${formatPercent((qForecast/qTarget)*100, 0)} attained`, icon: CheckCircle2, border: 'border-l-emerald-500', icon_bg: 'bg-emerald-50 dark:bg-emerald-950/40', icon_color: 'text-emerald-600 dark:text-emerald-400' },
-  { label: 'Pipeline Coverage',   value: `${coverageRatio}x`,                sub: 'Target vs open pipeline',                    icon: Layers,       border: 'border-l-violet-500',  icon_bg: 'bg-violet-50 dark:bg-violet-950/40',   icon_color: 'text-violet-600 dark:text-violet-400' },
-  { label: 'Forecast Accuracy',   value: formatPercent(forecastAccuracy),    sub: 'Actual vs predicted (6 mo.)',                icon: TrendingUp,   border: 'border-l-amber-500',   icon_bg: 'bg-amber-50 dark:bg-amber-950/40',     icon_color: 'text-amber-600 dark:text-amber-400' },
+  { label: 'Q1 Forecast', value: formatCurrency(qForecast, true), sub: `vs ${formatCurrency(qTarget, true)} target`, icon: Target, border: 'border-l-blue-500', icon_bg: 'bg-blue-50 dark:bg-blue-950/40', icon_color: 'text-blue-600 dark:text-blue-400' },
+  { label: 'Q1 Target', value: formatCurrency(qTarget, true), sub: `${formatPercent((qForecast / qTarget) * 100, 0)} attained`, icon: CheckCircle2, border: 'border-l-emerald-500', icon_bg: 'bg-emerald-50 dark:bg-emerald-950/40', icon_color: 'text-emerald-600 dark:text-emerald-400' },
+  { label: 'Pipeline Coverage', value: `${coverageRatio}x`, sub: 'Target vs open pipeline', icon: Layers, border: 'border-l-violet-500', icon_bg: 'bg-violet-50 dark:bg-violet-950/40', icon_color: 'text-violet-600 dark:text-violet-400' },
+  { label: 'Forecast Accuracy', value: formatPercent(forecastAccuracy), sub: 'Actual vs predicted (6 mo.)', icon: TrendingUp, border: 'border-l-amber-500', icon_bg: 'bg-amber-50 dark:bg-amber-950/40', icon_color: 'text-amber-600 dark:text-amber-400' },
 ]
 
 // ─── Component ────────────────────────────────────────────────────────────────

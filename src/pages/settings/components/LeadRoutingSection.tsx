@@ -20,27 +20,27 @@ const METHOD_OPTIONS: {
   description: string
   icon: React.ElementType
 }[] = [
-  {
-    id:          'round-robin',
-    label:       'Round Robin',
-    description: 'Distribute leads evenly in rotation',
-    icon:        RotateCcw,
-  },
-  {
-    id:          'territory',
-    label:       'Territory-Based',
-    description: 'Route based on geography or domain',
-    icon:        Map,
-  },
-  {
-    id:          'score',
-    label:       'Score-Based',
-    description: 'Assign by lead score threshold',
-    icon:        BarChart2,
-  },
-]
+    {
+      id: 'round-robin',
+      label: 'Round Robin',
+      description: 'Distribute leads evenly in rotation',
+      icon: RotateCcw,
+    },
+    {
+      id: 'territory',
+      label: 'Territory-Based',
+      description: 'Route based on geography or domain',
+      icon: Map,
+    },
+    {
+      id: 'score',
+      label: 'Score-Based',
+      description: 'Assign by lead score threshold',
+      icon: BarChart2,
+    },
+  ]
 
-const TERRITORY_FIELDS    = ['country', 'state', 'city', 'domain', 'industry']
+const TERRITORY_FIELDS = ['country', 'state', 'city', 'domain', 'industry']
 const TERRITORY_OPERATORS = ['equals', 'not equals', 'contains', 'starts with', 'ends with']
 
 // ─── Round Robin View ──────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ function RoundRobinView({
   setMembers: React.Dispatch<React.SetStateAction<RoutingMember[]>>
 }) {
   const activeMembers = members.filter((m) => m.active)
-  const nextAssignee  = activeMembers[0]?.name ?? 'No active members'
+  const nextAssignee = activeMembers[0]?.name ?? 'No active members'
 
   const toggleMember = (id: string) => {
     setMembers((prev) =>
@@ -65,7 +65,7 @@ function RoundRobinView({
     if (idx === 0) return
     setMembers((prev) => {
       const arr = [...prev]
-      ;[arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]]
+        ;[arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]]
       return arr
     })
   }
@@ -74,7 +74,7 @@ function RoundRobinView({
     setMembers((prev) => {
       if (idx === prev.length - 1) return prev
       const arr = [...prev]
-      ;[arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]]
+        ;[arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]]
       return arr
     })
   }
@@ -281,7 +281,7 @@ function ScoreView({
       {tiers.length === 0 && (
         <p className="text-sm text-muted-foreground py-2">No score tiers configured.</p>
       )}
-      {tiers.map((tier, idx) => (
+      {tiers.map((tier) => (
         <div key={tier.id} className="flex items-center gap-3 p-3 rounded-lg border">
           <span className="text-sm text-muted-foreground shrink-0">Score</span>
           <span className="text-sm font-medium shrink-0">&#8805;</span>
@@ -321,10 +321,10 @@ function ScoreView({
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function LeadRoutingSection() {
-  const [method, setMethod]         = useState<RoutingMethod>(DEFAULT_LEAD_ROUTING.method)
-  const [members, setMembers]       = useState<RoutingMember[]>(DEFAULT_LEAD_ROUTING.members)
-  const [rules, setRules]           = useState<TerritoryRule[]>(DEFAULT_LEAD_ROUTING.territoryRules)
-  const [tiers, setTiers]           = useState<ScoreTier[]>(DEFAULT_LEAD_ROUTING.scoreTiers)
+  const [method, setMethod] = useState<RoutingMethod>(DEFAULT_LEAD_ROUTING.method)
+  const [members, setMembers] = useState<RoutingMember[]>(DEFAULT_LEAD_ROUTING.members)
+  const [rules, setRules] = useState<TerritoryRule[]>(DEFAULT_LEAD_ROUTING.territoryRules)
+  const [tiers, setTiers] = useState<ScoreTier[]>(DEFAULT_LEAD_ROUTING.scoreTiers)
 
   const handleSave = () => {
     toast.success('Lead routing settings saved')
@@ -374,13 +374,13 @@ export function LeadRoutingSection() {
         <CardHeader>
           <CardTitle>
             {method === 'round-robin' && 'Team Members'}
-            {method === 'territory'   && 'Territory Rules'}
-            {method === 'score'       && 'Score Tiers'}
+            {method === 'territory' && 'Territory Rules'}
+            {method === 'score' && 'Score Tiers'}
           </CardTitle>
           <CardDescription>
             {method === 'round-robin' && 'Set the rotation order and activate or deactivate members.'}
-            {method === 'territory'   && 'Define rules to route leads based on field values.'}
-            {method === 'score'       && 'Assign leads based on their score threshold.'}
+            {method === 'territory' && 'Define rules to route leads based on field values.'}
+            {method === 'score' && 'Assign leads based on their score threshold.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
