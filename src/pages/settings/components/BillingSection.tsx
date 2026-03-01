@@ -1,6 +1,21 @@
 import { useState } from 'react'
 import { Check, Download, CreditCard, Zap, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+
+function downloadInvoice(inv: { id: string; date: string; description: string; amount: number; status: string }) {
+  const csv = [
+    'Invoice ID,Date,Description,Amount,Status',
+    `${inv.id},${inv.date},"${inv.description}",$${inv.amount}.00,${inv.status}`,
+  ].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `invoice-${inv.id}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success(`Invoice ${inv.id} downloaded`)
+}
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -196,7 +211,9 @@ export function BillingSection() {
           <div className="flex items-center gap-3 pt-2 border-t">
             <Button
               size="sm"
-              onClick={() => toast.success('Scroll down to compare plans and upgrade.')}
+              onClick={() => {
+                document.getElementById('plan-comparison')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
             >
               Upgrade Plan
             </Button>
@@ -213,7 +230,7 @@ export function BillingSection() {
       </Card>
 
       {/* Plan comparison */}
-      <Card>
+      <Card id="plan-comparison">
         <CardHeader>
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -345,7 +362,7 @@ export function BillingSection() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => toast.success(`Downloading ${inv.id}...`)}
+                      onClick={() => downloadInvoice(inv)}
                     >
                       <Download className="h-3.5 w-3.5" />
                     </Button>

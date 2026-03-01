@@ -31,11 +31,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
+import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
 import type { Contact, ContactStatus } from '../typings'
 import { STATUS_OPTIONS } from '../data'
 import { ROUTES } from '@/router/routes'
+import { useAuth } from '@/auth/context'
 
 const statusStyles: Record<Contact['status'], string> = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
@@ -132,6 +134,12 @@ function ContactRowActions({ contact }: { contact: Contact }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
+  const { can } = useAuth()
+
+  const canEdit = can('contacts.edit')
+  const canDelete = can('contacts.delete')
+  const hasWriteAccess = canEdit || canDelete
 
   return (
     <>
@@ -155,37 +163,50 @@ function ContactRowActions({ contact }: { contact: Contact }) {
             </a>
           </Button>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Contact
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTaskOpen(true)}>
-              <CheckSquare className="h-4 w-4 mr-2" />
-              Create Task
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.info('Activity logged', { description: `Activity logged for ${contact.firstName} ${contact.lastName}.` })}>
-              <Clock className="h-4 w-4 mr-2" />
-              Log Activity
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {hasWriteAccess && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canEdit && (
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Contact
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => setTaskOpen(true)}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Create Task
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLogOpen(true)}>
+                <Clock className="h-4 w-4 mr-2" />
+                Log Activity
+              </DropdownMenuItem>
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <EditContactDialog contact={contact} open={editOpen} onOpenChange={setEditOpen} />
       <DeleteConfirmDialog contact={contact} open={deleteOpen} onOpenChange={setDeleteOpen} />
       <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+      <LogActivityDialog
+        open={logOpen}
+        onOpenChange={setLogOpen}
+        entityName={`${contact.firstName} ${contact.lastName}`}
+      />
     </>
   )
 }

@@ -3,6 +3,7 @@ import { format, startOfWeek, endOfWeek } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CalendarView } from '../typings'
+import { useAuth } from '@/auth/context'
 
 interface CalendarHeaderProps {
   view: CalendarView
@@ -40,6 +41,8 @@ export function CalendarHeader({
   onNavigate,
   onAddEvent,
 }: CalendarHeaderProps) {
+  const { can } = useAuth()
+
   return (
     <div className="flex items-center justify-between gap-3 flex-wrap">
       {/* Left: navigation */}
@@ -78,10 +81,12 @@ export function CalendarHeader({
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={onAddEvent}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Event
-        </Button>
+        {can('calendar.create') && (
+          <Button size="sm" onClick={onAddEvent}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Event
+          </Button>
+        )}
       </div>
     </div>
   )

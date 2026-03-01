@@ -1,9 +1,18 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { ROUTES } from './routes'
+import { RequireAuth } from '@/auth/guards'
 
 // Layout
 const AppLayout = lazy(() => import('@/components/layout/AppLayout'))
+
+// Auth pages (public)
+const LoginPage = lazy(() => import('@/pages/auth/Login'))
+const SignupPage = lazy(() => import('@/pages/auth/Signup'))
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPassword'))
+const VerifyOTPPage = lazy(() => import('@/pages/auth/VerifyOTP'))
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPassword'))
+const InviteAcceptPage = lazy(() => import('@/pages/auth/InviteAccept'))
 
 // Pages
 const Dashboard = lazy(() => import('@/pages/dashboard'))
@@ -22,6 +31,7 @@ const Marketing = lazy(() => import('@/pages/marketing'))
 const Reports = lazy(() => import('@/pages/reports'))
 const UserManagement = lazy(() => import('@/pages/users'))
 const Help = lazy(() => import('@/pages/help'))
+const Notifications = lazy(() => import('@/pages/notifications'))
 const Settings = lazy(() => import('@/pages/settings'))
 
 // Loading component
@@ -32,11 +42,63 @@ const PageLoader = () => (
 )
 
 export const router = createBrowserRouter([
+  // ─── Public auth routes (no app layout) ─────────────────────────────────────
+  {
+    path: '/login',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/signup',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <SignupPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ForgotPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/verify-otp',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <VerifyOTPPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ResetPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/invite/:token',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <InviteAcceptPage />
+      </Suspense>
+    ),
+  },
+  // ─── Protected app routes (require auth) ────────────────────────────────────
   {
     path: ROUTES.HOME,
     element: (
       <Suspense fallback={<PageLoader />}>
-        <AppLayout />
+        <RequireAuth>
+          <AppLayout />
+        </RequireAuth>
       </Suspense>
     ),
     children: [
@@ -169,6 +231,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <Help />
+          </Suspense>
+        ),
+      },
+      {
+        path: ROUTES.NOTIFICATIONS,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Notifications />
           </Suspense>
         ),
       },

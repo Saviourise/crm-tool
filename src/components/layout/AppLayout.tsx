@@ -3,6 +3,7 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
+import { ChatWidget } from '@/components/common/ChatWidget'
 
 export default function AppLayout() {
   return (
@@ -17,6 +18,7 @@ export default function AppLayout() {
         </div>
       </div>
       <Toaster richColors position="bottom-right" />
+      <ChatWidget />
     </SidebarProvider>
   )
 }

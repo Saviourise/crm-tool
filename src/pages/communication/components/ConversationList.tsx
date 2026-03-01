@@ -24,7 +24,7 @@ interface ConversationListProps {
   onSelect: (id: string) => void
   draftCount: number
   viewingDrafts: boolean
-  onViewDrafts: () => void
+  onViewDrafts?: () => void
 }
 
 export function ConversationList({ threads, selectedId, onSelect, draftCount, viewingDrafts, onViewDrafts }: ConversationListProps) {
@@ -76,7 +76,7 @@ export function ConversationList({ threads, selectedId, onSelect, draftCount, vi
       </div>
 
       {/* Drafts folder */}
-      <button
+      {onViewDrafts && <button
         type="button"
         onClick={onViewDrafts}
         className={cn(
@@ -94,7 +94,7 @@ export function ConversationList({ threads, selectedId, onSelect, draftCount, vi
             {draftCount}
           </span>
         )}
-      </button>
+      </button>}
 
       {/* Thread list */}
       <div className="flex-1 overflow-y-auto">

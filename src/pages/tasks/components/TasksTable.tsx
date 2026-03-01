@@ -43,10 +43,12 @@ import {
 } from '@/components/ui/select'
 import { DataTable } from '@/components/common/DataTable'
 import { DatePicker } from '@/components/common/DatePicker'
+import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { cn } from '@/lib/utils'
 import type { Task, TaskPriority, TaskStatus } from '../typings'
 import { PRIORITY_CONFIG, STATUS_CONFIG, CATEGORY_ICONS, isOverdue } from '../utils'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '../data'
+import { useAuth } from '@/auth/context'
 
 // ─── Edit Task Dialog ─────────────────────────────────────────────────────────
 
@@ -187,73 +189,86 @@ function TaskRowActions({
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
+  const { can } = useAuth()
+
+  const canEdit = can('tasks.edit')
+  const canDelete = can('tasks.delete')
+  const hasWriteAccess = canEdit || canDelete
 
   const isDone = task.status === 'completed'
 
   return (
     <>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title={isDone ? 'Mark as to do' : 'Mark as complete'}
-          onClick={() => onToggleComplete(task.id)}
-        >
-          {isDone ? (
-            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-          ) : (
-            <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(var(--success))]" />
-          )}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Task
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                onToggleComplete(task.id)
-              }}
-            >
-              {isDone ? (
+        {canEdit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title={isDone ? 'Mark as to do' : 'Mark as complete'}
+            onClick={() => onToggleComplete(task.id)}
+          >
+            {isDone ? (
+              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(var(--success))]" />
+            )}
+          </Button>
+        )}
+        {hasWriteAccess && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canEdit && (
                 <>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reopen Task
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Mark Complete
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Task
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onToggleComplete(task.id)}>
+                    {isDone ? (
+                      <>
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reopen Task
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Mark Complete
+                      </>
+                    )}
+                  </DropdownMenuItem>
                 </>
               )}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => toast.info('Activity logged', { description: `Activity logged for "${task.title}".` })}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Log Activity
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Task
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={() => setLogOpen(true)}>
+                <Clock className="h-4 w-4 mr-2" />
+                Log Activity
+              </DropdownMenuItem>
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Task
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <EditTaskDialog task={task} open={editOpen} onOpenChange={setEditOpen} />
       <DeleteTaskDialog task={task} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <LogActivityDialog open={logOpen} onOpenChange={setLogOpen} entityName={task.title} />
     </>
   )
 }
@@ -421,6 +436,10 @@ function BulkActionsBar({
   onDelete: () => void
   onClear: () => void
 }) {
+  const { can } = useAuth()
+  const canEdit = can('tasks.edit')
+  const canDelete = can('tasks.delete')
+
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground animate-in slide-in-from-top-2 duration-200">
       <span className="text-sm font-medium tabular-nums shrink-0">
@@ -430,33 +449,39 @@ function BulkActionsBar({
       <div className="h-4 w-px bg-primary-foreground/25" />
 
       <div className="flex items-center gap-1.5 flex-1">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-          onClick={onComplete}
-        >
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          Mark Complete
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-          onClick={onMarkTodo}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Reopen
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-          onClick={onDelete}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Delete
-        </Button>
+        {canEdit && (
+          <>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
+              onClick={onComplete}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Mark Complete
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
+              onClick={onMarkTodo}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reopen
+            </Button>
+          </>
+        )}
+        {canDelete && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete
+          </Button>
+        )}
       </div>
 
       <Button
@@ -483,6 +508,9 @@ export function TasksTable({
   onBulkAction: (ids: string[], action: 'complete' | 'todo' | 'delete') => void
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { can } = useAuth()
+  const canEdit = can('tasks.edit')
+  const canDelete = can('tasks.delete')
 
   const handleSelectAll = (checked: boolean) => {
     setSelectedIds(checked ? new Set(tasks.map((t) => t.id)) : new Set())
@@ -507,7 +535,7 @@ export function TasksTable({
 
   return (
     <div className="space-y-2">
-      {selectedIds.size > 0 && (
+      {selectedIds.size > 0 && (canEdit || canDelete) && (
         <BulkActionsBar
           count={selectedIds.size}
           onComplete={() => handleBulk('complete')}

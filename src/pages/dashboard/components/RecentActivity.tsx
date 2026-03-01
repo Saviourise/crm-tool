@@ -1,8 +1,10 @@
 import { UserPlus, Users, CheckSquare, DollarSign, Clock } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { ROUTES } from '@/router/routes'
 
 interface Activity {
   id: string
@@ -33,11 +35,18 @@ interface RecentActivityProps {
 }
 
 export function RecentActivity({ activities }: RecentActivityProps) {
+  const navigate = useNavigate()
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Recent Activity</CardTitle>
-        <button className="text-sm text-primary hover:underline">View All</button>
+        <button
+          className="text-sm text-primary hover:underline"
+          onClick={() => navigate(ROUTES.NOTIFICATIONS)}
+        >
+          View All
+        </button>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

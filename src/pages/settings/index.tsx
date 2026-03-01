@@ -13,8 +13,10 @@ import { IntegrationsSection } from './components/IntegrationsSection'
 import { SecuritySection } from './components/SecuritySection'
 import type { SettingsSection } from './typings'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/auth/context'
+import type { Permission, Feature } from '@/auth/types'
+import { AccessDenied } from '@/auth/guards'
 
-// Lazy-load new sections (they'll be created by the build agent)
 import { CustomFieldsSection } from './components/CustomFieldsSection'
 import { AutomationSection } from './components/AutomationSection'
 import { LeadRoutingSection } from './components/LeadRoutingSection'
@@ -23,32 +25,40 @@ import { PrivacySection } from './components/PrivacySection'
 
 // ─── Nav config ────────────────────────────────────────────────────────────────
 
-const NAV_GROUPS: { label: string; items: { id: SettingsSection; label: string; icon: React.ElementType }[] }[] = [
+interface SettingsNavItem {
+  id: SettingsSection
+  label: string
+  icon: React.ElementType
+  permission?: Permission
+  planRequired?: Feature
+}
+
+const NAV_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
   {
     label: 'Account',
     items: [
-      { id: 'profile',       label: 'Profile',       icon: User },
-      { id: 'password',      label: 'Password',      icon: Lock },
-      { id: 'notifications', label: 'Notifications', icon: Bell },
+      { id: 'profile',       label: 'Profile',       icon: User,          permission: 'settings.profile' },
+      { id: 'password',      label: 'Password',      icon: Lock,          permission: 'settings.profile' },
+      { id: 'notifications', label: 'Notifications', icon: Bell,          permission: 'settings.profile' },
     ],
   },
   {
     label: 'Workspace',
     items: [
-      { id: 'team',          label: 'Team',          icon: Users },
-      { id: 'billing',       label: 'Billing',       icon: CreditCard },
-      { id: 'custom-fields', label: 'Custom Fields', icon: Sliders },
-      { id: 'automation',    label: 'Automation',    icon: Zap },
-      { id: 'lead-routing',  label: 'Lead Routing',  icon: GitBranch },
-      { id: 'privacy',       label: 'Privacy',       icon: Shield },
+      { id: 'team',          label: 'Team',          icon: Users,         permission: 'settings.team' },
+      { id: 'billing',       label: 'Billing',       icon: CreditCard,    permission: 'settings.billing' },
+      { id: 'custom-fields', label: 'Custom Fields', icon: Sliders,       permission: 'settings.custom-fields', planRequired: 'custom-fields' },
+      { id: 'automation',    label: 'Automation',    icon: Zap,           permission: 'settings.automation',    planRequired: 'automation' },
+      { id: 'lead-routing',  label: 'Lead Routing',  icon: GitBranch,     permission: 'settings.lead-routing',  planRequired: 'lead-routing' },
+      { id: 'privacy',       label: 'Privacy',       icon: Shield,        permission: 'settings.privacy',       planRequired: 'privacy' },
     ],
   },
   {
     label: 'Connections',
     items: [
-      { id: 'integrations', label: 'Integrations', icon: Plug },
-      { id: 'security',     label: 'Security',     icon: ShieldCheck },
-      { id: 'audit-log',    label: 'Audit Log',    icon: ClipboardList },
+      { id: 'integrations',  label: 'Integrations',  icon: Plug,          permission: 'settings.integrations' },
+      { id: 'security',      label: 'Security',      icon: ShieldCheck,   permission: 'settings.security' },
+      { id: 'audit-log',     label: 'Audit Log',     icon: ClipboardList, permission: 'settings.audit-log',     planRequired: 'audit-log' },
     ],
   },
 ]
@@ -68,24 +78,41 @@ const SECTION_TITLES: Record<SettingsSection, { title: string; description: stri
   'audit-log':    { title: 'Audit Log',            description: 'Track all user actions and system events.' },
 }
 
-const ALL_SECTIONS = Object.keys(SECTION_TITLES) as SettingsSection[]
-
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function Settings() {
+  const { can, hasPlan } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  function isAccessible(item: SettingsNavItem): boolean {
+    if (item.planRequired && !hasPlan(item.planRequired)) return false
+    if (item.permission && !can(item.permission)) return false
+    return true
+  }
+
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(isAccessible),
+  })).filter((group) => group.items.length > 0)
+
+  const allVisibleSections = visibleGroups.flatMap((g) => g.items.map((i) => i.id))
+
   const sectionParam = searchParams.get('section') as SettingsSection | null
 
-  const initialSection: SettingsSection =
-    sectionParam && ALL_SECTIONS.includes(sectionParam) ? sectionParam : 'profile'
+  // Resolve the active section — fall back to first accessible if requested section is blocked
+  function resolveSection(param: SettingsSection | null): SettingsSection {
+    if (param && allVisibleSections.includes(param)) return param
+    return allVisibleSections[0] ?? 'profile'
+  }
 
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection)
+  const [activeSection, setActiveSection] = useState<SettingsSection>(() =>
+    resolveSection(sectionParam)
+  )
 
-  // Sync if URL changes externally
   useEffect(() => {
-    if (sectionParam && ALL_SECTIONS.includes(sectionParam)) {
-      setActiveSection(sectionParam)
-    }
+    const resolved = resolveSection(sectionParam)
+    setActiveSection(resolved)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionParam])
 
   function handleNavClick(id: SettingsSection) {
@@ -93,7 +120,10 @@ export default function Settings() {
     setSearchParams({ section: id }, { replace: true })
   }
 
-  const { title, description } = SECTION_TITLES[activeSection]
+  const { title, description } = SECTION_TITLES[activeSection] ?? SECTION_TITLES['profile']
+
+  // Check if the currently active section is actually accessible
+  const activeIsAccessible = allVisibleSections.includes(activeSection)
 
   return (
     <div className="space-y-6">
@@ -108,7 +138,7 @@ export default function Settings() {
       <div className="flex gap-8 items-start">
         {/* Sidebar nav */}
         <nav className="w-48 shrink-0 space-y-5 sticky top-6">
-          {NAV_GROUPS.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.label} className="space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-2">
                 {group.label}
@@ -138,24 +168,29 @@ export default function Settings() {
 
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-1">
-          {/* Section header */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-          </div>
+          {!activeIsAccessible ? (
+            <AccessDenied />
+          ) : (
+            <>
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold">{title}</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+              </div>
 
-          {activeSection === 'profile'        && <ProfileSection />}
-          {activeSection === 'password'       && <PasswordSection />}
-          {activeSection === 'notifications'  && <NotificationsSection />}
-          {activeSection === 'team'           && <TeamSection />}
-          {activeSection === 'billing'        && <BillingSection />}
-          {activeSection === 'custom-fields'  && <CustomFieldsSection />}
-          {activeSection === 'automation'     && <AutomationSection />}
-          {activeSection === 'lead-routing'   && <LeadRoutingSection />}
-          {activeSection === 'privacy'        && <PrivacySection />}
-          {activeSection === 'integrations'   && <IntegrationsSection />}
-          {activeSection === 'security'       && <SecuritySection />}
-          {activeSection === 'audit-log'      && <AuditLogSection />}
+              {activeSection === 'profile'        && <ProfileSection />}
+              {activeSection === 'password'       && <PasswordSection />}
+              {activeSection === 'notifications'  && <NotificationsSection />}
+              {activeSection === 'team'           && <TeamSection />}
+              {activeSection === 'billing'        && <BillingSection />}
+              {activeSection === 'custom-fields'  && <CustomFieldsSection />}
+              {activeSection === 'automation'     && <AutomationSection />}
+              {activeSection === 'lead-routing'   && <LeadRoutingSection />}
+              {activeSection === 'privacy'        && <PrivacySection />}
+              {activeSection === 'integrations'   && <IntegrationsSection />}
+              {activeSection === 'security'       && <SecuritySection />}
+              {activeSection === 'audit-log'      && <AuditLogSection />}
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,12 +1,15 @@
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
+import { useAuth } from '@/auth/context'
 
 interface TasksHeaderProps {
   total: number
 }
 
 export function TasksHeader({ total }: TasksHeaderProps) {
+  const { can } = useAuth()
+
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -16,14 +19,16 @@ export function TasksHeader({ total }: TasksHeaderProps) {
         </p>
       </div>
 
-      <NewTaskDialog
-        trigger={
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            New Task
-          </Button>
-        }
-      />
+      {can('tasks.create') && (
+        <NewTaskDialog
+          trigger={
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
+          }
+        />
+      )}
     </div>
   )
 }

@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
+import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
 import { currencyFormat } from '../utils'
@@ -70,6 +71,7 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
 function OpportunityRowActions({ opportunity }: { opportunity: Opportunity }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
 
   return (
     <>
@@ -81,15 +83,17 @@ function OpportunityRowActions({ opportunity }: { opportunity: Opportunity }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => toast.info('Edit deal', { description: `Opening editor for "${opportunity.name}".` })}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Deal
+            <DropdownMenuItem asChild>
+              <Link to={ROUTES.DEAL_DETAIL(opportunity.id)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Deal
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTaskOpen(true)}>
               <CheckSquare className="h-4 w-4 mr-2" />
               Create Task
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.info('Activity logged', { description: `Activity logged for "${opportunity.name}".` })}>
+            <DropdownMenuItem onClick={() => setLogOpen(true)}>
               <Clock className="h-4 w-4 mr-2" />
               Log Activity
             </DropdownMenuItem>
@@ -104,6 +108,7 @@ function OpportunityRowActions({ opportunity }: { opportunity: Opportunity }) {
 
       <DeleteDealDialog opportunity={opportunity} open={deleteOpen} onOpenChange={setDeleteOpen} />
       <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+      <LogActivityDialog open={logOpen} onOpenChange={setLogOpen} entityName={opportunity.name} />
     </>
   )
 }

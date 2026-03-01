@@ -31,6 +31,7 @@ import {
 import { cn } from '@/lib/utils'
 import type { EmailTemplate, TemplateCategory } from '../typings'
 import { TEMPLATE_CATEGORY_CONFIG } from '../data'
+import { useAuth } from '@/auth/context'
 
 const CATEGORY_FILTER_OPTIONS: { value: TemplateCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All Categories' },
@@ -203,72 +204,199 @@ function EditTemplateDialog({ template, onClose }: { template: EmailTemplate | n
   )
 }
 
+// ─── Delete Template Dialog ───────────────────────────────────────────────────
+
+function DeleteTemplateDialog({ template, open, onOpenChange }: {
+  template: EmailTemplate | null
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}) {
+  if (!template) return null
+  const handleDelete = () => {
+    toast.error('Template deleted', { description: `"${template.name}" removed.` })
+    onOpenChange(false)
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Delete Template</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>"{template.name}"</strong>? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={handleDelete}>Delete Template</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Template Card ────────────────────────────────────────────────────────────
 
-function TemplateCard({ template, onEdit }: { template: EmailTemplate; onEdit: (t: EmailTemplate) => void }) {
+function TemplateCard({
+  template,
+  onEdit,
+  onUseTemplate,
+}: {
+  template: EmailTemplate
+  onEdit: (t: EmailTemplate) => void
+  onUseTemplate: (t: EmailTemplate) => void
+}) {
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const cfg = TEMPLATE_CATEGORY_CONFIG[template.category]
+  const { can } = useAuth()
+
+  const canCreate = can('marketing.create')
+  const canEditTemplate = can('marketing.edit')
+  const canDeleteTemplate = can('marketing.delete')
+  const hasWriteAccess = canCreate || canEditTemplate || canDeleteTemplate
 
   return (
-    <Card className="flex flex-col overflow-hidden hover:shadow-md transition-shadow group">
-      {/* Preview strip */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
+    <>
+      <Card className="flex flex-col overflow-hidden hover:shadow-md transition-shadow group">
+        {/* Preview strip */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
 
-      <CardContent className="p-4 flex-1">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <Badge variant="outline" className={cn('text-xs font-medium', cfg.color)}>
-            {cfg.label}
-          </Badge>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 -mt-0.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <span className="sr-only">Options</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-                </svg>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => toast.success('Template duplicated', { description: `"${template.name}" copied.` })}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(template)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => toast.error('Template deleted', { description: `"${template.name}" removed.` })}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <CardContent className="p-4 flex-1">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <Badge variant="outline" className={cn('text-xs font-medium', cfg.color)}>
+              {cfg.label}
+            </Badge>
+            {hasWriteAccess && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 -mt-0.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <span className="sr-only">Options</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+                    </svg>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canCreate && (
+                    <DropdownMenuItem onClick={() => toast.success('Template duplicated', { description: `"${template.name}" copied.` })}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                  )}
+                  {canEditTemplate && (
+                    <DropdownMenuItem onClick={() => onEdit(template)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                  )}
+                  {canDeleteTemplate && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeleteOpen(true)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
-        <h3 className="font-semibold text-sm leading-snug mb-1">{template.name}</h3>
-        <p className="text-xs text-primary font-medium mb-2 line-clamp-1">{template.subject}</p>
-        <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{template.preview}</p>
-      </CardContent>
+          <h3 className="font-semibold text-sm leading-snug mb-1">{template.name}</h3>
+          <p className="text-xs text-primary font-medium mb-2 line-clamp-1">{template.subject}</p>
+          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{template.preview}</p>
+        </CardContent>
 
-      <CardFooter className="px-4 py-3 border-t flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Used {template.usageCount} times</span>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs"
-          onClick={() => toast.success('Template applied', { description: `Using "${template.name}" for your campaign.` })}
-        >
-          Use Template
-        </Button>
-      </CardFooter>
-    </Card>
+        <CardFooter className="px-4 py-3 border-t flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Used {template.usageCount} times</span>
+          {canCreate && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => onUseTemplate(template)}
+            >
+              Use Template
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+
+      <DeleteTemplateDialog template={template} open={deleteOpen} onOpenChange={setDeleteOpen} />
+    </>
+  )
+}
+
+// ─── Use Template → Create Campaign Dialog ────────────────────────────────────
+
+function UseTemplateDialog({ template, open, onOpenChange }: {
+  template: EmailTemplate | null
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}) {
+  const [name, setName] = useState('')
+
+  useEffect(() => {
+    if (template) setName(`${template.name} Campaign`)
+  }, [template])
+
+  if (!template) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    toast.success('Campaign created!', { description: `"${name}" has been saved as a draft.` })
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create Campaign from Template</DialogTitle>
+            <DialogDescription>
+              Using <strong>{template.name}</strong>. Fill in the details to create your campaign.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="use-camp-name">Campaign Name *</Label>
+              <Input
+                id="use-camp-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Subject</Label>
+              <Input readOnly value={template.subject} className="bg-muted/50 text-muted-foreground" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Body Preview</Label>
+              <textarea
+                readOnly
+                value={template.preview}
+                rows={5}
+                className="w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit">Create Campaign</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -279,6 +407,8 @@ export function TemplateGallery({ templates }: { templates: EmailTemplate[] }) {
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all')
   const [newOpen, setNewOpen] = useState(false)
   const [editTemplate, setEditTemplate] = useState<EmailTemplate | null>(null)
+  const [useTemplate, setUseTemplate] = useState<EmailTemplate | null>(null)
+  const { can } = useAuth()
 
   const filtered = templates.filter((t) => {
     const matchesSearch = search === '' ||
@@ -309,16 +439,23 @@ export function TemplateGallery({ templates }: { templates: EmailTemplate[] }) {
             ))}
           </SelectContent>
         </Select>
-        <Button size="sm" onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />
-          New Template
-        </Button>
+        {can('marketing.create') && (
+          <Button size="sm" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            New Template
+          </Button>
+        )}
       </div>
 
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((t) => (
-            <TemplateCard key={t.id} template={t} onEdit={setEditTemplate} />
+            <TemplateCard
+              key={t.id}
+              template={t}
+              onEdit={setEditTemplate}
+              onUseTemplate={setUseTemplate}
+            />
           ))}
         </div>
       ) : (
@@ -330,6 +467,11 @@ export function TemplateGallery({ templates }: { templates: EmailTemplate[] }) {
 
       <NewTemplateDialog open={newOpen} onOpenChange={setNewOpen} />
       <EditTemplateDialog template={editTemplate} onClose={() => setEditTemplate(null)} />
+      <UseTemplateDialog
+        template={useTemplate}
+        open={!!useTemplate}
+        onOpenChange={(v) => { if (!v) setUseTemplate(null) }}
+      />
     </>
   )
 }

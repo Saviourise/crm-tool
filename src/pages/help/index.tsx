@@ -1,10 +1,25 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { HelpSearch } from './components/HelpSearch'
 import { CategoryCard } from './components/CategoryCard'
 import { ContactSupportCard } from './components/ContactSupportCard'
 import { HELP_CATEGORIES, HELP_ARTICLES } from './data'
 import type { HelpArticle } from './typings'
+import { useAuth } from '@/auth/context'
+import type { Permission, Feature } from '@/auth/types'
+
+// ─── Category access gates ────────────────────────────────────────────────────
+
+const CATEGORY_GATES: Record<string, { planRequired?: Feature; permission?: Permission }> = {
+  'getting-started': {},
+  'contacts':        {},
+  'pipeline':        { planRequired: 'pipeline' },
+  'campaigns':       { planRequired: 'marketing' },
+  'reporting':       { planRequired: 'reports' },
+  'integrations':    { permission: 'settings.integrations' },
+}
+
+// ─── Search results component ─────────────────────────────────────────────────
 
 function SearchResults({
   results,
@@ -37,10 +52,29 @@ function SearchResults({
   )
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function Help() {
+  const { can, hasPlan } = useAuth()
   const [searchResults, setSearchResults] = useState<HelpArticle[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
+
+  // Filter categories the user has access to
+  const visibleCategories = useMemo(() => {
+    return HELP_CATEGORIES.filter((cat) => {
+      const gate = CATEGORY_GATES[cat.id] ?? {}
+      if (gate.planRequired && !hasPlan(gate.planRequired)) return false
+      if (gate.permission && !can(gate.permission)) return false
+      return true
+    })
+  }, [can, hasPlan])
+
+  // Only expose articles from accessible categories to search
+  const visibleArticles = useMemo(() => {
+    const visibleIds = new Set(visibleCategories.map((c) => c.id))
+    return HELP_ARTICLES.filter((a) => visibleIds.has(a.categoryId))
+  }, [visibleCategories])
 
   return (
     <div className="space-y-6">
@@ -49,24 +83,24 @@ export default function Help() {
         <p className="text-muted-foreground mt-1">Find answers, guides, and support resources.</p>
       </div>
 
-      {/* Search */}
+      {/* Search — scoped to articles the user can access */}
       <HelpSearch
-        articles={HELP_ARTICLES}
-        categories={HELP_CATEGORIES}
+        articles={visibleArticles}
+        categories={visibleCategories}
         onResults={setSearchResults}
         onQueryChange={setIsSearching}
       />
 
       {/* Search results or category grid */}
       {isSearching ? (
-        <SearchResults results={searchResults} categories={HELP_CATEGORIES} />
+        <SearchResults results={searchResults} categories={visibleCategories} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {HELP_CATEGORIES.map((cat) => (
+          {visibleCategories.map((cat) => (
             <CategoryCard
               key={cat.id}
               category={cat}
-              articles={HELP_ARTICLES.filter((a) => a.categoryId === cat.id)}
+              articles={visibleArticles.filter((a) => a.categoryId === cat.id)}
               isExpanded={expandedCategory === cat.id}
               onToggle={() =>
                 setExpandedCategory(expandedCategory === cat.id ? null : cat.id)

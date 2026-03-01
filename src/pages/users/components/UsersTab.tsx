@@ -25,6 +25,7 @@ import { MOCK_USERS } from '../data'
 import { getRoleBadgeClass, getRoleName, getStatusConfig } from '../utils'
 import type { AppUser, Role, UserStatus } from '../typings'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/auth/context'
 
 // ─── Invite Dialog ─────────────────────────────────────────────────────────────
 
@@ -201,6 +202,9 @@ function buildColumns(
   onToggleAll: () => void,
   onEdit: (user: AppUser) => void,
   onAction: (user: AppUser, action: 'deactivate' | 'reactivate' | 'resend' | 'remove') => void,
+  canEditUser: boolean,
+  canInvite: boolean,
+  canDeleteUser: boolean,
 ): ColumnDef<AppUser>[] {
   const allSelected = users.length > 0 && selectedIds.length === users.length
   const someSelected = selectedIds.length > 0 && selectedIds.length < users.length
@@ -298,6 +302,8 @@ function buildColumns(
       header: '',
       cell: ({ row }) => {
         const u = row.original
+        const hasAnyAction = canEditUser || canInvite || canDeleteUser
+        if (!hasAnyAction) return null
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -306,36 +312,42 @@ function buildColumns(
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(u)}>
-                <Edit2 className="h-3.5 w-3.5 mr-2" />
-                Edit User
-              </DropdownMenuItem>
-              {u.status === 'invited' && (
+              {canEditUser && (
+                <DropdownMenuItem onClick={() => onEdit(u)}>
+                  <Edit2 className="h-3.5 w-3.5 mr-2" />
+                  Edit User
+                </DropdownMenuItem>
+              )}
+              {canInvite && u.status === 'invited' && (
                 <DropdownMenuItem onClick={() => onAction(u, 'resend')}>
                   <SendHorizontal className="h-3.5 w-3.5 mr-2" />
                   Resend Invite
                 </DropdownMenuItem>
               )}
-              {u.status === 'active' && (
+              {canEditUser && u.status === 'active' && (
                 <DropdownMenuItem onClick={() => onAction(u, 'deactivate')}>
                   <ShieldOff className="h-3.5 w-3.5 mr-2" />
                   Deactivate
                 </DropdownMenuItem>
               )}
-              {u.status === 'deactivated' && (
+              {canEditUser && u.status === 'deactivated' && (
                 <DropdownMenuItem onClick={() => onAction(u, 'reactivate')}>
                   <RotateCcw className="h-3.5 w-3.5 mr-2" />
                   Reactivate
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => onAction(u, 'remove')}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-2" />
-                Remove User
-              </DropdownMenuItem>
+              {canDeleteUser && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => onAction(u, 'remove')}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                    Remove User
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -387,6 +399,10 @@ export function UsersTab({ roles }: { roles: Role[] }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [inviteOpen, setInviteOpen] = useState(false)
   const [editUser, setEditUser] = useState<AppUser | null>(null)
+  const { can } = useAuth()
+  const canInvite = can('users.invite')
+  const canEditUser = can('users.edit')
+  const canDeleteUser = can('users.delete')
 
   const handleToggle = (id: string) => {
     setSelectedIds((prev) =>
@@ -460,9 +476,9 @@ export function UsersTab({ roles }: { roles: Role[] }) {
   }
 
   const columns = useMemo(
-    () => buildColumns(users, roles, selectedIds, handleToggle, handleToggleAll, setEditUser, handleAction),
+    () => buildColumns(users, roles, selectedIds, handleToggle, handleToggleAll, setEditUser, handleAction, canEditUser, canInvite, canDeleteUser),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, roles, selectedIds],
+    [users, roles, selectedIds, canEditUser, canInvite, canDeleteUser],
   )
 
   return (
@@ -474,36 +490,42 @@ export function UsersTab({ roles }: { roles: Role[] }) {
         data={users}
         searchPlaceholder="Search users..."
         toolbar={() => (
-          <Button size="sm" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            Invite User
-          </Button>
+          canInvite ? (
+            <Button size="sm" onClick={() => setInviteOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-1.5" />
+              Invite User
+            </Button>
+          ) : null
         )}
         emptyMessage="No users found"
         emptyDescription="Invite team members to get started"
       />
 
       {/* Bulk actions bar */}
-      {selectedIds.length > 0 && (
+      {selectedIds.length > 0 && (canEditUser || canDeleteUser) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-primary text-primary-foreground px-5 py-3 rounded-full shadow-lg">
           <span className="text-sm font-medium">{selectedIds.length} selected</span>
           <div className="w-px h-4 bg-primary-foreground/30" />
-          <Button
-            size="sm"
-            className="h-7 text-xs bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground border-0 shadow-none"
-            onClick={handleBulkDeactivate}
-          >
-            <ShieldOff className="h-3.5 w-3.5 mr-1" />
-            Deactivate
-          </Button>
-          <Button
-            size="sm"
-            className="h-7 text-xs bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground border-0 shadow-none"
-            onClick={handleBulkRemove}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1" />
-            Remove
-          </Button>
+          {canEditUser && (
+            <Button
+              size="sm"
+              className="h-7 text-xs bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground border-0 shadow-none"
+              onClick={handleBulkDeactivate}
+            >
+              <ShieldOff className="h-3.5 w-3.5 mr-1" />
+              Deactivate
+            </Button>
+          )}
+          {canDeleteUser && (
+            <Button
+              size="sm"
+              className="h-7 text-xs bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground border-0 shadow-none"
+              onClick={handleBulkRemove}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Remove
+            </Button>
+          )}
           <button
             className="text-xs text-primary-foreground/70 hover:text-primary-foreground underline"
             onClick={() => setSelectedIds([])}

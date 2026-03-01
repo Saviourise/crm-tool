@@ -7,6 +7,7 @@ import { MOCK_CONVERSATIONS } from './data'
 import { ConversationList } from './components/ConversationList'
 import { ConversationView } from './components/ConversationView'
 import { DraftsView } from './components/DraftsView'
+import { useAuth } from '@/auth/context'
 
 function EmptyState() {
   return (
@@ -23,6 +24,9 @@ function EmptyState() {
 }
 
 export default function CommunicationCenter() {
+  const { can } = useAuth()
+  const canCompose = can('communication.create')
+
   const [searchParams] = useSearchParams()
   const contactId = searchParams.get('contactId')
 
@@ -98,13 +102,13 @@ export default function CommunicationCenter() {
         threads={MOCK_CONVERSATIONS.map((c) => c.thread)}
         selectedId={viewMode === 'conversations' ? selectedId : null}
         onSelect={handleSelect}
-        draftCount={drafts.length}
+        draftCount={canCompose ? drafts.length : 0}
         viewingDrafts={viewMode === 'drafts'}
-        onViewDrafts={() => setViewMode('drafts')}
+        onViewDrafts={canCompose ? () => setViewMode('drafts') : undefined}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {viewMode === 'drafts' ? (
+        {viewMode === 'drafts' && canCompose ? (
           <DraftsView
             drafts={drafts}
             onEdit={handleEditDraft}
@@ -115,8 +119,8 @@ export default function CommunicationCenter() {
             conversation={selected}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            onSaveDraft={handleSaveDraft}
-            initialDraft={pendingDraft}
+            onSaveDraft={canCompose ? handleSaveDraft : undefined}
+            initialDraft={canCompose ? pendingDraft : null}
             onDraftOpened={() => setPendingDraft(null)}
           />
         ) : (

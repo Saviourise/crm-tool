@@ -16,6 +16,7 @@ export const ROUTES = {
   REPORTS: '/reports',
   USERS: '/users',
   HELP: '/help',
+  NOTIFICATIONS: '/notifications',
   SETTINGS: '/settings',
   SETTINGS_BILLING: '/settings?section=billing',
 } as const

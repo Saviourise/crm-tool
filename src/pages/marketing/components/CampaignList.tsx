@@ -48,6 +48,7 @@ import {
   AUDIENCE_LEADS,
 } from '../data'
 import { getOpenRate, getClickRate, formatCount } from '../utils'
+import { useAuth } from '@/auth/context'
 
 // ─── Metric pill ──────────────────────────────────────────────────────────────
 
@@ -447,50 +448,102 @@ function EditCampaignDialog({ campaign, onClose }: { campaign: Campaign | null; 
   )
 }
 
+// ─── Delete Campaign Dialog ────────────────────────────────────────────────────
+
+function DeleteCampaignDialog({ campaign, open, onOpenChange }: {
+  campaign: Campaign | null
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}) {
+  if (!campaign) return null
+  const handleDelete = () => {
+    toast.error('Campaign deleted', { description: `"${campaign.name}" has been removed.` })
+    onOpenChange(false)
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Delete Campaign</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>"{campaign.name}"</strong>? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={handleDelete}>Delete Campaign</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Row actions ──────────────────────────────────────────────────────────────
 
 function CampaignRowActions({ campaign, onEdit }: { campaign: Campaign; onEdit: (c: Campaign) => void }) {
-  const canPause = campaign.status === 'active'
-  const canResume = campaign.status === 'paused'
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const { can } = useAuth()
+  const canEditCampaign = can('marketing.edit')
+  const canCreateCampaign = can('marketing.create')
+  const canSend = can('marketing.send')
+  const canDeleteCampaign = can('marketing.delete')
+  const hasWriteAccess = canEditCampaign || canCreateCampaign || canSend || canDeleteCampaign
+
+  const statusCanPause = campaign.status === 'active'
+  const statusCanResume = campaign.status === 'paused'
+
+  if (!hasWriteAccess) return null
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-          <MoreHorizontal className="h-3.5 w-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onEdit(campaign)}>
-          <Pencil className="h-4 w-4 mr-2" />
-          Edit Campaign
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => toast.success('Campaign duplicated', { description: `"${campaign.name}" has been duplicated as a draft.` })}>
-          <Copy className="h-4 w-4 mr-2" />
-          Duplicate
-        </DropdownMenuItem>
-        {canPause && (
-          <DropdownMenuItem onClick={() => toast.info('Campaign paused', { description: `"${campaign.name}" has been paused.` })}>
-            <Pause className="h-4 w-4 mr-2" />
-            Pause Campaign
-          </DropdownMenuItem>
-        )}
-        {canResume && (
-          <DropdownMenuItem onClick={() => toast.success('Campaign resumed', { description: `"${campaign.name}" is now active.` })}>
-            <Play className="h-4 w-4 mr-2" />
-            Resume Campaign
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => toast.error('Campaign deleted', { description: `"${campaign.name}" has been removed.` })}
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {canEditCampaign && (
+            <DropdownMenuItem onClick={() => onEdit(campaign)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Campaign
+            </DropdownMenuItem>
+          )}
+          {canCreateCampaign && (
+            <DropdownMenuItem onClick={() => toast.success('Campaign duplicated', { description: `"${campaign.name}" has been duplicated as a draft.` })}>
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
+            </DropdownMenuItem>
+          )}
+          {canSend && statusCanPause && (
+            <DropdownMenuItem onClick={() => toast.info('Campaign paused', { description: `"${campaign.name}" has been paused.` })}>
+              <Pause className="h-4 w-4 mr-2" />
+              Pause Campaign
+            </DropdownMenuItem>
+          )}
+          {canSend && statusCanResume && (
+            <DropdownMenuItem onClick={() => toast.success('Campaign resumed', { description: `"${campaign.name}" is now active.` })}>
+              <Play className="h-4 w-4 mr-2" />
+              Resume Campaign
+            </DropdownMenuItem>
+          )}
+          {canDeleteCampaign && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DeleteCampaignDialog campaign={campaign} open={deleteOpen} onOpenChange={setDeleteOpen} />
+    </>
   )
 }
 
@@ -596,6 +649,7 @@ function buildColumns(onEdit: (c: Campaign) => void): ColumnDef<Campaign, unknow
 export function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
   const [newOpen, setNewOpen] = useState(false)
   const [editCampaign, setEditCampaign] = useState<Campaign | null>(null)
+  const { can } = useAuth()
 
   const columns = useMemo(() => buildColumns(setEditCampaign), [])
 
@@ -635,10 +689,12 @@ export function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={() => setNewOpen(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              New Campaign
-            </Button>
+            {can('marketing.create') && (
+              <Button size="sm" onClick={() => setNewOpen(true)}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                New Campaign
+              </Button>
+            )}
           </>
         )}
         emptyMessage="No campaigns found"

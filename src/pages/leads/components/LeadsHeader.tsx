@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
 import { CSVImportDialog } from '@/components/common/CSVImportDialog'
+import { useAuth } from '@/auth/context'
 
 interface LeadsHeaderProps {
   total: number
@@ -11,6 +12,7 @@ interface LeadsHeaderProps {
 
 export function LeadsHeader({ total }: LeadsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
+  const { can, hasPlan } = useAuth()
 
   return (
     <div className="flex items-start justify-between">
@@ -21,30 +23,36 @@ export function LeadsHeader({ total }: LeadsHeaderProps) {
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setImportOpen(true)}
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Import
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => toast.success('Leads exported', { description: 'Your leads have been exported as CSV.' })}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Export
-        </Button>
-        <CreateLeadDialog
-          trigger={
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Lead
-            </Button>
-          }
-        />
+        {can('leads.import') && hasPlan('csv-import') && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+        )}
+        {(can('leads.create') || can('leads.edit')) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => toast.success('Leads exported', { description: 'Your leads have been exported as CSV.' })}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        )}
+        {can('leads.create') && (
+          <CreateLeadDialog
+            trigger={
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Lead
+              </Button>
+            }
+          />
+        )}
       </div>
       <CSVImportDialog open={importOpen} onOpenChange={setImportOpen} entity="leads" />
     </div>

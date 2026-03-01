@@ -1,6 +1,6 @@
 import { Mail, MessageCircle, Clock } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { openChat } from '@/lib/chatStore'
 
 export function ContactSupportCard() {
   return (
@@ -16,12 +16,7 @@ export function ContactSupportCard() {
             Email Support
           </Button>
         </a>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => toast.info('Live chat', { description: 'Connecting you to a support agent...' })}
-        >
+        <Button variant="outline" size="sm" className="gap-2" onClick={openChat}>
           <MessageCircle className="h-4 w-4" />
           Start Live Chat
         </Button>

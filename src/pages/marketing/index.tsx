@@ -6,6 +6,7 @@ import { CampaignList } from './components/CampaignList'
 import { TemplateGallery } from './components/TemplateGallery'
 import { AIHub } from './components/AIHub'
 import { MOCK_CAMPAIGNS, MOCK_TEMPLATES } from './data'
+import { RequireFeature } from '@/auth/guards'
 
 type MarketingTab = 'campaigns' | 'templates' | 'ai-hub'
 
@@ -19,6 +20,7 @@ export default function Marketing() {
   const [activeTab, setActiveTab] = useState<MarketingTab>('campaigns')
 
   return (
+    <RequireFeature feature="marketing">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -70,8 +72,11 @@ export default function Marketing() {
       )}
 
       {activeTab === 'ai-hub' && (
-        <AIHub />
+        <RequireFeature feature="ai-content">
+          <AIHub />
+        </RequireFeature>
       )}
     </div>
+    </RequireFeature>
   )
 }

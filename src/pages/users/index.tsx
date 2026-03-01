@@ -6,14 +6,9 @@ import { RolesTab } from './components/RolesTab'
 import { PermissionsTab } from './components/PermissionsTab'
 import { MOCK_ROLES, PERMISSIONS } from './data'
 import type { Role, PermissionMatrix, AppModule } from './typings'
+import { useAuth } from '@/auth/context'
 
 type UserMgmtTab = 'users' | 'roles' | 'permissions'
-
-const TABS: { id: UserMgmtTab; label: string }[] = [
-  { id: 'users',       label: 'Users' },
-  { id: 'roles',       label: 'Roles' },
-  { id: 'permissions', label: 'Permissions' },
-]
 
 const CUSTOM_ROLE_COLORS = [
   { color: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-400 dark:border-teal-800',           borderColor: 'border-l-teal-500' },
@@ -31,7 +26,17 @@ function clonePermissions(matrix: PermissionMatrix): PermissionMatrix {
   ) as PermissionMatrix
 }
 
+const ALL_TABS: { id: UserMgmtTab; label: string }[] = [
+  { id: 'users',       label: 'Users' },
+  { id: 'roles',       label: 'Roles' },
+  { id: 'permissions', label: 'Permissions' },
+]
+
 export default function UserManagement() {
+  const { can } = useAuth()
+  const canEditUsers = can('users.edit')
+  const TABS = ALL_TABS.filter((t) => t.id === 'users' || canEditUsers)
+
   const [activeTab, setActiveTab] = useState<UserMgmtTab>('users')
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
   const [permissions, setPermissions] = useState<PermissionMatrix>(() => clonePermissions(PERMISSIONS))
@@ -118,7 +123,7 @@ export default function UserManagement() {
       {activeTab === 'users' && (
         <UsersTab roles={roles} />
       )}
-      {activeTab === 'roles' && (
+      {activeTab === 'roles' && canEditUsers && (
         <RolesTab
           roles={roles}
           onCreate={handleCreateRole}
@@ -126,7 +131,7 @@ export default function UserManagement() {
           onDelete={handleDeleteRole}
         />
       )}
-      {activeTab === 'permissions' && (
+      {activeTab === 'permissions' && canEditUsers && (
         <PermissionsTab
           roles={roles}
           permissions={permissions}

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import type { Pipeline } from '../typings'
+import { useAuth } from '@/auth/context'
 
 interface PipelineSelectorProps {
   pipelines: Pipeline[]
@@ -20,6 +21,7 @@ function formatValue(value: number): string {
 }
 
 export function PipelineSelector({ pipelines, activePipelineId, onSelect, onNewPipeline }: PipelineSelectorProps) {
+  const { hasPlan } = useAuth()
   const [open, setOpen] = useState(false)
   const activePipeline = pipelines.find((p) => p.id === activePipelineId) ?? pipelines[0]
 
@@ -72,19 +74,21 @@ export function PipelineSelector({ pipelines, activePipelineId, onSelect, onNewP
             )
           })}
         </div>
-        <div className="border-t mt-1 pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              onNewPipeline()
-              setOpen(false)
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Pipeline
-          </button>
-        </div>
+        {hasPlan('multi-pipeline') && (
+          <div className="border-t mt-1 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                onNewPipeline()
+                setOpen(false)
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              New Pipeline
+            </button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   )

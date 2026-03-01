@@ -6,9 +6,21 @@ import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
 import { AddContactDialog } from '@/components/common/AddContactDialog'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { ROUTES } from '@/router/routes'
+import { useAuth } from '@/auth/context'
 
 export function QuickActions() {
   const navigate = useNavigate()
+  const { can, hasPlan } = useAuth()
+
+  const canCreateLead    = can('leads.create')
+  const canAddContact    = can('contacts.create')
+  const canCreateTask    = can('tasks.create')
+  const canSendCampaign  = can('marketing.send') && hasPlan('marketing')
+  const canViewAnalytics = can('reports.view') && hasPlan('reports')
+
+  const hasAnyAction = canCreateLead || canAddContact || canCreateTask || canSendCampaign || canViewAnalytics
+
+  if (!hasAnyAction) return null
 
   return (
     <Card>
@@ -16,62 +28,74 @@ export function QuickActions() {
         <CardTitle>Quick Actions</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2">
-        <CreateLeadDialog
-          trigger={
-            <Button variant="default" className="w-full justify-start" size="lg">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Create New Lead
-            </Button>
-          }
-        />
+        {canCreateLead && (
+          <CreateLeadDialog
+            trigger={
+              <Button variant="default" className="w-full justify-start" size="lg">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Create New Lead
+              </Button>
+            }
+          />
+        )}
 
-        <AddContactDialog
-          trigger={
-            <Button variant="outline" className="w-full justify-start" size="lg">
-              <Users className="mr-2 h-4 w-4" />
-              Add Contact
-            </Button>
-          }
-        />
+        {canAddContact && (
+          <AddContactDialog
+            trigger={
+              <Button variant="outline" className="w-full justify-start" size="lg">
+                <Users className="mr-2 h-4 w-4" />
+                Add Contact
+              </Button>
+            }
+          />
+        )}
 
-        <NewTaskDialog
-          trigger={
-            <Button variant="outline" className="w-full justify-start" size="lg">
-              <CheckSquare className="mr-2 h-4 w-4" />
-              New Task
-            </Button>
-          }
-        />
+        {canCreateTask && (
+          <NewTaskDialog
+            trigger={
+              <Button variant="outline" className="w-full justify-start" size="lg">
+                <CheckSquare className="mr-2 h-4 w-4" />
+                New Task
+              </Button>
+            }
+          />
+        )}
 
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          size="lg"
-          onClick={() => navigate(ROUTES.TASKS)}
-        >
-          <Phone className="mr-2 h-4 w-4" />
-          Schedule Call
-        </Button>
+        {canCreateTask && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            size="lg"
+            onClick={() => navigate(ROUTES.TASKS)}
+          >
+            <Phone className="mr-2 h-4 w-4" />
+            Schedule Call
+          </Button>
+        )}
 
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          size="lg"
-          onClick={() => navigate(ROUTES.MARKETING)}
-        >
-          <Mail className="mr-2 h-4 w-4" />
-          Send Campaign
-        </Button>
+        {canSendCampaign && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            size="lg"
+            onClick={() => navigate(ROUTES.MARKETING)}
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Send Campaign
+          </Button>
+        )}
 
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          size="lg"
-          onClick={() => navigate(ROUTES.REPORTS)}
-        >
-          <BarChart3 className="mr-2 h-4 w-4" />
-          View Analytics
-        </Button>
+        {canViewAnalytics && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            size="lg"
+            onClick={() => navigate(ROUTES.REPORTS)}
+          >
+            <BarChart3 className="mr-2 h-4 w-4" />
+            View Analytics
+          </Button>
+        )}
       </CardContent>
     </Card>
   )

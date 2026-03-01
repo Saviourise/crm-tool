@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import type { AIGeneration, AIContentType } from '../typings'
 import { MOCK_GENERATIONS } from '../data'
+import { RequireFeature } from '@/auth/guards'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,7 @@ export function AIHub() {
   }
 
   return (
+    <RequireFeature feature="ai-content">
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* ── Left: Input panel ── */}
       <div className="lg:col-span-2 space-y-5">
@@ -399,5 +401,6 @@ export function AIHub() {
         )}
       </div>
     </div>
+    </RequireFeature>
   )
 }

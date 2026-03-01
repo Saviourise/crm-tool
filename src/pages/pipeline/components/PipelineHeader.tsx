@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { AddDealDialog } from './AddDealDialog'
 import { BoardConfigSheet } from './BoardConfigSheet'
 import type { PipelineView, BoardConfig } from '../typings'
+import { useAuth } from '@/auth/context'
 
 interface PipelineHeaderProps {
   total: number
@@ -15,6 +16,8 @@ interface PipelineHeaderProps {
 }
 
 export function PipelineHeader({ total, view, onViewChange, config, onConfigChange, pipelineSelector }: PipelineHeaderProps) {
+  const { can } = useAuth()
+
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -48,8 +51,8 @@ export function PipelineHeader({ total, view, onViewChange, config, onConfigChan
           </Button>
         </div>
 
-        {/* Board config — only shown in kanban view */}
-        {view === 'kanban' && (
+        {/* Board config — only shown in kanban view for users who can edit */}
+        {view === 'kanban' && can('pipeline.edit') && (
           <BoardConfigSheet
             config={config}
             onConfigChange={onConfigChange}
@@ -62,14 +65,16 @@ export function PipelineHeader({ total, view, onViewChange, config, onConfigChan
           />
         )}
 
-        <AddDealDialog
-          trigger={
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Deal
-            </Button>
-          }
-        />
+        {can('pipeline.create') && (
+          <AddDealDialog
+            trigger={
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Deal
+              </Button>
+            }
+          />
+        )}
       </div>
     </div>
   )

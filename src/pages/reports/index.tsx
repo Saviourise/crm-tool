@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils'
 import { SalesPerformance } from './components/SalesPerformance'
 import { LeadAnalytics } from './components/LeadAnalytics'
 import { RevenueForecast } from './components/RevenueForecast'
+import { RequireFeature } from '@/auth/guards'
+import { useAuth } from '@/auth/context'
 import {
   MONTHLY_REVENUE,
   WON_LOST_DATA,
@@ -105,8 +107,10 @@ function exportCSV(activeTab: ReportTab) {
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState<ReportTab>('sales')
+  const { can } = useAuth()
 
   return (
+    <RequireFeature feature="reports">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -116,25 +120,27 @@ export default function Reports() {
             Analyze sales performance, lead metrics, and revenue forecasts.
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
-              <Download className="h-4 w-4" />
-              Export
-              <ChevronDown className="h-3.5 w-3.5 ml-0.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportPDF}>
-              <FileText className="h-4 w-4 mr-2" />
-              Export PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => exportCSV(activeTab)}>
-              <Table2 className="h-4 w-4 mr-2" />
-              Export CSV
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {can('reports.export') && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-3.5 w-3.5 ml-0.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportPDF}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportCSV(activeTab)}>
+                <Table2 className="h-4 w-4 mr-2" />
+                Export CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Tab nav */}
@@ -163,5 +169,6 @@ export default function Reports() {
       {activeTab === 'leads'    && <LeadAnalytics />}
       {activeTab === 'forecast' && <RevenueForecast />}
     </div>
+    </RequireFeature>
   )
 }

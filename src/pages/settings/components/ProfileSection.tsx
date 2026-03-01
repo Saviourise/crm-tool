@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { openChat } from '@/lib/chatStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -203,7 +204,7 @@ export function ProfileSection() {
                 <button
                   type="button"
                   className="underline hover:text-foreground transition-colors"
-                  onClick={() => toast.info('Opening support chat...')}
+                  onClick={openChat}
                 >
                   support
                 </button>

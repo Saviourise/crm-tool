@@ -40,12 +40,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
+import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { cn } from '@/lib/utils'
 import { currencyFormat } from '../utils'
 import { PIPELINE_STAGES, STAGE_CONFIG, STAGE_COLORS } from '../data'
 import { AddDealDialog } from './AddDealDialog'
 import type { Opportunity, Stage, BoardConfig, ColorConfig, CardFieldSettings, StageSettings } from '../typings'
 import { ROUTES } from '@/router/routes'
+import { useAuth } from '@/auth/context'
 
 // ─── Edit Deal Dialog ─────────────────────────────────────────────────────────
 
@@ -174,6 +176,12 @@ function DealCardContent({
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
+  const { can } = useAuth()
+
+  const canEdit = can('pipeline.edit')
+  const canDelete = can('pipeline.delete')
+  const hasWriteAccess = canEdit || canDelete
 
   const assigneeInitials = opportunity.assignedTo
     .split(' ')
@@ -198,7 +206,7 @@ function DealCardContent({
             <GripVertical className="h-4 w-4" />
           </button>
 
-          {!isOverlay && (
+          {!isOverlay && hasWriteAccess && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1">
@@ -206,23 +214,29 @@ function DealCardContent({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit Deal
-                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Deal
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => setTaskOpen(true)}>
                   <CheckSquare className="h-4 w-4 mr-2" />
                   Create Task
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info('Activity logged', { description: `Activity logged for "${opportunity.name}".` })}>
+                <DropdownMenuItem onClick={() => setLogOpen(true)}>
                   <Clock className="h-4 w-4 mr-2" />
                   Log Activity
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Deal
-                </DropdownMenuItem>
+                {canDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Deal
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -291,6 +305,7 @@ function DealCardContent({
           <EditDealDialog opportunity={opportunity} open={editOpen} onOpenChange={setEditOpen} />
           <DeleteDealDialog opportunity={opportunity} open={deleteOpen} onOpenChange={setDeleteOpen} />
           <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+          <LogActivityDialog open={logOpen} onOpenChange={setLogOpen} entityName={opportunity.name} />
         </>
       )}
     </div>
@@ -336,11 +351,13 @@ function KanbanColumn({
   opportunities,
   cardFields,
   columnWidth,
+  canCreate,
 }: {
   settings: StageSettings
   opportunities: Opportunity[]
   cardFields: CardFieldSettings
   columnWidth: number
+  canCreate: boolean
 }) {
   const colorConfig = STAGE_COLORS[settings.color]
   const { setNodeRef, isOver } = useDroppable({ id: settings.stage })
@@ -386,15 +403,17 @@ function KanbanColumn({
           />
         ))}
 
-        <AddDealDialog
-          defaultStage={settings.stage}
-          trigger={
-            <button className="w-full flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors">
-              <Plus className="h-3.5 w-3.5" />
-              Add deal
-            </button>
-          }
-        />
+        {canCreate && (
+          <AddDealDialog
+            defaultStage={settings.stage}
+            trigger={
+              <button className="w-full flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors">
+                <Plus className="h-3.5 w-3.5" />
+                Add deal
+              </button>
+            }
+          />
+        )}
       </div>
     </div>
   )
@@ -410,6 +429,8 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ opportunities, config, onMoveOpportunity }: KanbanBoardProps) {
   const [activeOpp, setActiveOpp] = useState<Opportunity | null>(null)
+  const { can } = useAuth()
+  const canCreate = can('pipeline.create')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -463,6 +484,7 @@ export function KanbanBoard({ opportunities, config, onMoveOpportunity }: Kanban
             opportunities={opportunities.filter((o) => o.stage === settings.stage)}
             cardFields={config.cardFields}
             columnWidth={config.columnWidth}
+            canCreate={canCreate}
           />
         ))}
       </div>

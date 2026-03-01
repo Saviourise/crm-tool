@@ -1,5 +1,6 @@
 import { Plus, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/auth/context'
 
 interface CompanyHeaderProps {
   total: number
@@ -8,6 +9,8 @@ interface CompanyHeaderProps {
 }
 
 export function CompanyHeader({ total, onAdd, onImport }: CompanyHeaderProps) {
+  const { can, hasPlan } = useAuth()
+
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -17,14 +20,18 @@ export function CompanyHeader({ total, onAdd, onImport }: CompanyHeaderProps) {
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={onImport}>
-          <Upload className="h-4 w-4 mr-2" />
-          Import
-        </Button>
-        <Button size="sm" onClick={onAdd}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Company
-        </Button>
+        {can('companies.create') && hasPlan('csv-import') && (
+          <Button variant="outline" size="sm" onClick={onImport}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+        )}
+        {can('companies.create') && (
+          <Button size="sm" onClick={onAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Company
+          </Button>
+        )}
       </div>
     </div>
   )

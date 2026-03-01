@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '../typings'
+import { useAuth } from '@/auth/context'
 
 interface EventDetailPopoverProps {
   event: CalendarEvent | null
@@ -32,6 +33,7 @@ const TYPE_BADGE: Record<string, string> = {
 }
 
 export function EventDetailPopover({ event, onClose }: EventDetailPopoverProps) {
+  const { can } = useAuth()
   if (!event) return null
 
   const formattedDate = format(parseISO(event.date), 'EEEE, MMMM d, yyyy')
@@ -87,26 +89,30 @@ export function EventDetailPopover({ event, onClose }: EventDetailPopoverProps) 
 
         <div className="flex items-center justify-between pt-2 border-t">
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => toast.info('Edit event', { description: 'Event editing coming soon.' })}
-            >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10"
-              onClick={() => {
-                toast.error('Event deleted', { description: `"${event.title}" has been removed.` })
-                onClose()
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Delete
-            </Button>
+            {can('calendar.edit') && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toast.info('Edit event', { description: 'Event editing coming soon.' })}
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </Button>
+            )}
+            {can('calendar.delete') && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => {
+                  toast.error('Event deleted', { description: `"${event.title}" has been removed.` })
+                  onClose()
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete
+              </Button>
+            )}
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="h-3.5 w-3.5 mr-1.5" />

@@ -11,8 +11,18 @@ import {
   PIPELINE_CHART_CONFIG,
   REVENUE_CHART_CONFIG,
 } from './data'
+import { useAuth } from '@/auth/context'
 
 export default function Dashboard() {
+  const { can, hasPlan } = useAuth()
+
+  const hasQuickActions =
+    can('leads.create') ||
+    can('contacts.create') ||
+    can('tasks.create') ||
+    (can('marketing.send') && hasPlan('marketing')) ||
+    (can('reports.view') && hasPlan('reports'))
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -53,13 +63,15 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Row: Activity + Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="md:col-span-2">
+      <div className={hasQuickActions ? 'grid gap-4 md:grid-cols-3' : undefined}>
+        <div className={hasQuickActions ? 'md:col-span-2' : undefined}>
           <RecentActivity activities={MOCK_ACTIVITIES} />
         </div>
-        <div>
-          <QuickActions />
-        </div>
+        {hasQuickActions && (
+          <div>
+            <QuickActions />
+          </div>
+        )}
       </div>
     </div>
   )

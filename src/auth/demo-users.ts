@@ -1,0 +1,70 @@
+import type { DemoUser } from './types'
+
+export const DEMO_USERS: DemoUser[] = [
+  {
+    id: 'u1',
+    name: 'Alex Rivera',
+    email: 'admin@demo.com',
+    password: 'demo1234',
+    role: 'super-admin',
+    plan: 'enterprise',
+    company: 'Acme Corporation',
+    avatarColor: 'bg-violet-500',
+    initials: 'AR',
+    jobTitle: 'Super Administrator',
+  },
+  {
+    id: 'u2',
+    name: 'Sarah Chen',
+    email: 'manager@demo.com',
+    password: 'demo1234',
+    role: 'manager',
+    plan: 'professional',
+    company: 'Acme Corporation',
+    avatarColor: 'bg-emerald-500',
+    initials: 'SC',
+    jobTitle: 'Sales Manager',
+  },
+  {
+    id: 'u3',
+    name: 'James Torres',
+    email: 'sales@demo.com',
+    password: 'demo1234',
+    role: 'sales-rep',
+    plan: 'basic',
+    company: 'Acme Corporation',
+    avatarColor: 'bg-blue-500',
+    initials: 'JT',
+    jobTitle: 'Sales Representative',
+  },
+  {
+    id: 'u4',
+    name: 'Priya Nair',
+    email: 'marketing@demo.com',
+    password: 'demo1234',
+    role: 'marketing',
+    plan: 'premium',
+    company: 'Acme Corporation',
+    avatarColor: 'bg-rose-500',
+    initials: 'PN',
+    jobTitle: 'Marketing Director',
+  },
+  {
+    id: 'u5',
+    name: 'Marcus Webb',
+    email: 'viewer@demo.com',
+    password: 'demo1234',
+    role: 'viewer',
+    plan: 'free',
+    company: 'Acme Corporation',
+    avatarColor: 'bg-amber-500',
+    initials: 'MW',
+    jobTitle: 'Business Analyst',
+  },
+]
+
+// Invite tokens map: token → pre-filled email + role
+export const INVITE_TOKENS: Record<string, { email: string; role: string; invitedBy: string }> = {
+  'token-invite-001': { email: 'newuser@demo.com', role: 'sales-rep', invitedBy: 'Sarah Chen' },
+  'token-invite-002': { email: 'partner@demo.com', role: 'viewer',   invitedBy: 'Alex Rivera' },
+}

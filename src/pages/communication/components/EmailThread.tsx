@@ -10,7 +10,7 @@ import type { ContactThread, EmailMessage, EmailDraft } from '../typings'
 interface EmailThreadProps {
   emails: EmailMessage[]
   contact: ContactThread
-  onSaveDraft: (subject: string, body: string) => void
+  onSaveDraft?: (subject: string, body: string) => void
   initialDraft?: EmailDraft | null
   onDraftOpened?: () => void
 }
@@ -67,7 +67,7 @@ function EmailCard({ email }: { email: EmailMessage }) {
 
 interface ComposeAreaProps {
   contact: ContactThread
-  onSaveDraft: (subject: string, body: string) => void
+  onSaveDraft?: (subject: string, body: string) => void
   initialDraft?: EmailDraft | null
   onDraftOpened?: () => void
 }
@@ -170,12 +170,14 @@ export function EmailThread({ emails, contact, onSaveDraft, initialDraft, onDraf
           emails.map((email) => <EmailCard key={email.id} email={email} />)
         )}
       </div>
-      <ComposeArea
-        contact={contact}
-        onSaveDraft={onSaveDraft}
-        initialDraft={initialDraft}
-        onDraftOpened={onDraftOpened}
-      />
+      {onSaveDraft && (
+        <ComposeArea
+          contact={contact}
+          onSaveDraft={onSaveDraft}
+          initialDraft={initialDraft}
+          onDraftOpened={onDraftOpened}
+        />
+      )}
     </div>
   )
 }

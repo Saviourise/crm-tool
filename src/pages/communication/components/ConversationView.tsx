@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Mail, MessageSquare, Phone, StickyNote, CheckCircle2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,7 @@ import { EmailThread } from './EmailThread'
 import { SMSThread } from './SMSThread'
 import { CallLog } from './CallLog'
 import { Notes } from './Notes'
+import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 
 const TABS: { id: Channel; label: string; icon: React.ElementType }[] = [
   { id: 'email', label: 'Email', icon: Mail },
@@ -21,12 +23,13 @@ interface ConversationViewProps {
   conversation: ContactConversation
   activeTab: Channel
   onTabChange: (tab: Channel) => void
-  onSaveDraft: (subject: string, body: string) => void
+  onSaveDraft?: (subject: string, body: string) => void
   initialDraft?: EmailDraft | null
   onDraftOpened?: () => void
 }
 
 export function ConversationView({ conversation, activeTab, onTabChange, onSaveDraft, initialDraft, onDraftOpened }: ConversationViewProps) {
+  const [taskOpen, setTaskOpen] = useState(false)
   const { thread, emails, sms, calls, notes } = conversation
   const statusCfg = getStatusConfig(thread.status)
 
@@ -73,7 +76,7 @@ export function ConversationView({ conversation, activeTab, onTabChange, onSaveD
             variant="outline"
             size="sm"
             className="h-8 text-xs"
-            onClick={() => toast.success('Task created', { description: `Follow-up task added for ${thread.contactName}.` })}
+            onClick={() => setTaskOpen(true)}
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Task
@@ -131,6 +134,8 @@ export function ConversationView({ conversation, activeTab, onTabChange, onSaveD
         {activeTab === 'call' && <CallLog calls={calls} contact={thread} />}
         {activeTab === 'note' && <Notes notes={notes} contact={thread} />}
       </div>
+
+      <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
     </div>
   )
 }

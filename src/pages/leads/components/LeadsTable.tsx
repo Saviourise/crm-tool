@@ -31,11 +31,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
+import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
 import type { Lead, LeadStatus, LeadSource } from '../typings'
 import { LEAD_STATUS_OPTIONS, LEAD_SOURCE_OPTIONS } from '../data'
 import { ROUTES } from '@/router/routes'
+import { useAuth } from '@/auth/context'
 
 const statusStyles: Record<LeadStatus, string> = {
   new: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
@@ -232,6 +234,13 @@ function LeadRowActions({ lead }: { lead: Lead }) {
   const [convertOpen, setConvertOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
+  const { can } = useAuth()
+
+  const canEdit = can('leads.edit')
+  const canConvert = can('leads.convert')
+  const canDelete = can('leads.delete')
+  const hasWriteAccess = canEdit || canConvert || canDelete
 
   return (
     <>
@@ -248,42 +257,57 @@ function LeadRowActions({ lead }: { lead: Lead }) {
             </a>
           </Button>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Lead
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setConvertOpen(true)}>
-              <ArrowRightLeft className="h-4 w-4 mr-2" />
-              Convert to Contact
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTaskOpen(true)}>
-              <CheckSquare className="h-4 w-4 mr-2" />
-              Create Task
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.info('Activity logged', { description: `Activity logged for ${lead.firstName} ${lead.lastName}.` })}>
-              <Clock className="h-4 w-4 mr-2" />
-              Log Activity
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {hasWriteAccess && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canEdit && (
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Lead
+                </DropdownMenuItem>
+              )}
+              {canConvert && (
+                <DropdownMenuItem onClick={() => setConvertOpen(true)}>
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  Convert to Contact
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => setTaskOpen(true)}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Create Task
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLogOpen(true)}>
+                <Clock className="h-4 w-4 mr-2" />
+                Log Activity
+              </DropdownMenuItem>
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <EditLeadDialog lead={lead} open={editOpen} onOpenChange={setEditOpen} />
       <ConvertLeadDialog lead={lead} open={convertOpen} onOpenChange={setConvertOpen} />
       <DeleteLeadDialog lead={lead} open={deleteOpen} onOpenChange={setDeleteOpen} />
       <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+      <LogActivityDialog
+        open={logOpen}
+        onOpenChange={setLogOpen}
+        entityName={`${lead.firstName} ${lead.lastName}`}
+      />
     </>
   )
 }
