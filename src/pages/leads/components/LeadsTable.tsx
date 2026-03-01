@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Mail, Phone, Trash2, Pencil, CheckSquare, Clock, ArrowRightLeft, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
 import type { Lead, LeadStatus, LeadSource } from '../typings'
 import { LEAD_STATUS_OPTIONS, LEAD_SOURCE_OPTIONS } from '../data'
+import { ROUTES } from '@/router/routes'
 
 const statusStyles: Record<LeadStatus, string> = {
   new: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
@@ -310,7 +312,12 @@ const columns: ColumnDef<Lead, unknown>[] = [
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="font-medium text-sm">{lead.firstName} {lead.lastName}</p>
+            <Link
+              to={ROUTES.LEAD_DETAIL(lead.id)}
+              className="font-medium text-sm hover:text-primary hover:underline"
+            >
+              {lead.firstName} {lead.lastName}
+            </Link>
             <a
               href={`mailto:${lead.email}`}
               className="text-xs text-muted-foreground hover:text-primary truncate max-w-[150px] block"

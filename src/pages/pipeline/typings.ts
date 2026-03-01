@@ -47,3 +47,28 @@ export interface Opportunity {
 }
 
 export type PipelineView = 'kanban' | 'list'
+
+export interface Pipeline {
+  id: string
+  name: string
+  description: string
+  dealCount: number
+  totalValue: number
+  isDefault: boolean
+  createdAt: string
+}
+
+export interface PipelineFilters {
+  assignees: string[]
+  minValue: string
+  maxValue: string
+  closeDateFrom: string
+  closeDateTo: string
+  minProbability: number
+}
+
+export interface SavedView {
+  id: string
+  name: string
+  filters: PipelineFilters
+}

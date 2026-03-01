@@ -11,6 +11,7 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { GripVertical, MoreHorizontal, Plus, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,7 @@ import { currencyFormat } from '../utils'
 import { PIPELINE_STAGES, STAGE_CONFIG, STAGE_COLORS } from '../data'
 import { AddDealDialog } from './AddDealDialog'
 import type { Opportunity, Stage, BoardConfig, ColorConfig, CardFieldSettings, StageSettings } from '../typings'
+import { ROUTES } from '@/router/routes'
 
 // ─── Edit Deal Dialog ─────────────────────────────────────────────────────────
 
@@ -227,7 +229,16 @@ function DealCardContent({
         </div>
 
         {/* Deal name */}
-        <p className="font-semibold text-sm leading-snug mb-0.5 line-clamp-2">{opportunity.name}</p>
+        {isOverlay ? (
+          <p className="font-semibold text-sm leading-snug mb-0.5 line-clamp-2">{opportunity.name}</p>
+        ) : (
+          <Link
+            to={ROUTES.DEAL_DETAIL(opportunity.id)}
+            className="font-semibold text-sm leading-snug mb-0.5 line-clamp-2 hover:text-primary hover:underline block"
+          >
+            {opportunity.name}
+          </Link>
+        )}
 
         {/* Company */}
         {cardFields.company && (

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ import { cn } from '@/lib/utils'
 import { currencyFormat } from '../utils'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
 import type { Opportunity, Stage } from '../typings'
+import { ROUTES } from '@/router/routes'
 
 function DeleteDealDialog({ opportunity, open, onOpenChange }: {
   opportunity: Opportunity
@@ -117,7 +119,12 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
       const config = STAGE_CONFIG[opp.stage]
       return (
         <div className={cn('border-l-2 pl-3', config.cardBorderClass.replace('border-l-4', ''))}>
-          <p className="font-medium text-sm">{opp.name}</p>
+          <Link
+            to={ROUTES.DEAL_DETAIL(opp.id)}
+            className="font-medium text-sm hover:text-primary hover:underline"
+          >
+            {opp.name}
+          </Link>
           <p className="text-xs text-muted-foreground mt-0.5">{opp.company} · {opp.contact}</p>
         </div>
       )

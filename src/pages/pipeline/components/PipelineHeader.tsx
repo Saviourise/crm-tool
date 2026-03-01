@@ -1,3 +1,4 @@
+import type React from 'react'
 import { Plus, LayoutGrid, List, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AddDealDialog } from './AddDealDialog'
@@ -10,9 +11,10 @@ interface PipelineHeaderProps {
   onViewChange: (view: PipelineView) => void
   config: BoardConfig
   onConfigChange: (config: BoardConfig) => void
+  pipelineSelector?: React.ReactNode
 }
 
-export function PipelineHeader({ total, view, onViewChange, config, onConfigChange }: PipelineHeaderProps) {
+export function PipelineHeader({ total, view, onViewChange, config, onConfigChange, pipelineSelector }: PipelineHeaderProps) {
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -23,6 +25,7 @@ export function PipelineHeader({ total, view, onViewChange, config, onConfigChan
       </div>
 
       <div className="flex items-center gap-2">
+        {pipelineSelector}
         {/* View toggle */}
         <div className="flex rounded-md border overflow-hidden">
           <Button

@@ -8,11 +8,20 @@ const AppLayout = lazy(() => import('@/components/layout/AppLayout'))
 // Pages
 const Dashboard = lazy(() => import('@/pages/dashboard'))
 const Contacts = lazy(() => import('@/pages/contacts'))
+const ContactDetail = lazy(() => import('@/pages/contacts/detail'))
 const Leads = lazy(() => import('@/pages/leads'))
+const LeadDetail = lazy(() => import('@/pages/leads/detail'))
 const Pipeline = lazy(() => import('@/pages/pipeline'))
+const DealDetail = lazy(() => import('@/pages/pipeline/detail'))
+const Companies = lazy(() => import('@/pages/companies'))
+const CompanyDetail = lazy(() => import('@/pages/companies/detail'))
 const Tasks = lazy(() => import('@/pages/tasks'))
+const Calendar = lazy(() => import('@/pages/calendar'))
+const Communication = lazy(() => import('@/pages/communication'))
 const Marketing = lazy(() => import('@/pages/marketing'))
 const Reports = lazy(() => import('@/pages/reports'))
+const UserManagement = lazy(() => import('@/pages/users'))
+const Help = lazy(() => import('@/pages/help'))
 const Settings = lazy(() => import('@/pages/settings'))
 
 // Loading component
@@ -52,10 +61,26 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/contacts/:id',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ContactDetail />
+          </Suspense>
+        ),
+      },
+      {
         path: ROUTES.LEADS,
         element: (
           <Suspense fallback={<PageLoader />}>
             <Leads />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/leads/:id',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <LeadDetail />
           </Suspense>
         ),
       },
@@ -68,10 +93,50 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/pipeline/:id',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <DealDetail />
+          </Suspense>
+        ),
+      },
+      {
+        path: ROUTES.COMPANIES,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Companies />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/companies/:id',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CompanyDetail />
+          </Suspense>
+        ),
+      },
+      {
         path: ROUTES.TASKS,
         element: (
           <Suspense fallback={<PageLoader />}>
             <Tasks />
+          </Suspense>
+        ),
+      },
+      {
+        path: ROUTES.CALENDAR,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Calendar />
+          </Suspense>
+        ),
+      },
+      {
+        path: ROUTES.COMMUNICATION,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Communication />
           </Suspense>
         ),
       },
@@ -88,6 +153,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <Reports />
+          </Suspense>
+        ),
+      },
+      {
+        path: ROUTES.USERS,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <UserManagement />
+          </Suspense>
+        ),
+      },
+      {
+        path: ROUTES.HELP,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Help />
           </Suspense>
         ),
       },

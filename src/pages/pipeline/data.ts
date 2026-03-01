@@ -1,4 +1,4 @@
-import type { Opportunity, Stage, StageColor, ColorConfig, BoardConfig } from './typings'
+import type { Opportunity, Stage, StageColor, ColorConfig, BoardConfig, Pipeline, SavedView } from './typings'
 
 // ─── Legacy stage config (used by OpportunityList badges) ────────────────────
 
@@ -380,4 +380,15 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     notes: 'Client decided to build in-house.',
     createdAt: '2024-10-25',
   },
+]
+
+export const MOCK_PIPELINES: Pipeline[] = [
+  { id: '1', name: 'Sales Pipeline', description: 'Main B2B sales pipeline', dealCount: 12, totalValue: 980000, isDefault: true, createdAt: '2024-09-01' },
+  { id: '2', name: 'Enterprise Deals', description: 'Large enterprise accounts only', dealCount: 4, totalValue: 560000, isDefault: false, createdAt: '2024-11-15' },
+  { id: '3', name: 'Partnerships', description: 'Strategic partnership opportunities', dealCount: 3, totalValue: 180000, isDefault: false, createdAt: '2025-01-10' },
+]
+
+export const MOCK_SAVED_VIEWS: SavedView[] = [
+  { id: '1', name: 'High Value Q1', filters: { assignees: [], minValue: '50000', maxValue: '', closeDateFrom: '2025-01-01', closeDateTo: '2025-03-31', minProbability: 0 } },
+  { id: '2', name: 'My Deals', filters: { assignees: ['Sarah K.'], minValue: '', maxValue: '', closeDateFrom: '', closeDateTo: '', minProbability: 0 } },
 ]

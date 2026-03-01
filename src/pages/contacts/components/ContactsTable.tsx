@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Mail, Phone, Linkedin, Trash2, Pencil, CheckSquare, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
 import type { Contact, ContactStatus } from '../typings'
 import { STATUS_OPTIONS } from '../data'
+import { ROUTES } from '@/router/routes'
 
 const statusStyles: Record<Contact['status'], string> = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
@@ -206,7 +208,12 @@ const columns: ColumnDef<Contact, unknown>[] = [
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="font-medium text-sm">{contact.firstName} {contact.lastName}</p>
+            <Link
+              to={ROUTES.CONTACT_DETAIL(contact.id)}
+              className="font-medium text-sm hover:text-primary hover:underline"
+            >
+              {contact.firstName} {contact.lastName}
+            </Link>
             <a
               href={`mailto:${contact.email}`}
               className="text-xs text-muted-foreground hover:text-primary truncate max-w-[160px] block"

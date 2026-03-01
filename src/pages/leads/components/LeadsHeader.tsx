@@ -1,13 +1,17 @@
+import { useState } from 'react'
 import { Upload, Download, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
+import { CSVImportDialog } from '@/components/common/CSVImportDialog'
 
 interface LeadsHeaderProps {
   total: number
 }
 
 export function LeadsHeader({ total }: LeadsHeaderProps) {
+  const [importOpen, setImportOpen] = useState(false)
+
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -20,7 +24,7 @@ export function LeadsHeader({ total }: LeadsHeaderProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => toast.info('Import leads', { description: 'CSV import coming soon.' })}
+          onClick={() => setImportOpen(true)}
         >
           <Upload className="h-4 w-4 mr-2" />
           Import
@@ -42,6 +46,7 @@ export function LeadsHeader({ total }: LeadsHeaderProps) {
           }
         />
       </div>
+      <CSVImportDialog open={importOpen} onOpenChange={setImportOpen} entity="leads" />
     </div>
   )
 }
