@@ -89,9 +89,9 @@ export function DataTable<TData>({
 
   return (
     <Card className="overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 p-4 border-b">
-        <div className="relative flex-1 max-w-sm">
+      {/* Toolbar — stacks on mobile */}
+      <div className="flex flex-col gap-2 p-3 border-b sm:flex-row sm:items-center sm:justify-between sm:p-4">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
@@ -104,74 +104,77 @@ export function DataTable<TData>({
           />
         </div>
         {toolbar && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {toolbar(table)}
           </div>
         )}
       </div>
 
-      {/* Table */}
-      <UITable>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
-                >
-                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                    <button
-                      className={cn(
-                        'flex items-center gap-1 transition-colors',
-                        header.column.getIsSorted()
-                          ? 'text-foreground font-semibold'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 text-primary" />
-                      ) : header.column.getIsSorted() === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 text-primary" />
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3" />
-                      )}
-                    </button>
-                  ) : (
-                    flexRender(header.column.columnDef.header, header.getContext())
-                  )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="group">
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
+      {/* Table — horizontally scrollable on small screens */}
+      <div className="overflow-x-auto">
+        <UITable>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                  >
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                      <button
+                        className={cn(
+                          'flex items-center gap-1 transition-colors',
+                          header.column.getIsSorted()
+                            ? 'text-foreground font-semibold'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getIsSorted() === 'asc' ? (
+                          <ArrowUp className="h-3 w-3 text-primary" />
+                        ) : header.column.getIsSorted() === 'desc' ? (
+                          <ArrowDown className="h-3 w-3 text-primary" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3" />
+                        )}
+                      </button>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    )}
+                  </TableHead>
                 ))}
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="py-16 text-center">
-                <p className="text-lg font-medium">{emptyMessage}</p>
-                <p className="text-sm text-muted-foreground mt-1">{emptyDescription}</p>
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </UITable>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} className="group">
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="py-16 text-center">
+                  <p className="text-lg font-medium">{emptyMessage}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{emptyDescription}</p>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </UITable>
+      </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-4 py-3 border-t">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {/* Pagination — compact on mobile */}
+      <div className="flex items-center justify-between px-3 py-3 border-t gap-2 sm:px-4">
+        {/* Rows per page — hidden on mobile */}
+        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows per page</span>
           <Select
             value={String(pageSize)}
@@ -193,48 +196,49 @@ export function DataTable<TData>({
           </Select>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
-            {totalRows === 0 ? 'No results' : `${startRow}–${endRow} of ${totalRows}`}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
+        {/* Row count — always visible */}
+        <span className="text-xs text-muted-foreground sm:text-sm">
+          {totalRows === 0 ? 'No results' : `${startRow}–${endRow} of ${totalRows}`}
+        </span>
+
+        {/* Navigation buttons */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 hidden sm:flex"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 hidden sm:flex"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </Card>

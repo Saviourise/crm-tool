@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Mail, MessageSquare, Phone, StickyNote, CheckCircle2, Plus } from 'lucide-react'
+import { Mail, MessageSquare, Phone, StickyNote, CheckCircle2, Plus, ChevronLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,9 +26,10 @@ interface ConversationViewProps {
   onSaveDraft?: (subject: string, body: string) => void
   initialDraft?: EmailDraft | null
   onDraftOpened?: () => void
+  onBack?: () => void
 }
 
-export function ConversationView({ conversation, activeTab, onTabChange, onSaveDraft, initialDraft, onDraftOpened }: ConversationViewProps) {
+export function ConversationView({ conversation, activeTab, onTabChange, onSaveDraft, initialDraft, onDraftOpened, onBack }: ConversationViewProps) {
   const [taskOpen, setTaskOpen] = useState(false)
   const { thread, emails, sms, calls, notes } = conversation
   const statusCfg = getStatusConfig(thread.status)
@@ -43,10 +44,22 @@ export function ConversationView({ conversation, activeTab, onTabChange, onSaveD
   return (
     <div className="flex flex-col h-full">
       {/* Contact header */}
-      <div className="px-5 py-3.5 border-b flex items-center gap-3 shrink-0">
+      <div className="px-3 py-3 border-b flex items-center gap-2 shrink-0 md:px-5 md:py-3.5 md:gap-3">
+        {/* Back button — mobile only */}
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 -ml-1 md:hidden"
+            onClick={onBack}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Back to conversations</span>
+          </Button>
+        )}
         <div
           className={cn(
-            'h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0',
+            'h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 md:h-10 md:w-10',
             thread.avatarColor
           )}
         >
@@ -62,24 +75,24 @@ export function ConversationView({ conversation, activeTab, onTabChange, onSaveD
           </div>
           <p className="text-xs text-muted-foreground">{thread.contactCompany}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs"
+            className="h-8 text-xs px-2 md:px-3"
             onClick={() => toast.success('Marked as resolved', { description: `${thread.contactName}'s conversation is resolved.` })}
           >
-            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-            Resolve
+            <CheckCircle2 className="h-3.5 w-3.5 md:mr-1.5" />
+            <span className="hidden md:inline">Resolve</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs"
+            className="h-8 text-xs px-2 md:px-3"
             onClick={() => setTaskOpen(true)}
           >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Task
+            <Plus className="h-3.5 w-3.5 md:mr-1.5" />
+            <span className="hidden md:inline">Task</span>
           </Button>
         </div>
       </div>

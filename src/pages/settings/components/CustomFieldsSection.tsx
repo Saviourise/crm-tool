@@ -202,9 +202,9 @@ export function CustomFieldsSection() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle>Custom Fields</CardTitle>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
@@ -214,7 +214,7 @@ export function CustomFieldsSection() {
         </CardHeader>
         <CardContent>
           {/* Entity Tabs */}
-          <div className="border-b flex gap-4 mb-4">
+          <div className="border-b flex gap-4 mb-4 overflow-x-auto">
             {ENTITY_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -246,8 +246,8 @@ export function CustomFieldsSection() {
               </Button>
             </div>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-lg border overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[400px]">
                 <thead>
                   <tr className="bg-muted/40 border-b">
                     <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Label</th>

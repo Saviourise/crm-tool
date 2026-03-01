@@ -295,7 +295,7 @@ export function BillingSection() {
           <CardDescription>Manage your billing payment details.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between gap-4 p-4 rounded-lg border bg-muted/30">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-lg border bg-muted/30">
             <div className="flex items-center gap-3">
               <div className="h-9 w-14 rounded border bg-background flex items-center justify-center">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -322,13 +322,14 @@ export function BillingSection() {
       </Card>
 
       {/* Invoice history */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Invoice History</CardTitle>
           <CardDescription>Download past invoices for your records.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[500px]">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
@@ -371,6 +372,7 @@ export function BillingSection() {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
     </div>

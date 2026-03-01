@@ -19,15 +19,15 @@ export function PipelineHeader({ total, view, onViewChange, config, onConfigChan
   const { can } = useAuth()
 
   return (
-    <div className="flex items-start justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Pipeline</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Pipeline</h1>
         <p className="text-muted-foreground mt-1">
           {total} deal{total !== 1 ? 's' : ''} across all stages
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {pipelineSelector}
         {/* View toggle */}
         <div className="flex rounded-md border overflow-hidden">

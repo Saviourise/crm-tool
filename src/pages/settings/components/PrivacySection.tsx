@@ -155,7 +155,7 @@ export function PrivacySection() {
               { key: 'deals'    as const, label: 'Deals'    },
             ] as { key: keyof typeof retention; label: string }[]
           ).map(({ key, label }) => (
-            <div key={key} className="flex items-center justify-between gap-4">
+            <div key={key} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium">{label}</p>
                 <p className="text-xs text-muted-foreground">Retain {label.toLowerCase()} data for the selected period</p>
@@ -225,7 +225,7 @@ export function PrivacySection() {
       </Card>
 
       {/* 5. Right to Erasure */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Right to Erasure</CardTitle>
           <CardDescription>
@@ -234,7 +234,7 @@ export function PrivacySection() {
         </CardHeader>
         <CardContent className="space-y-5">
           {/* Submit form */}
-          <div className="flex items-end gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 space-y-1.5">
               <Label htmlFor="erasure-email">Email Address</Label>
               <Input
@@ -251,8 +251,8 @@ export function PrivacySection() {
 
           {/* Erasure requests table */}
           {erasureRequests.length > 0 && (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-lg border overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[380px]">
                 <thead>
                   <tr className="bg-muted/40 border-b">
                     <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Email</th>

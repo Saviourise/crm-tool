@@ -34,7 +34,8 @@ export function MonthView({ currentDate, events, onEventClick }: MonthViewProps)
   }
 
   return (
-    <div>
+    <div className="overflow-x-auto">
+      <div style={{ minWidth: '340px' }}>
       {/* Day headers */}
       <div className="grid grid-cols-7 border-b">
         {DAY_HEADERS.map((day) => (
@@ -99,6 +100,7 @@ export function MonthView({ currentDate, events, onEventClick }: MonthViewProps)
             </div>
           )
         })}
+      </div>
       </div>
     </div>
   )

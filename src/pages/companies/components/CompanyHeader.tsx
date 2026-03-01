@@ -12,14 +12,14 @@ export function CompanyHeader({ total, onAdd, onImport }: CompanyHeaderProps) {
   const { can, hasPlan } = useAuth()
 
   return (
-    <div className="flex items-start justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Companies</h1>
         <p className="text-muted-foreground mt-1">
           {total} {total === 1 ? 'company' : 'companies'} in your CRM
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {can('companies.create') && hasPlan('csv-import') && (
           <Button variant="outline" size="sm" onClick={onImport}>
             <Upload className="h-4 w-4 mr-2" />

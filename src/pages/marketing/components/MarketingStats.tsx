@@ -60,7 +60,7 @@ export function MarketingStats({ campaigns }: { campaigns: Campaign[] }) {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
       {stats.map((stat) => (
         <Card key={stat.label} className={cn('border-l-4 overflow-hidden', stat.border)}>
           <CardContent className="p-4 flex items-center gap-4">

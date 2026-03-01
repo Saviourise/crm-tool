@@ -21,12 +21,12 @@ interface BarChartComponentProps {
 
 export function BarChartComponent({ title, data, chartConfig }: BarChartComponentProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="h-[200px] w-full sm:h-[300px]">
           <BarChart accessibilityLayer data={data}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
             <XAxis

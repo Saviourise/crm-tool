@@ -32,7 +32,7 @@ export default function Calendar() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Calendar</h1>
         <p className="text-muted-foreground mt-1">Manage your schedule and appointments.</p>
       </div>
 

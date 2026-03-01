@@ -244,7 +244,7 @@ function LeadRowActions({ lead }: { lead: Lead }) {
 
   return (
     <>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
           <a href={`mailto:${lead.email}`} title="Send email">
             <Mail className="h-3.5 w-3.5" />

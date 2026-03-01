@@ -27,14 +27,14 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Dashboard</h1>
+        <p className="text-muted-foreground text-sm">
           Welcome back! Here's what's happening with your sales pipeline today.
         </p>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {MOCK_METRICS.map((metric) => (
           <MetricCard
             key={metric.id}
@@ -49,7 +49,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
         <BarChartComponent
           title="Lead Pipeline Funnel"
           data={LEAD_PIPELINE_DATA}

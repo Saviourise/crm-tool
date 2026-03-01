@@ -11,9 +11,9 @@ export function TasksHeader({ total }: TasksHeaderProps) {
   const { can } = useAuth()
 
   return (
-    <div className="flex items-start justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Tasks</h1>
         <p className="text-muted-foreground mt-1">
           {total} task{total !== 1 ? 's' : ''} across all categories
         </p>

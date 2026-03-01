@@ -43,15 +43,16 @@ export function NotificationsSection() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Notification Preferences</CardTitle>
           <CardDescription>
             Choose how and when you want to be notified about activity in your workspace.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <table className="w-full text-sm">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto px-6">
+          <table className="w-full text-sm min-w-[320px]">
             <thead>
               <tr className="border-b">
                 <th className="text-left py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -104,6 +105,7 @@ export function NotificationsSection() {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
         <CardFooter className="border-t justify-end">
           <Button size="sm" onClick={handleSave}>Save Preferences</Button>

@@ -166,7 +166,7 @@ function TerritoryView({
   return (
     <div className="space-y-3">
       <div className="rounded-lg border overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[500px]">
           <thead>
             <tr className="bg-muted/40 border-b">
               <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Field</th>
@@ -282,7 +282,7 @@ function ScoreView({
         <p className="text-sm text-muted-foreground py-2">No score tiers configured.</p>
       )}
       {tiers.map((tier) => (
-        <div key={tier.id} className="flex items-center gap-3 p-3 rounded-lg border">
+        <div key={tier.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border">
           <span className="text-sm text-muted-foreground shrink-0">Score</span>
           <span className="text-sm font-medium shrink-0">&#8805;</span>
           <Input
@@ -370,7 +370,7 @@ export function LeadRoutingSection() {
       </Card>
 
       {/* Method-specific config */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>
             {method === 'round-robin' && 'Team Members'}

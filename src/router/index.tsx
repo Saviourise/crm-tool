@@ -1,7 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { ROUTES } from './routes'
-import { RequireAuth } from '@/auth/guards'
+import { RequireAuth, RequirePermission, RequireFeature } from '@/auth/guards'
+import type { Permission, Feature } from '@/auth/types'
 
 // Layout
 const AppLayout = lazy(() => import('@/components/layout/AppLayout'))
@@ -41,214 +42,171 @@ const PageLoader = () => (
   </div>
 )
 
+// Suspense wrapper shorthand
+function P({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>
+}
+
+// Composes plan gate (outer) + permission gate (inner).
+// Plan missing → UpgradePrompt. Has plan, missing permission → AccessDenied.
+function Guard({
+  children,
+  feature,
+  permission,
+}: {
+  children: ReactNode
+  feature?: Feature
+  permission?: Permission
+}) {
+  const inner = permission ? (
+    <RequirePermission permission={permission}>{children}</RequirePermission>
+  ) : (
+    <>{children}</>
+  )
+  return feature ? <RequireFeature feature={feature}>{inner}</RequireFeature> : inner
+}
+
 export const router = createBrowserRouter([
   // ─── Public auth routes (no app layout) ─────────────────────────────────────
   {
     path: '/login',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <LoginPage />
-      </Suspense>
-    ),
+    element: <P><LoginPage /></P>,
   },
   {
     path: '/signup',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <SignupPage />
-      </Suspense>
-    ),
+    element: <P><SignupPage /></P>,
   },
   {
     path: '/forgot-password',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <ForgotPasswordPage />
-      </Suspense>
-    ),
+    element: <P><ForgotPasswordPage /></P>,
   },
   {
     path: '/verify-otp',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <VerifyOTPPage />
-      </Suspense>
-    ),
+    element: <P><VerifyOTPPage /></P>,
   },
   {
     path: '/reset-password',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <ResetPasswordPage />
-      </Suspense>
-    ),
+    element: <P><ResetPasswordPage /></P>,
   },
   {
     path: '/invite/:token',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <InviteAcceptPage />
-      </Suspense>
-    ),
+    element: <P><InviteAcceptPage /></P>,
   },
-  // ─── Protected app routes (require auth) ────────────────────────────────────
+
+  // ─── Protected app routes (require auth + RBAC) ──────────────────────────────
   {
     path: ROUTES.HOME,
     element: (
-      <Suspense fallback={<PageLoader />}>
+      <P>
         <RequireAuth>
           <AppLayout />
         </RequireAuth>
-      </Suspense>
+      </P>
     ),
     children: [
       {
         index: true,
         element: <Navigate to={ROUTES.DASHBOARD} replace />,
       },
+
+      // Dashboard — all authenticated roles
       {
         path: ROUTES.DASHBOARD,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Dashboard />
-          </Suspense>
-        ),
+        element: <P><Guard permission="dashboard.view"><Dashboard /></Guard></P>,
       },
+
+      // Contacts — all roles have contacts.view
       {
         path: ROUTES.CONTACTS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Contacts />
-          </Suspense>
-        ),
+        element: <P><Guard permission="contacts.view"><Contacts /></Guard></P>,
       },
       {
         path: '/contacts/:id',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <ContactDetail />
-          </Suspense>
-        ),
+        element: <P><Guard permission="contacts.view"><ContactDetail /></Guard></P>,
       },
+
+      // Leads — all roles have leads.view
       {
         path: ROUTES.LEADS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Leads />
-          </Suspense>
-        ),
+        element: <P><Guard permission="leads.view"><Leads /></Guard></P>,
       },
       {
         path: '/leads/:id',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <LeadDetail />
-          </Suspense>
-        ),
+        element: <P><Guard permission="leads.view"><LeadDetail /></Guard></P>,
       },
+
+      // Pipeline — requires basic plan + pipeline.view
       {
         path: ROUTES.PIPELINE,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Pipeline />
-          </Suspense>
-        ),
+        element: <P><Guard feature="pipeline" permission="pipeline.view"><Pipeline /></Guard></P>,
       },
       {
         path: '/pipeline/:id',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <DealDetail />
-          </Suspense>
-        ),
+        element: <P><Guard feature="pipeline" permission="pipeline.view"><DealDetail /></Guard></P>,
       },
+
+      // Companies — requires basic plan + companies.view
       {
         path: ROUTES.COMPANIES,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Companies />
-          </Suspense>
-        ),
+        element: <P><Guard feature="companies" permission="companies.view"><Companies /></Guard></P>,
       },
       {
         path: '/companies/:id',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <CompanyDetail />
-          </Suspense>
-        ),
+        element: <P><Guard feature="companies" permission="companies.view"><CompanyDetail /></Guard></P>,
       },
+
+      // Tasks — all roles have tasks.view
       {
         path: ROUTES.TASKS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Tasks />
-          </Suspense>
-        ),
+        element: <P><Guard permission="tasks.view"><Tasks /></Guard></P>,
       },
+
+      // Calendar — requires basic plan + calendar.view
       {
         path: ROUTES.CALENDAR,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Calendar />
-          </Suspense>
-        ),
+        element: <P><Guard feature="calendar" permission="calendar.view"><Calendar /></Guard></P>,
       },
+
+      // Communication — requires basic plan + communication.view
       {
         path: ROUTES.COMMUNICATION,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Communication />
-          </Suspense>
-        ),
+        element: <P><Guard feature="communication" permission="communication.view"><Communication /></Guard></P>,
       },
+
+      // Marketing — requires professional plan + marketing.view (sales-rep/viewer blocked)
       {
         path: ROUTES.MARKETING,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Marketing />
-          </Suspense>
-        ),
+        element: <P><Guard feature="marketing" permission="marketing.view"><Marketing /></Guard></P>,
       },
+
+      // Reports — requires professional plan + reports.view
       {
         path: ROUTES.REPORTS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Reports />
-          </Suspense>
-        ),
+        element: <P><Guard feature="reports" permission="reports.view"><Reports /></Guard></P>,
       },
+
+      // Users — requires users.view (sales-rep, marketing, viewer blocked)
       {
         path: ROUTES.USERS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <UserManagement />
-          </Suspense>
-        ),
+        element: <P><Guard permission="users.view"><UserManagement /></Guard></P>,
       },
+
+      // Help — open to all authenticated users
       {
         path: ROUTES.HELP,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Help />
-          </Suspense>
-        ),
+        element: <P><Help /></P>,
       },
+
+      // Notifications — open to all authenticated users
       {
         path: ROUTES.NOTIFICATIONS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Notifications />
-          </Suspense>
-        ),
+        element: <P><Notifications /></P>,
       },
+
+      // Settings — requires settings.view
       {
         path: ROUTES.SETTINGS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <Settings />
-          </Suspense>
-        ),
+        element: <P><Guard permission="settings.view"><Settings /></Guard></P>,
       },
     ],
   },

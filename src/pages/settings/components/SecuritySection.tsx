@@ -324,13 +324,13 @@ export function SecuritySection() {
       {/* Active Sessions */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle>Active Sessions</CardTitle>
               <CardDescription>Devices and browsers currently signed into your account.</CardDescription>
             </div>
             {sessions.length > 1 && (
-              <Button variant="outline" size="sm" className="text-rose-600 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30" onClick={revokeAllOther}>
+              <Button variant="outline" size="sm" className="shrink-0 text-rose-600 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30" onClick={revokeAllOther}>
                 Revoke Others
               </Button>
             )}
@@ -374,12 +374,12 @@ export function SecuritySection() {
       {/* API Keys */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle>API Keys</CardTitle>
               <CardDescription>Keys for authenticating API requests from your applications.</CardDescription>
             </div>
-            <Button size="sm" onClick={() => setCreateKeyOpen(true)}>
+            <Button size="sm" className="shrink-0" onClick={() => setCreateKeyOpen(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
               New Key
             </Button>

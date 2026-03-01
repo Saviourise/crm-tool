@@ -149,7 +149,7 @@ export function PermissionsTab({
       </div>
 
       {/* Matrix table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

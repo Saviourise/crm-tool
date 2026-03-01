@@ -307,7 +307,7 @@ function buildColumns(
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -503,7 +503,7 @@ export function UsersTab({ roles }: { roles: Role[] }) {
 
       {/* Bulk actions bar */}
       {selectedIds.length > 0 && (canEditUser || canDeleteUser) && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-primary text-primary-foreground px-5 py-3 rounded-full shadow-lg">
+        <div className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 flex items-center gap-3 bg-primary text-primary-foreground px-5 py-3 rounded-full shadow-lg flex-wrap justify-center sm:flex-nowrap sm:justify-start max-w-max mx-auto">
           <span className="text-sm font-medium">{selectedIds.length} selected</span>
           <div className="w-px h-4 bg-primary-foreground/30" />
           {canEditUser && (

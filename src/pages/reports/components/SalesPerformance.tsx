@@ -69,12 +69,12 @@ export function SalesPerformance() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Monthly Revenue */}
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Monthly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={revenueConfig} className="h-[260px] w-full">
+            <ChartContainer config={revenueConfig} className="h-[200px] w-full sm:h-[260px]">
               <BarChart accessibilityLayer data={MONTHLY_REVENUE}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
@@ -87,12 +87,12 @@ export function SalesPerformance() {
         </Card>
 
         {/* Won vs Lost */}
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Won vs Lost Deals</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={wonLostConfig} className="h-[260px] w-full">
+            <ChartContainer config={wonLostConfig} className="h-[200px] w-full sm:h-[260px]">
               <BarChart accessibilityLayer data={WON_LOST_DATA} barGap={4}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
@@ -108,13 +108,13 @@ export function SalesPerformance() {
       </div>
 
       {/* Sales rep table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold">Sales Rep Performance</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[500px]">
               <thead>
                 <tr className="border-b">
                   <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rep</th>

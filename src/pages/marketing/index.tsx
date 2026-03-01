@@ -23,9 +23,9 @@ export default function Marketing() {
     <RequireFeature feature="marketing">
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Marketing</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Marketing</h1>
           <p className="text-muted-foreground mt-1">
             Create campaigns, manage templates, and generate content with AI.
           </p>
@@ -36,7 +36,7 @@ export default function Marketing() {
       <MarketingStats campaigns={MOCK_CAMPAIGNS} />
 
       {/* Tab nav */}
-      <div className="flex gap-1 border-b">
+      <div className="flex gap-1 border-b overflow-x-auto">
         {TABS.map(({ value, label, icon: Icon }) => (
           <button
             key={value}

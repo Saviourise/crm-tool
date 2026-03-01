@@ -15,14 +15,14 @@ export function LeadsHeader({ total }: LeadsHeaderProps) {
   const { can, hasPlan } = useAuth()
 
   return (
-    <div className="flex items-start justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Leads</h1>
         <p className="text-muted-foreground mt-1">
           {total} lead{total !== 1 ? 's' : ''} in your pipeline
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {can('leads.import') && hasPlan('csv-import') && (
           <Button
             variant="outline"

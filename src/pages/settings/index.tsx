@@ -4,6 +4,7 @@ import {
   User, Lock, Bell, Users, CreditCard, Plug, ShieldCheck,
   Sliders, Zap, GitBranch, Shield, ClipboardList,
 } from 'lucide-react'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProfileSection } from './components/ProfileSection'
 import { PasswordSection } from './components/PasswordSection'
 import { NotificationsSection } from './components/NotificationsSection'
@@ -129,15 +130,34 @@ export default function Settings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Manage your account, workspace, and integrations.
         </p>
       </div>
 
-      <div className="flex gap-8 items-start">
-        {/* Sidebar nav */}
-        <nav className="w-48 shrink-0 space-y-5 sticky top-6">
+      {/* Mobile nav — select dropdown */}
+      <div className="md:hidden">
+        <Select value={activeSection} onValueChange={(v) => handleNavClick(v as SettingsSection)}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {visibleGroups.map((group) => (
+              <SelectGroup key={group.label}>
+                <SelectLabel>{group.label}</SelectLabel>
+                {group.items.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+        {/* Sidebar nav — desktop only */}
+        <nav className="hidden md:block w-48 shrink-0 space-y-5 sticky top-6">
           {visibleGroups.map((group) => (
             <div key={group.label} className="space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-2">

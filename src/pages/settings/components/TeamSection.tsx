@@ -186,7 +186,7 @@ export function TeamSection() {
           <CardDescription>Actions that affect the entire workspace.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium">Export All Data</p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -202,7 +202,7 @@ export function TeamSection() {
               Export
             </Button>
           </div>
-          <div className="border-t pt-4 flex items-center justify-between gap-4">
+          <div className="border-t pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium">Delete Workspace</p>
               <p className="text-xs text-muted-foreground mt-0.5">

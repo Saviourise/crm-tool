@@ -222,7 +222,7 @@ export function IntegrationsSection() {
       {connected.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <CardTitle>Connected</CardTitle>
                 <CardDescription>Active integrations syncing with your workspace.</CardDescription>

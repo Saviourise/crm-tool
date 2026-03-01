@@ -42,7 +42,7 @@ export function ConversationList({ threads, selectedId, onSelect, draftCount, vi
   })
 
   return (
-    <div className="w-80 shrink-0 flex flex-col border-r h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Search */}
       <div className="p-3 border-b">
         <div className="relative">

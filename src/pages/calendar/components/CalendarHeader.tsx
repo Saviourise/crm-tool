@@ -44,9 +44,9 @@ export function CalendarHeader({
   const { can } = useAuth()
 
   return (
-    <div className="flex items-center justify-between gap-3 flex-wrap">
-      {/* Left: navigation */}
-      <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Left: navigation — order 1 on mobile */}
+      <div className="flex items-center gap-1 order-1">
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onNavigate('prev')}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -58,13 +58,13 @@ export function CalendarHeader({
         </Button>
       </div>
 
-      {/* Center: label */}
-      <h2 className="text-base font-semibold min-w-[180px] text-center">
+      {/* Center: label — wraps to full-width second row on mobile, inline on sm+ */}
+      <h2 className="text-base font-semibold text-center order-3 w-full sm:order-2 sm:w-auto sm:flex-1">
         {getDisplayLabel(view, currentDate)}
       </h2>
 
-      {/* Right: view toggle + add */}
-      <div className="flex items-center gap-2">
+      {/* Right: view toggle + add — order 2 on mobile (same row as nav, pushed right) */}
+      <div className="flex items-center gap-2 order-2 ml-auto sm:order-3 sm:ml-0">
         <div className="flex rounded-md border overflow-hidden">
           {VIEW_OPTIONS.map((opt) => (
             <button

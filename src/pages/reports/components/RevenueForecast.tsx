@@ -65,12 +65,12 @@ export function RevenueForecast() {
       </div>
 
       {/* Forecast vs Actual chart */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Actual vs Forecast Revenue</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={forecastConfig} className="h-[280px] w-full">
+          <ChartContainer config={forecastConfig} className="h-[200px] w-full sm:h-[280px]">
             <ComposedChart accessibilityLayer data={FORECAST_DATA}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
@@ -95,7 +95,7 @@ export function RevenueForecast() {
       </Card>
 
       {/* Pipeline deals table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold">Pipeline — Expected Close This Quarter</CardTitle>
           <div className="text-xs text-muted-foreground">
@@ -104,7 +104,7 @@ export function RevenueForecast() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b">
                   <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Deal</th>

@@ -271,7 +271,7 @@ function TemplateCard({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 -mt-0.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-6 w-6 -mt-0.5 -mr-1"
                   >
                     <span className="sr-only">Options</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

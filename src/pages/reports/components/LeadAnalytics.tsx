@@ -74,14 +74,14 @@ export function LeadAnalytics() {
       </div>
 
       {/* Funnel + Sources */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 [&>*]:min-w-0">
         {/* Lead funnel — horizontal bar */}
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Pipeline Funnel</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={funnelConfig} className="h-[260px] w-full">
+            <ChartContainer config={funnelConfig} className="h-[200px] w-full sm:h-[260px]">
               <BarChart
                 accessibilityLayer
                 data={LEAD_FUNNEL}
@@ -90,7 +90,7 @@ export function LeadAnalytics() {
               >
                 <CartesianGrid horizontal={false} strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
-                <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" width={80} />
+                <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" width={72} />
                 <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
                 <Bar dataKey="count" fill="var(--color-count)" radius={4} />
               </BarChart>
@@ -99,19 +99,19 @@ export function LeadAnalytics() {
         </Card>
 
         {/* Lead sources — donut */}
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Lead Sources</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-center">
-            <div style={{ width: '100%', height: 260 }}>
-              <PieChart width={400} height={260}>
+          <CardContent>
+            <ChartContainer config={funnelConfig} className="h-[200px] w-full sm:h-[260px]">
+              <PieChart>
                 <Pie
                   data={LEAD_SOURCES}
                   cx="50%"
                   cy="50%"
-                  innerRadius={65}
-                  outerRadius={100}
+                  innerRadius={55}
+                  outerRadius={85}
                   paddingAngle={3}
                   dataKey="value"
                   labelLine={false}
@@ -136,18 +136,18 @@ export function LeadAnalytics() {
                   formatter={(value) => <span style={{ fontSize: 12 }}>{value}</span>}
                 />
               </PieChart>
-            </div>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
 
       {/* Lead volume trend */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Lead Volume Trend (Last 8 Weeks)</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={trendConfig} className="h-[220px] w-full">
+          <ChartContainer config={trendConfig} className="h-[180px] w-full sm:h-[220px]">
             <AreaChart accessibilityLayer data={LEAD_TREND}>
               <defs>
                 <linearGradient id="fillLeads" x1="0" y1="0" x2="0" y2="1">

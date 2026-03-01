@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import type { Channel, EmailDraft } from './typings'
 import { MOCK_CONVERSATIONS } from './data'
 import { ConversationList } from './components/ConversationList'
@@ -35,18 +36,19 @@ export default function CommunicationCenter() {
   const [viewMode, setViewMode] = useState<'conversations' | 'drafts'>('conversations')
   const [drafts, setDrafts] = useState<EmailDraft[]>([])
   const [pendingDraft, setPendingDraft] = useState<EmailDraft | null>(null)
+  // Mobile: 'list' shows the conversation list, 'detail' shows the selected conversation
+  const [mobilePanel, setMobilePanel] = useState<'list' | 'detail'>('list')
 
   // Auto-select conversation when navigated from a contact
   useEffect(() => {
     if (!contactId || MOCK_CONVERSATIONS.length === 0) return
-    // Try to find a conversation whose thread.id matches the contactId directly
     const directMatch = MOCK_CONVERSATIONS.find((c) => c.thread.id === contactId)
     if (directMatch) {
       setSelectedId(directMatch.thread.id)
       setViewMode('conversations')
+      setMobilePanel('detail')
       return
     }
-    // Fallback: find by contactName containing the contactId string
     const nameMatch = MOCK_CONVERSATIONS.find(
       (c) =>
         c.thread.contactName.toLowerCase().includes(contactId.toLowerCase()) ||
@@ -55,6 +57,7 @@ export default function CommunicationCenter() {
     if (nameMatch) {
       setSelectedId(nameMatch.thread.id)
       setViewMode('conversations')
+      setMobilePanel('detail')
     }
   }, [contactId])
 
@@ -64,6 +67,7 @@ export default function CommunicationCenter() {
     setSelectedId(id)
     setActiveTab('email')
     setViewMode('conversations')
+    setMobilePanel('detail')
   }
 
   const handleSaveDraft = (subject: string, body: string) => {
@@ -87,8 +91,8 @@ export default function CommunicationCenter() {
     setActiveTab('email')
     setViewMode('conversations')
     setPendingDraft(draft)
-    // Remove from drafts so it doesn't duplicate on re-save
     setDrafts((prev) => prev.filter((d) => d.id !== draft.id))
+    setMobilePanel('detail')
   }
 
   const handleDeleteDraft = (id: string) => {
@@ -97,17 +101,40 @@ export default function CommunicationCenter() {
   }
 
   return (
-    <div className="-m-6 flex overflow-hidden" style={{ height: 'calc(100vh - 65px)' }}>
-      <ConversationList
-        threads={MOCK_CONVERSATIONS.map((c) => c.thread)}
-        selectedId={viewMode === 'conversations' ? selectedId : null}
-        onSelect={handleSelect}
-        draftCount={canCompose ? drafts.length : 0}
-        viewingDrafts={viewMode === 'drafts'}
-        onViewDrafts={canCompose ? () => setViewMode('drafts') : undefined}
-      />
+    // Negative margins escape the parent padding; height fills the remaining viewport
+    <div
+      className="-m-4 md:-m-6 lg:-m-8 flex overflow-hidden"
+      style={{ height: 'calc(100dvh - 3.5rem)' }}
+    >
+      {/* ── Conversation list panel ─────────────────────────────────────────── */}
+      {/* Full width on mobile when showing list; fixed 320px sidebar on md+ */}
+      <div
+        className={cn(
+          'flex flex-col border-r h-full shrink-0',
+          'w-full md:w-80',
+          // On mobile: show only when mobilePanel === 'list'
+          mobilePanel === 'detail' ? 'hidden md:flex' : 'flex'
+        )}
+      >
+        <ConversationList
+          threads={MOCK_CONVERSATIONS.map((c) => c.thread)}
+          selectedId={viewMode === 'conversations' ? selectedId : null}
+          onSelect={handleSelect}
+          draftCount={canCompose ? drafts.length : 0}
+          viewingDrafts={viewMode === 'drafts'}
+          onViewDrafts={canCompose ? () => { setViewMode('drafts'); setMobilePanel('detail') } : undefined}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* ── Detail panel ────────────────────────────────────────────────────── */}
+      {/* Full width on mobile when showing detail; flex-1 on md+ */}
+      <div
+        className={cn(
+          'flex-1 flex flex-col min-w-0 overflow-hidden',
+          // On mobile: show only when mobilePanel === 'detail'
+          mobilePanel === 'list' ? 'hidden md:flex' : 'flex'
+        )}
+      >
         {viewMode === 'drafts' && canCompose ? (
           <DraftsView
             drafts={drafts}
@@ -122,6 +149,7 @@ export default function CommunicationCenter() {
             onSaveDraft={canCompose ? handleSaveDraft : undefined}
             initialDraft={canCompose ? pendingDraft : null}
             onDraftOpened={() => setPendingDraft(null)}
+            onBack={() => setMobilePanel('list')}
           />
         ) : (
           <EmptyState />

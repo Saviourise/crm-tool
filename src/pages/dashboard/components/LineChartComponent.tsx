@@ -20,12 +20,12 @@ interface LineChartComponentProps {
 
 export function LineChartComponent({ title, data, chartConfig }: LineChartComponentProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="h-[200px] w-full sm:h-[300px]">
           <AreaChart accessibilityLayer data={data}>
             <defs>
               <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">

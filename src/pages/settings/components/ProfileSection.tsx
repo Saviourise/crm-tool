@@ -271,7 +271,7 @@ export function ProfileSection() {
           <CardDescription>Irreversible and destructive actions.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium">Delete Account</p>
               <p className="text-xs text-muted-foreground mt-0.5">

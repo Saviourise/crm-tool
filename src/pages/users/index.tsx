@@ -91,7 +91,7 @@ export default function UserManagement() {
           <UserCog className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">User Management</h1>
           <p className="text-muted-foreground mt-1">
             Manage team members, roles, and access permissions.
           </p>
@@ -99,8 +99,8 @@ export default function UserManagement() {
       </div>
 
       {/* Tab nav */}
-      <div className="border-b">
-        <div className="flex gap-1">
+      <div className="border-b overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
           {TABS.map((tab) => (
             <button
               key={tab.id}

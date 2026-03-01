@@ -110,7 +110,7 @@ export function AuditLogSection() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle>Audit Log</CardTitle>

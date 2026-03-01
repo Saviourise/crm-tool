@@ -113,9 +113,9 @@ export default function Reports() {
     <RequireFeature feature="reports">
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Reports</h1>
           <p className="text-muted-foreground mt-1">
             Analyze sales performance, lead metrics, and revenue forecasts.
           </p>
@@ -144,8 +144,8 @@ export default function Reports() {
       </div>
 
       {/* Tab nav */}
-      <div className="border-b">
-        <div className="flex gap-1">
+      <div className="border-b overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
           {TABS.map((tab) => (
             <button
               key={tab.id}
