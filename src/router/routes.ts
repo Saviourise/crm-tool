@@ -1,5 +1,6 @@
 export const ROUTES = {
   HOME: '/',
+  ONBOARDING: '/onboarding',
   DASHBOARD: '/dashboard',
   CONTACTS: '/contacts',
   CONTACT_DETAIL: (id: string) => `/contacts/${id}`,

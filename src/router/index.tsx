@@ -14,6 +14,7 @@ const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPassword'))
 const VerifyOTPPage = lazy(() => import('@/pages/auth/VerifyOTP'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPassword'))
 const InviteAcceptPage = lazy(() => import('@/pages/auth/InviteAccept'))
+const OnboardingPage = lazy(() => import('@/pages/onboarding'))
 
 // Pages
 const Dashboard = lazy(() => import('@/pages/dashboard'))
@@ -91,6 +92,10 @@ export const router = createBrowserRouter([
   {
     path: '/invite/:token',
     element: <P><InviteAcceptPage /></P>,
+  },
+  {
+    path: '/onboarding',
+    element: <P><OnboardingPage /></P>,
   },
 
   // ─── Protected app routes (require auth + RBAC) ──────────────────────────────

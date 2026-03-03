@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { Zap, Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 
 const RESEND_COUNTDOWN = 60
 
@@ -104,108 +105,100 @@ export default function VerifyOTP() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-background border rounded-2xl shadow-lg p-8">
-        {/* Logo */}
-        <div className="flex items-center gap-2.5 mb-8">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <Zap className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-lg tracking-tight">CRM Tool</span>
-        </div>
-
+    <AuthLayout>
+      <div className="mb-7">
         <h1 className="text-2xl font-bold tracking-tight mb-1">Enter verification code</h1>
         {email && (
-          <p className="text-muted-foreground text-sm mb-6">
+          <p className="text-muted-foreground text-sm">
             We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>.
           </p>
         )}
+      </div>
 
-        {/* OTP Inputs */}
-        <div
-          className={cn(
-            'flex gap-2 justify-center mb-2',
-            shake && 'animate-[shake_0.5s_ease-in-out]'
-          )}
-          style={shake ? { animation: 'shake 0.5s ease-in-out' } : undefined}
-        >
-          {digits.map((digit, i) => (
-            <input
-              key={i}
-              ref={(el) => { inputRefs.current[i] = el }}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(i, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(i, e)}
-              onPaste={handlePaste}
-              className={cn(
-                'w-11 h-13 text-center text-lg font-semibold border rounded-lg bg-background transition-all outline-none',
-                'focus:ring-2 focus:ring-primary focus:border-primary',
-                error
-                  ? 'border-destructive focus:ring-destructive focus:border-destructive'
-                  : 'border-input'
-              )}
-              style={{ width: '44px', height: '52px' }}
-            />
-          ))}
-        </div>
-
-        {error && (
-          <p className="text-xs text-destructive text-center mb-4">{error}</p>
+      {/* OTP Inputs */}
+      <div
+        className={cn(
+          'flex gap-2 justify-center mb-2',
+          shake && 'animate-[shake_0.5s_ease-in-out]'
         )}
-
-        <style>{`
-          @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-6px); }
-            40% { transform: translateX(6px); }
-            60% { transform: translateX(-4px); }
-            80% { transform: translateX(4px); }
-          }
-        `}</style>
-
-        <div className="space-y-3 mt-4">
-          <Button className="w-full" onClick={handleVerify} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              'Verify Code'
+        style={shake ? { animation: 'shake 0.5s ease-in-out' } : undefined}
+      >
+        {digits.map((digit, i) => (
+          <input
+            key={i}
+            ref={(el) => { inputRefs.current[i] = el }}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleChange(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            onPaste={handlePaste}
+            className={cn(
+              'w-11 h-13 text-center text-lg font-semibold border rounded-lg bg-background transition-all outline-none',
+              'focus:ring-2 focus:ring-primary focus:border-primary',
+              error
+                ? 'border-destructive focus:ring-destructive focus:border-destructive'
+                : 'border-input'
             )}
-          </Button>
+            style={{ width: '44px', height: '52px' }}
+          />
+        ))}
+      </div>
 
-          <div className="text-center text-sm text-muted-foreground">
-            {canResend ? (
-              <button
-                type="button"
-                onClick={handleResend}
-                className="text-primary hover:underline underline-offset-2 font-medium"
-              >
-                Resend code
-              </button>
-            ) : (
-              <span>
-                Resend code in{' '}
-                <span className="font-medium text-foreground tabular-nums">{countdown}s</span>
-              </span>
-            )}
-          </div>
-        </div>
+      {error && (
+        <p className="text-xs text-destructive text-center mb-4">{error}</p>
+      )}
 
-        <div className="mt-6 pt-6 border-t">
-          <Link
-            to="/login"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to login
-          </Link>
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-6px); }
+          40% { transform: translateX(6px); }
+          60% { transform: translateX(-4px); }
+          80% { transform: translateX(4px); }
+        }
+      `}</style>
+
+      <div className="space-y-3 mt-4">
+        <Button className="w-full" onClick={handleVerify} disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            'Verify Code'
+          )}
+        </Button>
+
+        <div className="text-center text-sm text-muted-foreground">
+          {canResend ? (
+            <button
+              type="button"
+              onClick={handleResend}
+              className="text-primary hover:underline underline-offset-2 font-medium"
+            >
+              Resend code
+            </button>
+          ) : (
+            <span>
+              Resend code in{' '}
+              <span className="font-medium text-foreground tabular-nums">{countdown}s</span>
+            </span>
+          )}
         </div>
       </div>
-    </div>
+
+      <div className="mt-6 pt-6 border-t">
+        <Link
+          to="/login"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to login
+        </Link>
+      </div>
+    </AuthLayout>
   )
 }
