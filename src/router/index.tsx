@@ -25,6 +25,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPassword'))
 const InviteAcceptPage = lazy(() => import('@/pages/auth/InviteAccept'))
 const OnboardingPage = lazy(() => import('@/pages/onboarding'))
 const OnboardingCompletePage = lazy(() => import('@/pages/onboarding/complete'))
+const OnboardingPaymentSuccessPage = lazy(() => import('@/pages/onboarding/payment-success'))
 
 // Pages
 const Dashboard = lazy(() => import('@/pages/dashboard'))
@@ -114,6 +115,14 @@ export const router = createBrowserRouter([
       {
         path: 'onboarding/complete',
         element: <P><OnboardingCompletePage /></P>,
+      },
+      {
+        path: 'onboarding/payment-success',
+        element: <P><OnboardingPaymentSuccessPage /></P>,
+      },
+      {
+        path: 'onboarding/plan',
+        element: <Navigate to="/onboarding" replace />,
       },
 
       // ─── Protected app routes (require auth + onboarding + RBAC) ─────────────

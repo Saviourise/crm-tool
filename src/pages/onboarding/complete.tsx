@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { Zap } from 'lucide-react'
 import { onboardingApi } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
@@ -20,63 +20,81 @@ const COMPLETING_STEPS = [
 
 export default function OnboardingComplete() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { completeOnboarding } = useAuth()
   const { setTokens } = useAuthStore()
   const { setOnboardingToken } = useOnboardingStore()
   const [stepIndex, setStepIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
+  const billingCycle = (location.state as { billingCycle?: 'monthly' | 'yearly' })?.billingCycle ?? 'monthly'
+
   useEffect(() => {
     let cancelled = false
     let pollTimeout: ReturnType<typeof setTimeout> | null = null
 
     if (!completePromise) {
-      completePromise = onboardingApi.complete()
+      completePromise = onboardingApi.complete({ billing_cycle: billingCycle })
     }
 
     completePromise
       .then((res) => {
         if (cancelled) return
-        const data = res.data
-        setTokens(data.access, data.refresh)
+        const data = res.data as { requires_payment?: boolean; checkout_url?: string; access?: string; refresh?: string; workspace?: { id?: string; provision_status?: string } }
 
-        if (data.workspace.provision_status === 'active') {
-          const wsId = (data.workspace as { id?: string }).id
-          if (wsId) setTokens(data.access, data.refresh, wsId)
-          setOnboardingToken(null)
-          completeOnboarding()
-          navigate(ROUTES.DASHBOARD, { replace: true, state: { fromOnboarding: true } })
-          return
-        }
-
-        if (data.workspace.provision_status === 'failed') {
-          setError('Workspace setup failed. Please contact support.')
-          return
-        }
-
-        // provisioning — poll until active or failed
-        const pollStatus = async () => {
-          if (cancelled) return
-          try {
-            const statusRes = await onboardingApi.status()
-            if (cancelled) return
-            const status = statusRes.data.provision_status
-            const ws = statusRes.data.workspace
-            if (status === 'active' && ws) {
-              setTokens(useAuthStore.getState().accessToken!, useAuthStore.getState().refreshToken!, ws.id)
-              setOnboardingToken(null)
-              completeOnboarding()
-              navigate(ROUTES.DASHBOARD, { replace: true, state: { fromOnboarding: true } })
-            } else if (status === 'failed') {
-              setError('Workspace setup failed. Please contact support.')
-            } else {
-              pollTimeout = setTimeout(pollStatus, POLL_INTERVAL_MS)
-            }
-          } catch {
-            if (!cancelled) pollTimeout = setTimeout(pollStatus, POLL_INTERVAL_MS)
+        // Paid plan: 202 — redirect to Stripe checkout (persist token for status poll on return)
+        if (data.requires_payment && data.checkout_url) {
+          const token = useOnboardingStore.getState().onboardingToken
+          if (token) {
+            // Use localStorage — survives cross-origin redirect to Stripe; sessionStorage can be cleared
+            localStorage.setItem('onboarding_token', token)
           }
+          window.location.href = data.checkout_url
+          return
         }
-        pollTimeout = setTimeout(pollStatus, POLL_INTERVAL_MS)
+
+        // Free plan: 201 — tokens returned
+        if (data.access && data.refresh) {
+          setTokens(data.access, data.refresh)
+
+          if (data.workspace?.provision_status === 'active') {
+            const wsId = data.workspace.id
+            if (wsId) setTokens(data.access, data.refresh, wsId)
+            setOnboardingToken(null)
+            completeOnboarding()
+            navigate(ROUTES.DASHBOARD, { replace: true, state: { fromOnboarding: true } })
+            return
+          }
+
+          if (data.workspace?.provision_status === 'failed') {
+            setError('Workspace setup failed. Please contact support.')
+            return
+          }
+
+          // provisioning — poll until active or failed
+          const pollStatus = async () => {
+            if (cancelled) return
+            try {
+              const statusRes = await onboardingApi.status()
+              if (cancelled) return
+              const status = statusRes.data.provision_status
+              const ws = statusRes.data.workspace
+              if (status === 'active' && ws) {
+                setTokens(useAuthStore.getState().accessToken!, useAuthStore.getState().refreshToken!, ws.id)
+                setOnboardingToken(null)
+                completeOnboarding()
+                navigate(ROUTES.DASHBOARD, { replace: true, state: { fromOnboarding: true } })
+              } else if (status === 'failed') {
+                setError('Workspace setup failed. Please contact support.')
+              } else {
+                pollTimeout = setTimeout(pollStatus, POLL_INTERVAL_MS)
+              }
+            } catch {
+              if (!cancelled) pollTimeout = setTimeout(pollStatus, POLL_INTERVAL_MS)
+            }
+          }
+          pollTimeout = setTimeout(pollStatus, POLL_INTERVAL_MS)
+        }
       })
       .catch(() => {
         if (!cancelled) setError('Failed to complete setup. Please try again.')
@@ -89,7 +107,7 @@ export default function OnboardingComplete() {
       cancelled = true
       if (pollTimeout) clearTimeout(pollTimeout)
     }
-  }, [navigate, setTokens, setOnboardingToken, completeOnboarding])
+  }, [navigate, setTokens, setOnboardingToken, completeOnboarding, billingCycle])
 
   // Cycle through step messages so user sees all three
   useEffect(() => {

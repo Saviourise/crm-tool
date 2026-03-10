@@ -100,20 +100,48 @@ export interface OnboardingSlugCheckResponse {
   available: boolean
 }
 
-export interface OnboardingCompleteResponse {
-  access: string
-  refresh: string
-  workspace: { id: string; provision_status: 'provisioning' | 'active' | 'failed' }
-}
+/** Free plan: 201 with tokens. Paid plan: 202 with requires_payment + checkout_url */
+export type OnboardingCompleteResponse =
+  | { access: string; refresh: string; workspace: { id: string; provision_status: string } }
+  | { requires_payment: true; checkout_url: string }
 
 export interface OnboardingStatusResponse {
-  provision_status: 'provisioning' | 'active' | 'failed'
+  provision_status: 'pending_payment' | 'provisioning' | 'active' | 'failed'
   workspace: ApiWorkspace | null
 }
 
 export interface RefreshResponse {
   access: string
   refresh: string
+}
+
+/** Pricing plan from GET /api/pricing/ (stripe_price_id_* removed in 2026-03-10-2) */
+export interface ApiPricingPlan {
+  key: string
+  name: string
+  price_monthly: number | null
+  price_yearly: number | null
+  ai_credits: number
+  seats: number
+  features: string[]
+  popular: boolean
+}
+
+/** Billing overview from GET /api/settings/billing/ */
+export interface BillingOverview {
+  plan: string
+  subscription_status: 'inactive' | 'active' | 'trialing' | 'past_due' | 'canceled'
+  current_period_end: string | null
+  billing_email: string | null
+  stripe_customer_id: string | null
+  ai_credits_total: number
+  ai_credits_used: number
+  ai_credits_remaining: number
+}
+
+/** Checkout response from POST /api/settings/billing/checkout/ */
+export interface CheckoutResponse {
+  checkout_url: string
 }
 
 /** Chat session (AI chat). Use workspace_id — workspace_slug was removed in 2026-03-09 migration. */

@@ -1,20 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Zap, Check, ChevronRight, ChevronLeft, Plus, X,
   Users, Target, TrendingUp, BarChart3, Loader2,
-  Shield, Sparkles, Building2, AlertCircle,
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/auth/context'
 import { ROUTES } from '@/router/routes'
 import { onboardingApi } from '@/api/auth'
+import { pricingApi } from '@/api/pricing'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import type { PlanId } from '@/auth/types'
+import type { ApiPricingPlan } from '@/api/types'
+import { PlanCard } from '@/components/common/PlanCard'
 
 const ROLE_TO_API: Record<string, string> = {
   Admin: 'admin',
@@ -61,66 +66,6 @@ const REFERRAL_SOURCES = [
 ]
 
 const MEMBER_ROLES = ['Admin', 'Manager', 'Sales Rep', 'Marketing', 'Viewer']
-
-interface PlanOption {
-  id: PlanId
-  label: string
-  price: string
-  period: string
-  description: string
-  features: string[]
-  icon: React.ElementType
-  highlight?: boolean
-}
-
-const PLAN_OPTIONS: PlanOption[] = [
-  {
-    id: 'free',
-    label: 'Free',
-    price: '$0',
-    period: 'forever',
-    description: 'Perfect for getting started',
-    features: ['Up to 250 contacts', 'Basic lead management', 'Task tracking', '1 user'],
-    icon: Zap,
-  },
-  {
-    id: 'basic',
-    label: 'Basic',
-    price: '$9',
-    period: 'per user / mo',
-    description: 'For small teams',
-    features: ['Unlimited contacts', 'Pipeline & companies', 'Calendar & communication', 'CSV import'],
-    icon: Building2,
-  },
-  {
-    id: 'professional',
-    label: 'Professional',
-    price: '$29',
-    period: 'per user / mo',
-    description: 'For growing teams',
-    features: ['Everything in Basic', 'Marketing campaigns', 'Revenue reports', 'AI content tools', 'Multi-pipeline'],
-    icon: TrendingUp,
-    highlight: true,
-  },
-  {
-    id: 'premium',
-    label: 'Premium',
-    price: '$79',
-    period: 'per user / mo',
-    description: 'For scaling businesses',
-    features: ['Everything in Pro', 'AI Voice & Chat agents', 'Automation workflows', 'Lead routing', 'Audit log'],
-    icon: Sparkles,
-  },
-  {
-    id: 'enterprise',
-    label: 'Enterprise',
-    price: 'Custom',
-    period: 'contact sales',
-    description: 'For large organizations',
-    features: ['Everything in Premium', 'SSO & SCIM', 'GDPR/CCPA tools', 'Dedicated support', 'SLA guarantee'],
-    icon: Shield,
-  },
-]
 
 function slugify(str: string) {
   return str
@@ -366,15 +311,52 @@ function StepTeam({
   )
 }
 
+type BillingCycle = 'monthly' | 'yearly'
+
 // ─── Step 4: Choose Plan ────────────────────────────────────────────────────
 
 function StepPlan({
+  plans,
   selected,
   onSelect,
+  billingCycle,
+  onBillingCycleChange,
+  isLoading,
 }: {
+  plans: ApiPricingPlan[]
   selected: PlanId
   onSelect: (plan: PlanId) => void
+  billingCycle: BillingCycle
+  onBillingCycleChange: (cycle: BillingCycle) => void
+  isLoading: boolean
 }) {
+  const hasPaidPlans = plans.some((p) => (p.price_monthly ?? 0) > 0 || (p.price_yearly ?? 0) > 0)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">Choose your plan</h2>
+          <p className="text-sm text-muted-foreground mt-1">Loading plans...</p>
+        </div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    )
+  }
+
+  if (plans.length === 0) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">Choose your plan</h2>
+          <p className="text-sm text-muted-foreground mt-1">Unable to load plans. Please try again later.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -384,61 +366,46 @@ function StepPlan({
         </p>
       </div>
 
-      <div className="space-y-2">
-        {PLAN_OPTIONS.map((plan) => {
-          const Icon = plan.icon
-          const isSelected = selected === plan.id
-          return (
+      {hasPaidPlans && (
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-1 p-1 rounded-lg bg-muted text-sm">
             <button
-              key={plan.id}
               type="button"
-              onClick={() => onSelect(plan.id)}
+              onClick={() => onBillingCycleChange('monthly')}
               className={cn(
-                'w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-colors',
-                isSelected
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-muted-foreground/40'
+                'px-4 py-2 rounded-md transition-all font-medium',
+                billingCycle === 'monthly' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              {/* Selection dot */}
-              <div className={cn(
-                'mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
-                isSelected ? 'border-primary' : 'border-muted-foreground/40'
-              )}>
-                {isSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Icon className={cn('h-4 w-4 shrink-0', isSelected ? 'text-primary' : 'text-muted-foreground')} />
-                  <span className={cn('font-semibold text-sm', isSelected ? 'text-foreground' : 'text-muted-foreground')}>
-                    {plan.label}
-                  </span>
-                  {plan.highlight && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                      Most Popular
-                    </span>
-                  )}
-                  <span className="ml-auto text-sm font-bold text-foreground">
-                    {plan.price}
-                    {plan.price !== 'Custom' && (
-                      <span className="text-xs font-normal text-muted-foreground ml-1">{plan.period}</span>
-                    )}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2">
-                  {plan.features.map((f) => (
-                    <span key={f} className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Check className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              Monthly
             </button>
-          )
-        })}
+            <button
+              type="button"
+              onClick={() => onBillingCycleChange('yearly')}
+              className={cn(
+                'px-4 py-2 rounded-md transition-all font-medium flex items-center gap-2',
+                billingCycle === 'yearly' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Yearly
+              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Save 17%</Badge>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.key}
+            plan={plan}
+            billingCycle={billingCycle}
+            variant="select"
+            selected={selected === plan.key}
+            onSelect={(key) => onSelect(key as PlanId)}
+            maxFeatures={4}
+          />
+        ))}
       </div>
     </div>
   )
@@ -472,15 +439,15 @@ const FEATURE_HIGHLIGHTS = [
 
 function StepDone({
   workspaceName,
-  selectedPlan,
+  billingCycle,
   onFinish,
+  planName,
 }: {
   workspaceName: string
-  selectedPlan: PlanId
-  onFinish: () => void
+  billingCycle: BillingCycle
+  onFinish: (billingCycle: BillingCycle) => void
+  planName: string
 }) {
-  const plan = PLAN_OPTIONS.find((p) => p.id === selectedPlan)
-
   return (
     <div className="space-y-6 text-center">
       <div>
@@ -492,8 +459,8 @@ function StepDone({
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           Starting on the{' '}
-          <span className="font-semibold text-foreground">{plan?.label}</span> plan.
-          Time to explore your dashboard.
+          <span className="font-semibold text-foreground">{planName}</span> plan.
+          {planName === 'Free' ? ' Time to explore your dashboard.' : ' Time to proceed to checkout.'}
         </p>
       </div>
 
@@ -514,8 +481,8 @@ function StepDone({
         })}
       </div>
 
-      <Button className="w-full" size="lg" onClick={onFinish}>
-        Go to Dashboard
+      <Button className="w-full" size="lg" onClick={() => onFinish(billingCycle)}>
+        {planName === 'Free' ? 'Go to Dashboard' : 'Proceed to Checkout'}
         <ChevronRight className="h-4 w-4 ml-1.5" />
       </Button>
     </div>
@@ -542,7 +509,16 @@ export default function Onboarding() {
   const [roleData, setRoleData] = useState<RoleData>({ jobTitle: '', goals: [], referral: '' })
   const [invites, setInvites] = useState<TeamInvite[]>([])
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('professional')
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
   const slugDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { data: plans = [], isLoading: plansLoading } = useQuery({
+    queryKey: ['pricing-plans'],
+    queryFn: async () => {
+      const res = await pricingApi.getPlans()
+      return res.data
+    },
+  })
 
   // Start onboarding on mount (shared promise prevents duplicate calls in React Strict Mode)
   useEffect(() => {
@@ -573,7 +549,7 @@ export default function Onboarding() {
             role: API_TO_ROLE[p.role_name] ?? 'Viewer',
           })))
         }
-        if (data.selected_plan && ['free','basic','professional','premium','enterprise'].includes(data.selected_plan)) {
+        if (data.selected_plan && ['free', 'basic', 'professional', 'premium', 'enterprise'].includes(data.selected_plan)) {
           setSelectedPlan(data.selected_plan as PlanId)
         }
         const completed = data.completed_steps ?? []
@@ -743,11 +719,16 @@ export default function Onboarding() {
 
         {/* Step content */}
         <div className="flex-1 min-h-0 flex flex-col justify-center overflow-y-auto px-8 sm:px-12 py-4">
-          <div className="max-w-lg w-full mx-auto">
-            {!onboardingToken && !startError && isAuthenticated && (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Starting onboarding...</p>
+          <div className={`w-full mx-auto ${step === 4 ? '' : 'max-w-lg'}`}>
+            {(isLoading || (!onboardingToken && !startError && isAuthenticated)) && (
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-sm font-medium text-foreground">
+                  {isLoading ? 'Loading...' : 'Starting onboarding...'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isLoading ? 'Checking your session' : 'This usually takes a moment'}
+                </p>
               </div>
             )}
             {startError && (
@@ -779,13 +760,21 @@ export default function Onboarding() {
               <StepTeam invites={invites} setInvites={setInvites} />
             )}
             {onboardingToken && step === 4 && (
-              <StepPlan selected={selectedPlan} onSelect={setSelectedPlan} />
+              <StepPlan
+                plans={plans}
+                selected={selectedPlan}
+                onSelect={setSelectedPlan}
+                billingCycle={billingCycle}
+                onBillingCycleChange={setBillingCycle}
+                isLoading={plansLoading}
+              />
             )}
             {onboardingToken && step === 5 && (
               <StepDone
                 workspaceName={workspace.name}
-                selectedPlan={selectedPlan}
-                onFinish={() => navigate(ROUTES.ONBOARDING_COMPLETE)}
+                billingCycle={billingCycle}
+                onFinish={(cycle) => navigate(ROUTES.ONBOARDING_COMPLETE, { state: { billingCycle: cycle } })}
+                planName={plans.find((p) => p.key === selectedPlan)?.name ?? selectedPlan}
               />
             )}
           </div>

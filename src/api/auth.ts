@@ -95,8 +95,8 @@ export const onboardingApi = {
   updatePlan: (data: { selected_plan: string }) =>
     api.patch('/api/onboarding/plan/', data),
 
-  complete: () =>
-    api.post<OnboardingCompleteResponse>('/api/onboarding/complete/'),
+  complete: (body?: { billing_cycle?: 'monthly' | 'yearly' }) =>
+    api.post<OnboardingCompleteResponse>('/api/onboarding/complete/', body ?? {}),
 
   status: () =>
     api.get<OnboardingStatusResponse>('/api/onboarding/status/'),
