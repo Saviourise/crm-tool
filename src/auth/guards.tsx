@@ -6,12 +6,52 @@ import { Lock, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ROUTES } from '@/router/routes'
 
-// ─── RequireAuth — redirect to /login if not authenticated ───────────────────
+// ─── RequireAuth — redirect to /login if not authenticated, to verify-otp if email unverified ───
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  if (user && user.isVerified === false) {
+    return <Navigate to={`/verify-otp?email=${encodeURIComponent(user.email)}&flow=signup`} replace />
+  }
+
+  return <>{children}</>
+}
+
+// ─── RequireOnboarding — redirect to /onboarding if workspace onboarding not complete ───
+export function RequireOnboarding({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  const { onboardingComplete, isLoading, completeOnboarding } = useAuth()
+  const fromOnboarding = (location.state as { fromOnboarding?: boolean })?.fromOnboarding
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
+  // Just completed onboarding — trust navigation state, sync context, allow through
+  if (fromOnboarding) {
+    if (onboardingComplete !== true) completeOnboarding()
+    return <>{children}</>
+  }
+
+  if (onboardingComplete === false) {
+    return <Navigate to={ROUTES.ONBOARDING} replace />
   }
   return <>{children}</>
 }

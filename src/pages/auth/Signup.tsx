@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from '@/components/auth/AuthLayout'
+import { useAuth } from '@/auth/context'
 
 function getPasswordStrength(password: string): { label: string; color: string; width: string } {
   if (password.length === 0) return { label: '', color: '', width: '0%' }
@@ -23,10 +24,10 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 
 export default function Signup() {
   const navigate = useNavigate()
+  const { signup } = useAuth()
 
   const [fullName, setFullName] = useState('')
   const [workEmail, setWorkEmail] = useState('')
-  const [company, setCompany] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -41,7 +42,6 @@ export default function Signup() {
     const newErrors: Record<string, string> = {}
     if (!fullName.trim()) newErrors.fullName = 'Full name is required.'
     if (!workEmail.trim()) newErrors.workEmail = 'Email is required.'
-    if (!company.trim()) newErrors.company = 'Company name is required.'
     if (password.length < 8) newErrors.password = 'Password must be at least 8 characters.'
     if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match.'
     if (!agreedToTerms) newErrors.terms = 'You must agree to the Terms of Service.'
@@ -53,10 +53,19 @@ export default function Signup() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
+    setErrors({})
+    const result = await signup({
+      name: fullName.trim(),
+      email: workEmail.trim(),
+      password,
+    })
     setLoading(false)
-    toast.success('Account created! Let\'s set up your workspace.')
-    navigate('/onboarding')
+    if (result.success) {
+      toast.success('Check your email for a verification code.')
+      navigate(`/verify-otp?email=${encodeURIComponent(workEmail.trim())}&flow=signup`)
+    } else {
+      setErrors({ form: result.error ?? 'Signup failed.' })
+    }
   }
 
   return (
@@ -93,20 +102,6 @@ export default function Signup() {
             className={cn(errors.workEmail && 'border-destructive')}
           />
           {errors.workEmail && <p className="text-xs text-destructive">{errors.workEmail}</p>}
-        </div>
-
-        {/* Company */}
-        <div className="space-y-1.5">
-          <Label htmlFor="company">Company Name</Label>
-          <Input
-            id="company"
-            type="text"
-            placeholder="Acme Inc."
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            className={cn(errors.company && 'border-destructive')}
-          />
-          {errors.company && <p className="text-xs text-destructive">{errors.company}</p>}
         </div>
 
         {/* Password */}
@@ -189,6 +184,7 @@ export default function Signup() {
           {errors.terms && <p className="text-xs text-destructive">{errors.terms}</p>}
         </div>
 
+        {errors.form && <p className="text-sm text-destructive">{errors.form}</p>}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? (
             <>

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from '@/components/auth/AuthLayout'
+import { authApi } from '@/api/auth'
 
 function getPasswordStrength(password: string): { label: string; color: string; width: string } {
   if (password.length === 0) return { label: '', color: '', width: '0%' }
@@ -25,6 +26,7 @@ export default function ResetPassword() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const email = searchParams.get('email') ?? ''
+  const otp = searchParams.get('otp') ?? ''
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -46,11 +48,21 @@ export default function ResetPassword() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
+    if (!email || !otp) {
+      setErrors({ form: 'Invalid reset link. Please request a new one from forgot password.' })
+      return
+    }
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 700))
-    setLoading(false)
-    toast.success('Password updated! Please sign in.')
-    navigate('/login')
+    setErrors({})
+    try {
+      await authApi.resetPassword(email, otp, password)
+      toast.success('Password updated! Please sign in.')
+      navigate('/login')
+    } catch {
+      setErrors({ form: 'Failed to reset password. The link may have expired.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -130,6 +142,7 @@ export default function ResetPassword() {
           {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
         </div>
 
+        {errors.form && <p className="text-sm text-destructive">{errors.form}</p>}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? (
             <>

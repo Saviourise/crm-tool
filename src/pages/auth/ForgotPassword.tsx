@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from '@/components/auth/AuthLayout'
+import { authApi } from '@/api/auth'
 
 export default function ForgotPassword() {
   const navigate = useNavigate()
@@ -23,9 +24,19 @@ export default function ForgotPassword() {
       return
     }
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 700))
-    setLoading(false)
-    setSubmitted(true)
+    try {
+      await authApi.forgotPassword(email.trim())
+      setSubmitted(true)
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: { error?: string; message?: string } } }
+      if (axErr.response?.data?.error === 'EMAIL_NOT_FOUND') {
+        setError(axErr.response?.data?.message ?? 'No account found with that email address.')
+      } else {
+        setError('Failed to send reset email. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   function handleTryAnother() {

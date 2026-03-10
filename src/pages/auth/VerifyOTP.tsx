@@ -5,13 +5,20 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from '@/components/auth/AuthLayout'
+import { authApi } from '@/api/auth'
+import { useAuthStore } from '@/store/authStore'
+import { ROUTES } from '@/router/routes'
 
 const RESEND_COUNTDOWN = 60
+
+type VerifyFlow = 'forgot-password' | 'signup'
 
 export default function VerifyOTP() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const email = searchParams.get('email') ?? ''
+  const flow = (searchParams.get('flow') as VerifyFlow) ?? 'forgot-password'
+  const { setTokens } = useAuthStore()
 
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
@@ -83,11 +90,28 @@ export default function VerifyOTP() {
       triggerShake()
       return
     }
+    if (!email) {
+      setError(flow === 'signup' ? 'Missing email. Please start from signup.' : 'Missing email. Please start from forgot password.')
+      triggerShake()
+      return
+    }
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 700))
-    setLoading(false)
-    // Accept any 6-digit code for demo
-    navigate(`/reset-password?email=${encodeURIComponent(email)}`)
+    setError('')
+    try {
+      if (flow === 'signup') {
+        const res = await authApi.verifyEmail(email, code)
+        setTokens(res.data.access, res.data.refresh)
+        navigate(ROUTES.ONBOARDING, { replace: true })
+      } else {
+        await authApi.verifyOtp(email, code)
+        navigate(`/reset-password?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(code)}`)
+      }
+    } catch {
+      setError('Invalid or expired code. Please try again.')
+      triggerShake()
+    } finally {
+      setLoading(false)
+    }
   }
 
   function triggerShake() {
@@ -95,19 +119,30 @@ export default function VerifyOTP() {
     setTimeout(() => setShake(false), 500)
   }
 
-  function handleResend() {
-    if (!canResend) return
+  async function handleResend() {
+    if (!canResend || !email) return
     setCanResend(false)
     setCountdown(RESEND_COUNTDOWN)
     setDigits(['', '', '', '', '', ''])
     inputRefs.current[0]?.focus()
-    toast.success('A new code has been sent to your email.')
+    try {
+      if (flow === 'signup') {
+        await authApi.resendSignupOtp(email)
+      } else {
+        await authApi.forgotPassword(email)
+      }
+      toast.success('A new code has been sent to your email.')
+    } catch {
+      toast.error('Failed to resend code. Please try again.')
+    }
   }
 
   return (
     <AuthLayout>
-      <div className="mb-7">
-        <h1 className="text-2xl font-bold tracking-tight mb-1">Enter verification code</h1>
+      <div className="mb-7 text-center">
+        <h1 className="text-2xl font-bold tracking-tight mb-1">
+          {flow === 'signup' ? 'Verify your email' : 'Enter verification code'}
+        </h1>
         {email && (
           <p className="text-muted-foreground text-sm">
             We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>.
@@ -192,11 +227,11 @@ export default function VerifyOTP() {
 
       <div className="mt-6 pt-6 border-t">
         <Link
-          to="/login"
+          to={flow === 'signup' ? '/signup' : '/login'}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to login
+          {flow === 'signup' ? 'Back to signup' : 'Back to login'}
         </Link>
       </div>
     </AuthLayout>

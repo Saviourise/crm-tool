@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Zap, Check, ChevronRight, ChevronLeft, Plus, X,
   Users, Target, TrendingUp, BarChart3, Loader2,
-  Shield, Sparkles, Building2,
+  Shield, Sparkles, Building2, AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,9 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/auth/context'
 import { ROUTES } from '@/router/routes'
+import { onboardingApi } from '@/api/auth'
+import { useOnboardingStore } from '@/store/onboardingStore'
 import type { PlanId } from '@/auth/types'
 
-const ONBOARDING_KEY = 'crm_onboarding_complete'
+const ROLE_TO_API: Record<string, string> = {
+  Admin: 'admin',
+  Manager: 'manager',
+  'Sales Rep': 'sales-rep',
+  Marketing: 'marketing',
+  Viewer: 'viewer',
+}
+
+const API_TO_ROLE: Record<string, string> = {
+  'super-admin': 'Super Admin',
+  admin: 'Admin',
+  manager: 'Manager',
+  'sales-rep': 'Sales Rep',
+  marketing: 'Marketing',
+  viewer: 'Viewer',
+}
 
 const STEPS = [
   { id: 1, label: 'Workspace' },
@@ -22,28 +39,6 @@ const STEPS = [
   { id: 3, label: 'Invite Team' },
   { id: 4, label: 'Choose Plan' },
   { id: 5, label: 'Done' },
-]
-
-const INDUSTRIES = [
-  'Technology',
-  'Finance & Banking',
-  'Healthcare',
-  'Real Estate',
-  'Retail & E-commerce',
-  'Professional Services',
-  'Manufacturing',
-  'Education',
-  'Media & Entertainment',
-  'Other',
-]
-
-const COMPANY_SIZES = [
-  { value: '1', label: 'Just me' },
-  { value: '2-10', label: '2–10 employees' },
-  { value: '11-50', label: '11–50 employees' },
-  { value: '51-200', label: '51–200 employees' },
-  { value: '201-500', label: '201–500 employees' },
-  { value: '500+', label: '500+ employees' },
 ]
 
 const GOALS = [
@@ -139,16 +134,18 @@ function slugify(str: string) {
 interface WorkspaceData {
   name: string
   slug: string
-  industry: string
-  size: string
 }
 
 function StepWorkspace({
   data,
   onChange,
+  slugAvailable,
+  slugChecking,
 }: {
   data: WorkspaceData
   onChange: (key: keyof WorkspaceData, val: string) => void
+  slugAvailable: boolean | null
+  slugChecking: boolean
 }) {
   return (
     <div className="space-y-5">
@@ -186,36 +183,11 @@ function StepWorkspace({
               placeholder="acme-inc"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Industry</Label>
-            <Select value={data.industry} onValueChange={(v) => onChange('industry', v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select industry" />
-              </SelectTrigger>
-              <SelectContent>
-                {INDUSTRIES.map((i) => (
-                  <SelectItem key={i} value={i}>{i}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Company Size</Label>
-            <Select value={data.size} onValueChange={(v) => onChange('size', v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select size" />
-              </SelectTrigger>
-              <SelectContent>
-                {COMPANY_SIZES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {data.slug && (
+            <p className={cn('text-xs text-muted-foreground', slugChecking ? 'animate-pulse' : slugAvailable === true ? 'text-green-500' : slugAvailable === false ? 'text-red-500' : null)}>
+              {slugChecking ? 'Checking...' : slugAvailable === true ? '✓ Available' : slugAvailable === false ? '✗ Already taken' : null}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -502,12 +474,10 @@ function StepDone({
   workspaceName,
   selectedPlan,
   onFinish,
-  loading,
 }: {
   workspaceName: string
   selectedPlan: PlanId
   onFinish: () => void
-  loading: boolean
 }) {
   const plan = PLAN_OPTIONS.find((p) => p.id === selectedPlan)
 
@@ -544,18 +514,9 @@ function StepDone({
         })}
       </div>
 
-      <Button className="w-full" size="lg" onClick={onFinish} disabled={loading}>
-        {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Setting up your workspace...
-          </>
-        ) : (
-          <>
-            Go to Dashboard
-            <ChevronRight className="h-4 w-4 ml-1.5" />
-          </>
-        )}
+      <Button className="w-full" size="lg" onClick={onFinish}>
+        Go to Dashboard
+        <ChevronRight className="h-4 w-4 ml-1.5" />
       </Button>
     </div>
   )
@@ -563,28 +524,118 @@ function StepDone({
 
 // ─── Main Onboarding Wizard ─────────────────────────────────────────────────
 
+const SLUG_DEBOUNCE_MS = 400
+
+/** Shared promise to avoid duplicate start() calls when React Strict Mode double-invokes effects */
+let startPromise: ReturnType<typeof onboardingApi.start> | null = null
+
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { isAuthenticated, isLoading, onboardingComplete } = useAuth()
+  const { onboardingToken, setOnboardingToken } = useOnboardingStore()
   const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
+  const [stepLoading, setStepLoading] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
+  const [slugChecking, setSlugChecking] = useState(false)
+  const [workspace, setWorkspace] = useState<WorkspaceData>({ name: '', slug: '' })
+  const [roleData, setRoleData] = useState<RoleData>({ jobTitle: '', goals: [], referral: '' })
+  const [invites, setInvites] = useState<TeamInvite[]>([])
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('professional')
+  const slugDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Start onboarding on mount (shared promise prevents duplicate calls in React Strict Mode)
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) return
+    if (isLoading || !isAuthenticated) return
+
+    if (!startPromise) {
+      startPromise = onboardingApi.start()
+    }
+
+    let cancelled = false
+    startPromise
+      .then((res) => {
+        if (cancelled) return
+        const data = res.data
+        setOnboardingToken(data.onboarding_token)
+        setStartError(null)
+        if (data.workspace_name) {
+          setWorkspace({ name: data.workspace_name, slug: data.workspace_slug ?? slugify(data.workspace_name) })
+          setSlugAvailable(true)
+        }
+        if (data.job_title) setRoleData((r) => ({ ...r, jobTitle: data.job_title! }))
+        if (data.goals?.length) setRoleData((r) => ({ ...r, goals: data.goals! }))
+        if (data.pending_invites?.length) {
+          setInvites(data.pending_invites.map((p, i) => ({
+            id: Date.now() + i,
+            email: p.email,
+            role: API_TO_ROLE[p.role_name] ?? 'Viewer',
+          })))
+        }
+        if (data.selected_plan && ['free','basic','professional','premium','enterprise'].includes(data.selected_plan)) {
+          setSelectedPlan(data.selected_plan as PlanId)
+        }
+        const completed = data.completed_steps ?? []
+        if (completed.includes('plan')) setStep(5)
+        else if (completed.includes('team')) setStep(4)
+        else if (completed.includes('role')) setStep(3)
+        else if (completed.includes('workspace')) setStep(2)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStartError('Failed to start onboarding. Please try again.')
+        }
+      })
+      .finally(() => {
+        startPromise = null
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isLoading, isAuthenticated, setOnboardingToken])
+
+  // Debounced slug check
+  const checkSlug = useCallback((slug: string) => {
+    if (slugDebounceRef.current) clearTimeout(slugDebounceRef.current)
+    if (!slug.trim()) {
+      setSlugAvailable(null)
+      return
+    }
+    setSlugChecking(true)
+    slugDebounceRef.current = setTimeout(() => {
+      onboardingApi
+        .slugCheck(slug)
+        .then((res) => setSlugAvailable(res.data.available))
+        .catch(() => setSlugAvailable(false))
+        .finally(() => setSlugChecking(false))
+      slugDebounceRef.current = null
+    }, SLUG_DEBOUNCE_MS)
+  }, [])
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login', { replace: true })
+    }
+  }, [isLoading, isAuthenticated, navigate])
 
   // Redirect if already completed
   useEffect(() => {
-    if (localStorage.getItem(ONBOARDING_KEY) === 'true') {
+    if (!isLoading && onboardingComplete === true) {
       navigate(ROUTES.DASHBOARD, { replace: true })
     }
-  }, [navigate])
+  }, [isLoading, onboardingComplete, navigate])
 
-  // Step 1 data
-  const [workspace, setWorkspace] = useState<WorkspaceData>({
-    name: '', slug: '', industry: '', size: '',
-  })
-  const updateWorkspace = (key: keyof WorkspaceData, val: string) =>
-    setWorkspace((prev) => ({ ...prev, [key]: val }))
+  const updateWorkspace = (key: keyof WorkspaceData, val: string) => {
+    setWorkspace((prev) => {
+      const next = { ...prev, [key]: val }
+      if (key === 'slug') checkSlug(next.slug)
+      return next
+    })
+  }
 
-  // Step 2 data
-  const [roleData, setRoleData] = useState<RoleData>({ jobTitle: '', goals: [], referral: '' })
   const updateRoleData = (key: 'jobTitle' | 'referral', val: string) =>
     setRoleData((prev) => ({ ...prev, [key]: val }))
   const toggleGoal = (goal: string) =>
@@ -595,33 +646,43 @@ export default function Onboarding() {
         : [...prev.goals, goal],
     }))
 
-  // Step 3 data
-  const [invites, setInvites] = useState<TeamInvite[]>([])
+  const canProceed = step === 1 ? workspace.name.trim().length > 0 && workspace.slug.trim().length > 0 && slugAvailable === true : true
 
-  // Step 4 data
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('professional')
-
-  const canProceed = step === 1 ? workspace.name.trim().length > 0 : true
-
-  function handleNext() {
-    if (step < STEPS.length) setStep(step + 1)
+  async function handleNext() {
+    setStepLoading(true)
+    try {
+      if (step === 1) {
+        await onboardingApi.updateWorkspace({
+          workspace_name: workspace.name.trim(),
+          workspace_slug: workspace.slug.trim(),
+        })
+      }
+      if (step === 2 && (roleData.jobTitle || roleData.goals.length > 0)) {
+        await onboardingApi.updateRole({
+          job_title: roleData.jobTitle || undefined,
+          goals: roleData.goals,
+        })
+      }
+      if (step === 3 && invites.some((i) => i.email.trim())) {
+        await onboardingApi.sendInvites({
+          invites: invites
+            .filter((i) => i.email.trim())
+            .map((i) => ({ email: i.email.trim(), role_name: ROLE_TO_API[i.role] ?? 'viewer' })),
+        })
+      }
+      if (step === 4) {
+        await onboardingApi.updatePlan({ selected_plan: selectedPlan })
+      }
+      if (step < STEPS.length) setStep(step + 1)
+    } catch {
+      // Keep user on current step on error
+    } finally {
+      setStepLoading(false)
+    }
   }
 
   function handleBack() {
     if (step > 1) setStep(step - 1)
-  }
-
-  async function handleFinish() {
-    setLoading(true)
-    // Simulate workspace provisioning
-    await new Promise((r) => setTimeout(r, 1200))
-    // Auto-login with the admin demo account to enter the app
-    const result = await login('admin@demo.com', 'demo1234')
-    if (result.success) {
-      localStorage.setItem(ONBOARDING_KEY, 'true')
-      navigate(ROUTES.DASHBOARD, { replace: true })
-    }
-    setLoading(false)
   }
 
   const isLastStep = step === STEPS.length
@@ -683,31 +744,55 @@ export default function Onboarding() {
         {/* Step content */}
         <div className="flex-1 min-h-0 flex flex-col justify-center overflow-y-auto px-8 sm:px-12 py-4">
           <div className="max-w-lg w-full mx-auto">
-            {step === 1 && (
-              <StepWorkspace data={workspace} onChange={updateWorkspace} />
+            {!onboardingToken && !startError && isAuthenticated && (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Starting onboarding...</p>
+              </div>
             )}
-            {step === 2 && (
+            {startError && (
+              <div className="flex flex-col gap-3 p-4 rounded-lg bg-destructive/10 text-destructive text-sm mb-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {startError}
+                </div>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center rounded-lg border border-destructive/30 bg-background px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-fit"
+                >
+                  Login again
+                </Link>
+              </div>
+            )}
+            {onboardingToken && step === 1 && (
+              <StepWorkspace
+                data={workspace}
+                onChange={updateWorkspace}
+                slugAvailable={slugAvailable}
+                slugChecking={slugChecking}
+              />
+            )}
+            {onboardingToken && step === 2 && (
               <StepRole data={roleData} onChange={updateRoleData} onToggleGoal={toggleGoal} />
             )}
-            {step === 3 && (
+            {onboardingToken && step === 3 && (
               <StepTeam invites={invites} setInvites={setInvites} />
             )}
-            {step === 4 && (
+            {onboardingToken && step === 4 && (
               <StepPlan selected={selectedPlan} onSelect={setSelectedPlan} />
             )}
-            {step === 5 && (
+            {onboardingToken && step === 5 && (
               <StepDone
                 workspaceName={workspace.name}
                 selectedPlan={selectedPlan}
-                onFinish={handleFinish}
-                loading={loading}
+                onFinish={() => navigate(ROUTES.ONBOARDING_COMPLETE)}
               />
             )}
           </div>
         </div>
 
-        {/* Navigation footer — hidden on final step */}
-        {!isLastStep && (
+        {/* Navigation footer — hidden on final step or when loading */}
+        {onboardingToken && !isLastStep && (
           <div className="px-8 sm:px-12 pb-8 pt-4 flex items-center justify-between gap-3 border-t shrink-0">
             <Button
               variant="ghost"
@@ -725,13 +810,23 @@ export default function Onboarding() {
                   size="sm"
                   className="text-muted-foreground"
                   onClick={handleNext}
+                  disabled={stepLoading}
                 >
                   Skip
                 </Button>
               )}
-              <Button onClick={handleNext} disabled={!canProceed} className="gap-1">
-                {step === 4 ? 'Finish Setup' : 'Continue'}
-                <ChevronRight className="h-4 w-4" />
+              <Button onClick={handleNext} disabled={!canProceed || stepLoading} className="gap-1">
+                {stepLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {step === 4 ? 'Finishing...' : 'Continuing...'}
+                  </>
+                ) : (
+                  <>
+                    {step === 4 ? 'Finish Setup' : 'Continue'}
+                    <ChevronRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -1,55 +1,25 @@
 import { useState } from 'react'
-import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/auth/context'
-import { DEMO_USERS } from '@/auth/demo-users'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from '@/components/auth/AuthLayout'
-
-const ROLE_LABELS: Record<string, string> = {
-  'super-admin': 'Super Admin',
-  'admin': 'Admin',
-  'manager': 'Manager',
-  'sales-rep': 'Sales Rep',
-  'marketing': 'Marketing',
-  'viewer': 'Viewer',
-}
-
-const PLAN_LABELS: Record<string, string> = {
-  free: 'Free',
-  basic: 'Basic',
-  professional: 'Professional',
-  premium: 'Premium',
-  enterprise: 'Enterprise',
-}
-
-const PLAN_BADGE_CLASSES: Record<string, string> = {
-  free: 'bg-muted text-muted-foreground border-border',
-  basic: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800',
-  professional: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800',
-  premium: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-800',
-  enterprise: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800',
-}
+import { ROUTES } from '@/router/routes'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
-
-  const [searchParams] = useSearchParams()
-  const showDemo = searchParams.get('demo') === 'true'
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || ROUTES.DASHBOARD
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [demoOpen, setDemoOpen] = useState(true)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,22 +29,10 @@ export default function Login() {
     setLoading(false)
     if (result.success) {
       navigate(from, { replace: true })
+    } else if (result.requiresVerification) {
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}&flow=signup`, { replace: true })
     } else {
       setError(result.error ?? 'Invalid email or password.')
-    }
-  }
-
-  async function loginAsDemo(demoEmail: string, demoPassword: string) {
-    setError('')
-    setLoading(true)
-    setEmail(demoEmail)
-    setPassword(demoPassword)
-    const result = await login(demoEmail, demoPassword)
-    setLoading(false)
-    if (result.success) {
-      navigate(from, { replace: true })
-    } else {
-      setError(result.error ?? 'Login failed.')
     }
   }
 
@@ -150,73 +108,12 @@ export default function Login() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-muted-foreground mt-5">
-        Don't have an account?{' '}
+      <p className="text-base text-muted-foreground mt-5">
+        New workspace?{' '}
         <Link to="/signup" className="text-primary hover:underline underline-offset-2 font-medium">
           Sign up
         </Link>
       </p>
-      <p className="text-center text-xs text-muted-foreground mt-1.5">
-        New workspace?{' '}
-        <Link to="/onboarding" className="text-primary hover:underline underline-offset-2 font-medium">
-          Start onboarding
-        </Link>
-      </p>
-
-      {/* Demo Accounts */}
-      {showDemo && <div className="mt-7 border-t pt-6">
-        <button
-          type="button"
-          onClick={() => setDemoOpen(!demoOpen)}
-          className="w-full flex items-center justify-between text-sm font-semibold hover:text-primary transition-colors mb-1"
-        >
-          <span>Demo Accounts</span>
-          {demoOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
-
-        {demoOpen && (
-          <div className="space-y-2 mt-3">
-            <p className="text-xs text-muted-foreground mb-3">
-              Click any card to instantly log in as that demo user.
-            </p>
-            <div className="grid grid-cols-1 gap-2">
-              {DEMO_USERS.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between gap-3 p-3 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn('h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0', u.avatarColor)}>
-                      {u.initials}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">{u.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                          {ROLE_LABELS[u.role] ?? u.role}
-                        </Badge>
-                        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4', PLAN_BADGE_CLASSES[u.plan])}>
-                          {PLAN_LABELS[u.plan]}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 text-xs h-8"
-                    disabled={loading}
-                    onClick={() => loginAsDemo(u.email, u.password)}
-                  >
-                    Log in as
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>}
     </AuthLayout>
   )
 }

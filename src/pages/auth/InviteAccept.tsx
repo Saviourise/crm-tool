@@ -1,23 +1,13 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, Lock, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { INVITE_TOKENS } from '@/auth/demo-users'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from '@/components/auth/AuthLayout'
-
-const ROLE_LABELS: Record<string, string> = {
-  'super-admin': 'Super Admin',
-  'admin': 'Admin',
-  'manager': 'Manager',
-  'sales-rep': 'Sales Rep',
-  'marketing': 'Marketing',
-  'viewer': 'Viewer',
-}
+import { useAuth } from '@/auth/context'
 
 function getPasswordStrength(password: string): { label: string; color: string; width: string } {
   if (password.length === 0) return { label: '', color: '', width: '0%' }
@@ -35,7 +25,7 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 export default function InviteAccept() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
-  const invite = token ? INVITE_TOKENS[token] : undefined
+  const { acceptInvite } = useAuth()
 
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
@@ -47,7 +37,7 @@ export default function InviteAccept() {
 
   const strength = getPasswordStrength(password)
 
-  if (!invite) {
+  if (!token) {
     return (
       <AuthLayout>
         <div className="text-center space-y-4">
@@ -70,8 +60,6 @@ export default function InviteAccept() {
     )
   }
 
-  const inviterInitial = invite.invitedBy.charAt(0).toUpperCase()
-
   function validate(): boolean {
     const newErrors: Record<string, string> = {}
     if (!fullName.trim()) newErrors.fullName = 'Full name is required.'
@@ -85,51 +73,28 @@ export default function InviteAccept() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
+    setErrors({})
+    const result = await acceptInvite(token, fullName.trim(), password)
     setLoading(false)
-    toast.success('Invitation accepted! Please sign in.')
-    navigate('/login')
+    if (result.success) {
+      toast.success('Invitation accepted!')
+      navigate('/dashboard', { replace: true })
+    } else {
+      setErrors({ form: result.error ?? 'Failed to accept invitation.' })
+    }
   }
 
   return (
     <AuthLayout>
       <div className="mb-7">
         <h1 className="text-2xl font-bold tracking-tight mb-2">You've been invited to CRM Tool</h1>
-        <div className="flex items-center gap-2 mt-2">
-          <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold shrink-0">
-            {inviterInitial}
-          </div>
-          <p className="text-muted-foreground text-sm">
-            Invited by <span className="font-medium text-foreground">{invite.invitedBy}</span>
-          </p>
-        </div>
+        <p className="text-muted-foreground text-sm">
+          Set up your account to join the workspace.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Pre-filled email (read-only) */}
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email address</Label>
-          <div className="relative">
-            <Input
-              id="email"
-              type="email"
-              value={invite.email}
-              readOnly
-              className="pr-10 bg-muted/40 text-muted-foreground cursor-not-allowed"
-            />
-            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          </div>
-        </div>
-
-        {/* Role (read-only) */}
-        <div className="space-y-1.5">
-          <Label>Assigned Role</Label>
-          <div>
-            <Badge variant="outline" className="text-sm px-3 py-1">
-              {ROLE_LABELS[invite.role] ?? invite.role}
-            </Badge>
-          </div>
-        </div>
+        {errors.form && <p className="text-sm text-destructive">{errors.form}</p>}
 
         {/* Full Name */}
         <div className="space-y-1.5">

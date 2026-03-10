@@ -1,6 +1,7 @@
 export const ROUTES = {
   HOME: '/',
   ONBOARDING: '/onboarding',
+  ONBOARDING_COMPLETE: '/onboarding/complete',
   DASHBOARD: '/dashboard',
   CONTACTS: '/contacts',
   CONTACT_DETAIL: (id: string) => `/contacts/${id}`,

@@ -1,8 +1,17 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { ROUTES } from './routes'
-import { RequireAuth, RequirePermission, RequireFeature } from '@/auth/guards'
+import { AuthProvider } from '@/auth/context'
+import { RequireAuth, RequireOnboarding, RequirePermission, RequireFeature } from '@/auth/guards'
 import type { Permission, Feature } from '@/auth/types'
+
+function RootLayout() {
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  )
+}
 
 // Layout
 const AppLayout = lazy(() => import('@/components/layout/AppLayout'))
@@ -15,6 +24,7 @@ const VerifyOTPPage = lazy(() => import('@/pages/auth/VerifyOTP'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPassword'))
 const InviteAcceptPage = lazy(() => import('@/pages/auth/InviteAccept'))
 const OnboardingPage = lazy(() => import('@/pages/onboarding'))
+const OnboardingCompletePage = lazy(() => import('@/pages/onboarding/complete'))
 
 // Pages
 const Dashboard = lazy(() => import('@/pages/dashboard'))
@@ -68,43 +78,53 @@ function Guard({
 }
 
 export const router = createBrowserRouter([
-  // ─── Public auth routes (no app layout) ─────────────────────────────────────
   {
-    path: '/login',
-    element: <P><LoginPage /></P>,
-  },
+    element: <RootLayout />,
+    children: [
+      // ─── Public auth routes (no app layout) ─────────────────────────────────
+      // Use 'login' not '/login' so path '/' doesn't match /login as prefix
+      {
+        path: 'login',
+        element: <P><LoginPage /></P>,
+      },
   {
-    path: '/signup',
+    path: 'signup',
     element: <P><SignupPage /></P>,
   },
   {
-    path: '/forgot-password',
+    path: 'forgot-password',
     element: <P><ForgotPasswordPage /></P>,
   },
   {
-    path: '/verify-otp',
+    path: 'verify-otp',
     element: <P><VerifyOTPPage /></P>,
   },
   {
-    path: '/reset-password',
+    path: 'reset-password',
     element: <P><ResetPasswordPage /></P>,
   },
   {
-    path: '/invite/:token',
+    path: 'invite/:token',
     element: <P><InviteAcceptPage /></P>,
   },
   {
-    path: '/onboarding',
+    path: 'onboarding',
     element: <P><OnboardingPage /></P>,
   },
+      {
+        path: 'onboarding/complete',
+        element: <P><OnboardingCompletePage /></P>,
+      },
 
-  // ─── Protected app routes (require auth + RBAC) ──────────────────────────────
-  {
-    path: ROUTES.HOME,
+      // ─── Protected app routes (require auth + onboarding + RBAC) ─────────────
+      {
+        path: ROUTES.HOME,
     element: (
       <P>
         <RequireAuth>
-          <AppLayout />
+          <RequireOnboarding>
+            <AppLayout />
+          </RequireOnboarding>
         </RequireAuth>
       </P>
     ),
@@ -215,4 +235,6 @@ export const router = createBrowserRouter([
       },
     ],
   },
+    ],
+  }
 ])

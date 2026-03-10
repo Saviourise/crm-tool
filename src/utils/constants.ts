@@ -47,6 +47,7 @@ export const STORAGE_KEYS = {
   SIDEBAR_STATE: 'crm-sidebar-state',
   USER_PREFERENCES: 'crm-user-preferences',
   AUTH_TOKENS: 'crm-auth-tokens',
+  AUTH_USER: 'crm_auth_user',
 } as const
 
 // Routes (re-export from router for convenience)

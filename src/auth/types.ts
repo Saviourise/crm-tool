@@ -27,6 +27,7 @@ export interface AuthUser {
   avatarColor: string
   initials: string
   jobTitle: string
+  isVerified: boolean
 }
 
 export interface AuthState {
