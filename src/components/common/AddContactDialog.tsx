@@ -54,6 +54,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
       queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       formRef.current?.reset()
       setCompanyId('')
       setOpen(false)

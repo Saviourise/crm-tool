@@ -80,6 +80,7 @@ function EditContactDialog({ contact, open, onOpenChange }: {
       queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       toast.success('Contact updated', { description: `${contact.firstName} ${contact.lastName} has been updated.` })
       onOpenChange(false)
     },
