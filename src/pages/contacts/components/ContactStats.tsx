@@ -1,17 +1,26 @@
+import { useQuery } from '@tanstack/react-query'
 import { Users, UserCheck, UserX, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import type { Contact } from '../typings'
+import { contactsApi } from '@/api/contacts'
 
 interface ContactStatsProps {
-  contacts: Contact[]
+  isLoading?: boolean
 }
 
-export function ContactStats({ contacts }: ContactStatsProps) {
-  const total = contacts.length
-  const active = contacts.filter((c) => c.status === 'active').length
-  const prospects = contacts.filter((c) => c.status === 'prospect').length
-  const inactive = contacts.filter((c) => c.status === 'inactive').length
+export function ContactStats({ isLoading }: ContactStatsProps) {
+  const { data, isLoading: statsLoading } = useQuery({
+    queryKey: ['contacts', 'stats'],
+    queryFn: () => contactsApi.stats(),
+  })
+
+  const showLoading = isLoading ?? statsLoading
+
+  const statsData = data?.data
+  const total = statsData?.total ?? 0
+  const active = statsData?.active ?? 0
+  const prospects = statsData?.prospects ?? 0
+  const inactive = statsData?.inactive ?? 0
 
   const stats = [
     {
@@ -47,6 +56,24 @@ export function ContactStats({ contacts }: ContactStatsProps) {
       border: 'border-l-destructive',
     },
   ]
+
+  if (showLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="border-l-4 overflow-hidden">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-muted animate-pulse" />
+              <div className="flex-1">
+                <div className="h-8 w-6 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-16 mt-2 bg-muted rounded animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

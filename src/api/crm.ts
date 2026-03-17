@@ -14,18 +14,6 @@ export interface CreateLeadRequest {
   value?: string
 }
 
-/** Create contact - POST /api/contacts/ */
-export interface CreateContactRequest {
-  first_name: string
-  last_name: string
-  email: string
-  phone?: string
-  company?: string
-  position?: string
-  status?: string
-  tags?: string[]
-}
-
 /** Create task - POST /api/tasks/ */
 export interface CreateTaskRequest {
   title: string
@@ -40,10 +28,6 @@ export interface CreateTaskRequest {
 
 export const leadsApi = {
   create: (data: CreateLeadRequest) => api.post('/api/leads/', data),
-}
-
-export const contactsApi = {
-  create: (data: CreateContactRequest) => api.post('/api/contacts/', data),
 }
 
 export const tasksApi = {

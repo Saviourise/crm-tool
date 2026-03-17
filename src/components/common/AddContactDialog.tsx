@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { contactsApi } from '@/api/crm'
+import { contactsApi } from '@/api/contacts'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 interface AddContactDialogProps {
@@ -34,6 +34,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
       setOpen(false)
     },
     onError: () => {
@@ -48,9 +49,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
     const lastName = (form.elements.namedItem('contactLastName') as HTMLInputElement).value.trim()
     const email = (form.elements.namedItem('contactEmail') as HTMLInputElement).value.trim()
     const position = (form.elements.namedItem('contactPosition') as HTMLInputElement).value.trim() || undefined
-    // company: API expects UUID; omit for quick-add (user can link later via contact edit)
-    const companyVal = (form.elements.namedItem('contactCompany') as HTMLInputElement).value.trim()
-    const company = /^[0-9a-f-]{36}$/i.test(companyVal) ? companyVal : undefined
+    const company = (form.elements.namedItem('contactCompany') as HTMLInputElement).value.trim() || undefined
 
     createContact.mutate({
       first_name: firstName,

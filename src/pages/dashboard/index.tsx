@@ -86,7 +86,7 @@ export default function Dashboard() {
 
   const openDeals = sales ? sales.total_deals - sales.won_deals : 0
 
-  const metrics: (Metric & { isLoading?: boolean })[] = [
+  const metrics: (Metric & { isLoading?: boolean; isFetching?: boolean })[] = [
     {
       id: 'leads',
       label: 'Total Leads',
@@ -95,7 +95,8 @@ export default function Dashboard() {
       trend: 'up',
       color: 'blue',
       icon: UserPlus,
-      isLoading: leadsLoading || leadsFetching,
+      isLoading: leadsLoading,
+      isFetching: leadsFetching,
     },
     {
       id: 'contacts',
@@ -105,7 +106,8 @@ export default function Dashboard() {
       trend: 'up',
       color: 'green',
       icon: Users,
-      isLoading: contactsLoading || contactsFetching,
+      isLoading: contactsLoading,
+      isFetching: contactsFetching,
     },
     {
       id: 'opportunities',
@@ -115,7 +117,8 @@ export default function Dashboard() {
       trend: 'up',
       color: 'orange',
       icon: TrendingUp,
-      isLoading: salesLoading || salesFetching,
+      isLoading: salesLoading,
+      isFetching: salesFetching,
     },
     {
       id: 'deals-closed',
@@ -125,7 +128,8 @@ export default function Dashboard() {
       trend: 'up',
       color: 'purple',
       icon: DollarSign,
-      isLoading: salesLoading || salesFetching,
+      isLoading: salesLoading,
+      isFetching: salesFetching,
     },
     {
       id: 'tasks-due',
@@ -135,7 +139,8 @@ export default function Dashboard() {
       trend: 'up',
       color: 'red',
       icon: CheckSquare,
-      isLoading: tasksLoading || tasksFetching,
+      isLoading: tasksLoading,
+      isFetching: tasksFetching,
     },
   ]
 
@@ -258,6 +263,7 @@ export default function Dashboard() {
             icon={metric.icon}
             color={metric.color}
             isLoading={metric.isLoading}
+            isFetching={metric.isFetching}
           />
         ))}
       </div>

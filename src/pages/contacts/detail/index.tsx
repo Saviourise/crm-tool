@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ExternalLink, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { MOCK_CONTACTS } from '../data'
+import { contactsApi } from '@/api/contacts'
+import { mapApiContactToContact } from '../apiMappers'
 import { ContactProfileCard } from './components/ContactProfileCard'
 import { ActivityTimeline } from './components/ActivityTimeline'
 import { RelatedDeals } from './components/RelatedDeals'
@@ -48,9 +50,23 @@ export default function ContactDetail() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
-  const contact = MOCK_CONTACTS.find((c) => c.id === id)
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['contacts', id],
+    queryFn: () => contactsApi.get(id!),
+    enabled: !!id,
+  })
 
-  if (!contact) {
+  const contact = data?.data ? mapApiContactToContact(data.data) : undefined
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!id || error || !contact) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <p className="text-muted-foreground text-lg">Contact not found.</p>

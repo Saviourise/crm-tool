@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Mail, Phone, Linkedin, Trash2, Pencil, CheckSquare, Clock } from 'lucide-react'
 import { toast } from 'sonner'
@@ -38,6 +39,10 @@ import type { Contact, ContactStatus } from '../typings'
 import { STATUS_OPTIONS } from '../data'
 import { ROUTES } from '@/router/routes'
 import { useAuth } from '@/auth/context'
+import { contactsApi } from '@/api/contacts'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+
+const CONTACTS_QUERY_KEY = ['contacts']
 
 const statusStyles: Record<Contact['status'], string> = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
@@ -50,10 +55,35 @@ function EditContactDialog({ contact, open, onOpenChange }: {
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const handleSubmit = (e: React.FormEvent) => {
+  const queryClient = useQueryClient()
+  const updateContact = useMutation({
+    mutationFn: (data: { first_name: string; last_name: string; email: string; company?: string; position?: string; phone?: string }) =>
+      contactsApi.update(contact.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CONTACTS_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      toast.success('Contact updated', { description: `${contact.firstName} ${contact.lastName} has been updated.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to update contact', { description: 'Please try again.' })
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    toast.success('Contact updated', { description: `${contact.firstName} ${contact.lastName} has been updated.` })
-    onOpenChange(false)
+    const form = e.currentTarget
+    const data = {
+      first_name: (form.elements.namedItem('edit-first') as HTMLInputElement).value,
+      last_name: (form.elements.namedItem('edit-last') as HTMLInputElement).value,
+      email: (form.elements.namedItem('edit-email') as HTMLInputElement).value,
+      company: (form.elements.namedItem('edit-company') as HTMLInputElement).value || undefined,
+      position: (form.elements.namedItem('edit-position') as HTMLInputElement).value || undefined,
+      phone: (form.elements.namedItem('edit-phone') as HTMLInputElement).value || undefined,
+    }
+    updateContact.mutate(data)
   }
 
   return (
@@ -68,33 +98,35 @@ function EditContactDialog({ contact, open, onOpenChange }: {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-first">First Name</Label>
-                <Input id="edit-first" defaultValue={contact.firstName} />
+                <Input id="edit-first" name="edit-first" defaultValue={contact.firstName} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-last">Last Name</Label>
-                <Input id="edit-last" defaultValue={contact.lastName} />
+                <Input id="edit-last" name="edit-last" defaultValue={contact.lastName} />
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-email">Email</Label>
-              <Input id="edit-email" type="email" defaultValue={contact.email} />
+              <Input id="edit-email" name="edit-email" type="email" defaultValue={contact.email} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-company">Company</Label>
-              <Input id="edit-company" defaultValue={contact.company ?? ''} />
+              <Input id="edit-company" name="edit-company" defaultValue={contact.company ?? ''} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-position">Position</Label>
-              <Input id="edit-position" defaultValue={contact.position ?? ''} />
+              <Input id="edit-position" name="edit-position" defaultValue={contact.position ?? ''} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-phone">Phone</Label>
-              <Input id="edit-phone" defaultValue={contact.phone ?? ''} />
+              <Input id="edit-phone" name="edit-phone" defaultValue={contact.phone ?? ''} />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={updateContact.isPending}>
+              {updateContact.isPending ? 'Saving…' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -107,9 +139,25 @@ function DeleteConfirmDialog({ contact, open, onOpenChange }: {
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const queryClient = useQueryClient()
+  const deleteContact = useMutation({
+    mutationFn: () => contactsApi.delete(contact.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CONTACTS_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      toast.success('Contact deleted', { description: `${contact.firstName} ${contact.lastName} has been removed.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to delete contact', { description: 'Please try again.' })
+    },
+  })
+
   const handleDelete = () => {
-    toast.error('Contact deleted', { description: `${contact.firstName} ${contact.lastName} has been removed.` })
-    onOpenChange(false)
+    deleteContact.mutate()
   }
 
   return (
@@ -123,7 +171,9 @@ function DeleteConfirmDialog({ contact, open, onOpenChange }: {
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="destructive" onClick={handleDelete}>Delete Contact</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteContact.isPending}>
+            {deleteContact.isPending ? 'Deleting…' : 'Delete Contact'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -310,12 +360,35 @@ const columns: ColumnDef<Contact, unknown>[] = [
   },
 ]
 
-export function ContactsTable({ contacts }: { contacts: Contact[] }) {
+interface ContactsTableProps {
+  contacts: Contact[]
+  isLoading?: boolean
+  serverSide?: {
+    pageSize: number
+    onPageSizeChange: (size: number) => void
+    hasNext: boolean
+    hasPrev: boolean
+    onNext: () => void
+    onPrev: () => void
+    totalLabel?: string
+  }
+}
+
+export function ContactsTable({ contacts, isLoading, serverSide }: ContactsTableProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
   return (
     <DataTable
       columns={columns}
       data={contacts}
       searchPlaceholder="Search by name, email, company..."
+      serverSide={serverSide}
       toolbar={(table) => (
         <Select
           value={(table.getColumn('status')?.getFilterValue() as ContactStatus | undefined) ?? 'all'}

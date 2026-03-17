@@ -9,7 +9,10 @@ interface MetricCardProps {
   trend: 'up' | 'down'
   icon: React.ElementType
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
+  /** Initial load — show skeleton */
   isLoading?: boolean
+  /** Refetch in progress (create/update) — show circular loader */
+  isFetching?: boolean
 }
 
 const colorVariants = {
@@ -40,12 +43,27 @@ const colorVariants = {
   },
 }
 
-export function MetricCard({ title, value, change, trend, icon: Icon, color, isLoading }: MetricCardProps) {
+export function MetricCard({ title, value, change, trend, icon: Icon, color, isLoading, isFetching }: MetricCardProps) {
   const isPositive = trend === 'up'
   const TrendIcon = isPositive ? TrendingUp : TrendingDown
   const variant = colorVariants[color]
 
   if (isLoading) {
+    return (
+      <Card className={cn('overflow-hidden border-l-4 transition-all duration-200', variant.border)}>
+        <CardContent className="p-4 flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-3 w-16 bg-muted rounded animate-pulse" />
+            <div className="h-8 w-14 bg-muted rounded animate-pulse" />
+            <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-muted animate-pulse shrink-0" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (isFetching) {
     return (
       <Card className={cn('overflow-hidden border-l-4 transition-all duration-200', variant.border)}>
         <CardContent className="p-4 flex items-center justify-center min-h-[100px]">
