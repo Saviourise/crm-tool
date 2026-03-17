@@ -57,6 +57,7 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
       })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.leadAnalytics })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['leads'] })
       setOpen(false)
     },

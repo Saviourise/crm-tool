@@ -39,6 +39,7 @@ const Marketing = lazy(() => import('@/pages/marketing'))
 const Reports = lazy(() => import('@/pages/reports'))
 const UserManagement = lazy(() => import('@/pages/users'))
 const Help = lazy(() => import('@/pages/help'))
+const Activity = lazy(() => import('@/pages/activity'))
 const Notifications = lazy(() => import('@/pages/notifications'))
 const Settings = lazy(() => import('@/pages/settings'))
 
@@ -224,6 +225,12 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.HELP,
         element: <P><Help /></P>,
+      },
+
+      // Activity log — open to all authenticated users
+      {
+        path: ROUTES.ACTIVITY,
+        element: <P><Activity /></P>,
       },
 
       // Notifications — open to all authenticated users

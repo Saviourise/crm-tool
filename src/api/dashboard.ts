@@ -40,16 +40,20 @@ export interface RevenueForecastResponse {
   forecast: RevenueForecastItem[]
 }
 
-/** Activity from GET /api/activity/ */
+/** Activity from GET /api/activity/ — API returns array or { results } */
 export interface ApiActivity {
   id: string
   type: string
   entity_type: string
-  entity_id: string
+  entity_id: string | null
   notes: string | null
   duration_minutes: number | null
   actor: string
   logged_at: string
+  created_at?: string
+  updated_at?: string
+  metadata?: Record<string, unknown>
+  workspace?: string
 }
 
 /** Cursor-paginated response */
@@ -83,15 +87,25 @@ export const dashboardApi = {
   revenueForecast: () =>
     api.get<RevenueForecastResponse>('/api/reports/revenue-forecast/'),
 
-  activity: (params?: { entity_type?: string; entity_id?: string; actor?: string; type?: string; page_size?: number }) => {
+  activity: (params?: {
+    entity_type?: string
+    entity_id?: string
+    actor?: string
+    type?: string
+    page_size?: number
+    limit?: number
+    cursor?: string
+  }) => {
     const search = new URLSearchParams()
     if (params?.entity_type) search.set('entity_type', params.entity_type)
     if (params?.entity_id) search.set('entity_id', params.entity_id)
     if (params?.actor) search.set('actor', params.actor)
     if (params?.type) search.set('type', params.type)
     if (params?.page_size) search.set('page_size', String(params.page_size))
+    if (params?.limit) search.set('limit', String(params.limit))
+    if (params?.cursor) search.set('cursor', params.cursor)
     const qs = search.toString()
-    return api.get<CursorPaginatedResponse<ApiActivity>>(`/api/activity/${qs ? `?${qs}` : ''}`)
+    return api.get<ApiActivity[] | CursorPaginatedResponse<ApiActivity>>(`/api/activity/${qs ? `?${qs}` : ''}`)
   },
 
   /** List contacts (paginated) - use for count with page_size */

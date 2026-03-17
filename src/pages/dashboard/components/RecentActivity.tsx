@@ -1,38 +1,14 @@
-import { UserPlus, Users, CheckSquare, DollarSign, Clock, Activity } from 'lucide-react'
+import { Clock, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/router/routes'
 import { DashboardEmptyState } from './DashboardEmptyState'
-
-interface Activity {
-  id: string
-  type: 'lead' | 'contact' | 'task' | 'deal'
-  title: string
-  description: string
-  timestamp: string
-  user: string
-  status?: string
-}
-
-const activityIcons = {
-  lead: UserPlus,
-  contact: Users,
-  task: CheckSquare,
-  deal: DollarSign,
-}
-
-const activityColors = {
-  lead: 'text-primary',
-  contact: 'text-[oklch(var(--success))]',
-  task: 'text-[oklch(var(--warning))]',
-  deal: 'text-secondary',
-}
+import { activityIcons, activityColors, type ActivityRow } from '../../activity/components/ActivityTable'
 
 interface RecentActivityProps {
-  activities: Activity[]
+  activities: ActivityRow[]
   isLoading?: boolean
 }
 
@@ -47,7 +23,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
         {!isEmpty && !isLoading && (
           <button
             className="text-sm text-primary hover:underline"
-            onClick={() => navigate(ROUTES.NOTIFICATIONS)}
+            onClick={() => navigate(ROUTES.ACTIVITY)}
           >
             View All
           </button>
@@ -65,51 +41,46 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
             description="Activity will appear here as you create leads, contacts, and deals."
           />
         ) : (
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const Icon = activityIcons[activity.type]
-            return (
-              <div key={activity.id} className="flex items-start gap-4">
-                <div
-                  className={cn(
-                    'p-2 rounded-lg bg-muted',
-                    activityColors[activity.type]
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium leading-none">{activity.title}</p>
-                    {activity.status && (
-                      <Badge variant="secondary" className="text-xs">
-                        {activity.status}
-                      </Badge>
+          <div className="space-y-4">
+            {activities.map((activity) => {
+              const Icon = activityIcons[activity.displayType]
+              return (
+                <div key={activity.id} className="flex items-start gap-4 capitalize">
+                  <div
+                    className={cn(
+                      'p-2 rounded-lg bg-muted',
+                      activityColors[activity.displayType]
                     )}
+                  >
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <p className="text-sm text-muted-foreground">{activity.description}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Avatar className="h-4 w-4">
-                        <AvatarFallback className="text-[8px]">
-                          {activity.user
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{activity.user}</span>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium leading-none">{activity.title}</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{activity.timestamp}</span>
+                    <p className="text-sm text-muted-foreground">{activity.description}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Avatar className="h-4 w-4">
+                          <AvatarFallback className="text-[8px]">
+                            {activity.user
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{activity.user}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{activity.timestamp}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
         )}
       </CardContent>
     </Card>

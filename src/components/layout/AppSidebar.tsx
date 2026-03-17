@@ -15,6 +15,7 @@ import {
   CalendarDays,
   HelpCircle,
   LogOut,
+  Activity,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -65,6 +66,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Productivity',
     items: [
+      { title: 'Activity',      icon: Activity,     url: ROUTES.ACTIVITY },
       { title: 'Calendar',      icon: CalendarDays, url: ROUTES.CALENDAR,      planRequired: 'basic',        viewPermission: 'calendar.view' },
       { title: 'Communication', icon: Inbox,        url: ROUTES.COMMUNICATION, planRequired: 'basic',        viewPermission: 'communication.view' },
       { title: 'Marketing',     icon: Mail,         url: ROUTES.MARKETING,     planRequired: 'professional', viewPermission: 'marketing.view' },

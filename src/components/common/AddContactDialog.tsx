@@ -32,6 +32,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
       })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
       setOpen(false)
     },

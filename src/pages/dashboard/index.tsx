@@ -16,7 +16,9 @@ import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { ROUTES } from '@/router/routes'
 import { dashboardApi } from '@/api/dashboard'
 import { dashboardQueryKeys, DASHBOARD_PERIOD } from './queryKeys'
-import type { Metric, Activity } from './typings'
+import type { Metric } from './typings'
+import { mapActivityType, mapActivityTitle } from './utils'
+import type { ActivityRow } from '../activity/components/ActivityTable'
 
 function formatCurrency(value: string): string {
   const num = parseFloat(value)
@@ -26,29 +28,7 @@ function formatCurrency(value: string): string {
   return `$${num.toFixed(0)}`
 }
 
-function mapActivityType(type: string, entityType: string): 'lead' | 'contact' | 'task' | 'deal' {
-  const t = entityType?.toLowerCase() ?? ''
-  if (t === 'lead') return 'lead'
-  if (t === 'contact') return 'contact'
-  if (t === 'task') return 'task'
-  if (t === 'deal' || t === 'pipeline') return 'deal'
-  return 'lead'
-}
 
-function mapActivityTitle(type: string, entityType: string): string {
-  const t = type?.toLowerCase() ?? ''
-  const e = entityType?.toLowerCase() ?? ''
-  if (t === 'create') {
-    if (e === 'lead') return 'New lead captured'
-    if (e === 'contact') return 'Contact added'
-    if (e === 'deal') return 'Deal created'
-    if (e === 'task') return 'Task created'
-  }
-  if (t === 'call') return 'Call logged'
-  if (t === 'email') return 'Email sent'
-  if (t === 'meeting') return 'Meeting scheduled'
-  return `${entityType || 'Activity'} updated`
-}
 
 export default function Dashboard() {
   const { can, hasPlan } = useAuth()
@@ -96,7 +76,11 @@ export default function Dashboard() {
   const sales = salesData?.data
   const leads = leadData?.data
   const revenue = revenueData?.data
-  const activities = activityData?.data?.results ?? []
+  const activities = (() => {
+    const d = activityData?.data
+    if (!d) return []
+    return Array.isArray(d) ? d : (d.results ?? [])
+  })()
   const contactsCount = contactsData?.data?.results?.length ?? 0
   const tasksDueCount = tasksData?.data?.results?.length ?? 0
 
@@ -176,14 +160,21 @@ export default function Dashboard() {
       }
     }) ?? []
 
-  const mappedActivities: Activity[] = activities.map((a) => ({
-    id: a.id,
-    type: mapActivityType(a.type, a.entity_type),
-    title: mapActivityTitle(a.type, a.entity_type),
-    description: a.notes ?? '',
-    timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true }),
-    user: 'Team member',
-  }))
+  const mappedActivities: ActivityRow[] = activities.map((a) => {
+    const notes = a.notes ?? ''
+    const description = /^POST\s+\/api\//i.test(notes) ? '' : notes
+    return {
+      id: a.id,
+      type: mapActivityType(a.entity_type),
+      entity_type: a.entity_type,
+      displayType: mapActivityType(a.entity_type),
+      title: mapActivityTitle(a.type, a.entity_type),
+      description,
+      timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true }),
+      user: 'Team member',
+      logged_at: a.logged_at,
+    }
+  })
 
   if (fromOnboarding) {
     return (

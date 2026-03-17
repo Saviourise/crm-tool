@@ -276,11 +276,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOnboardingComplete(true)
   }, [])
 
+  // Treat as unauthenticated when tokens are cleared (e.g. forceLogout), even before
+  // useEffect clears user. Prevents RequireOnboarding from redirecting to /onboarding
+  // instead of RequireAuth redirecting to /login.
+  const isAuthenticated = !!user && !!accessToken
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated,
         login,
         signup,
         acceptInvite,

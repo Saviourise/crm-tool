@@ -46,6 +46,7 @@ export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: N
       toast.success('Task created', { description: 'Your task has been added to the list.' })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.tasksDue })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       setDueDate(undefined)
       setPriority('medium')
