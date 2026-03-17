@@ -197,12 +197,25 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
         toast.error('Import failed', { description: data.error })
         return
       }
-      setImportProgress((p) => Math.min(p + 15, 95))
       await new Promise((r) => setTimeout(r, 1500))
       return poll()
     }
     return poll()
   }
+
+  const runProgressBar = useCallback((targetPercent: number, onComplete?: () => void) => {
+    const interval = setInterval(() => {
+      setImportProgress((prev) => {
+        const next = Math.min(prev + 4, targetPercent)
+        if (next >= targetPercent) {
+          clearInterval(interval)
+          onComplete?.()
+        }
+        return next
+      })
+    }, 80)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleImport = async () => {
     setStep(4)
@@ -211,21 +224,44 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
     setImportError(null)
     setImportResult(null)
 
+    let progressCleanup: (() => void) | undefined
+
     if (entity === 'contacts' && file) {
+      progressCleanup = runProgressBar(95)
       try {
         const columnMap = buildColumnMap()
         const { data } = await contactsApi.import(file, columnMap)
-        if (data?.task_id) {
-          setImportProgress(10)
-          await pollImportStatus(data.task_id)
-        } else {
-          setImportError(data?.message ?? 'Import failed')
+        progressCleanup?.()
+        if (data && 'created' in data) {
+          const rawErrors = data.errors ?? []
+          setImportResult({
+            imported: data.created,
+            skipped: 0,
+            errors: rawErrors.map((e) => ({ row: e.row ?? 0, reason: e.reason ?? '' })),
+          })
+          setImportProgress(100)
           setImportDone(true)
-          toast.error('Import failed', { description: data?.message })
+          queryClient.invalidateQueries({ queryKey: ['contacts'] })
+          queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+          queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+          toast.success('Import complete', {
+            description: `${data.created} contacts imported successfully.`,
+          })
+        } else if (data?.task_id) {
+          progressCleanup = runProgressBar(99)
+          await pollImportStatus(data.task_id)
+          progressCleanup?.()
+        } else {
+          setImportError((data as { message?: string })?.message ?? 'Import failed')
+          setImportProgress(100)
+          setImportDone(true)
+          toast.error('Import failed', { description: (data as { message?: string })?.message })
         }
       } catch (err: unknown) {
+        progressCleanup?.()
         const msg = err instanceof Error ? err.message : 'Import failed'
         setImportError(msg)
+        setImportProgress(100)
         setImportDone(true)
         toast.error('Import failed', { description: msg })
       }
@@ -233,21 +269,14 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
     }
 
     // Leads: simulated import (no API yet)
-    const interval = setInterval(() => {
-      setImportProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setImportDone(true)
-          setImportResult({
-            imported: csvRows.length - Math.floor(csvRows.length * 0.06),
-            skipped: Math.floor(csvRows.length * 0.06),
-            errors: [],
-          })
-          return 100
-        }
-        return prev + 10
+    runProgressBar(100, () => {
+      setImportDone(true)
+      setImportResult({
+        imported: csvRows.length - Math.floor(csvRows.length * 0.06),
+        skipped: Math.floor(csvRows.length * 0.06),
+        errors: [],
       })
-    }, 120)
+    })
   }
 
   const totalRows = csvRows.length

@@ -125,8 +125,10 @@ api.interceptors.response.use(
       try {
         const newAccess = await refreshAccessToken()
         originalRequest.headers.Authorization = `Bearer ${newAccess}`
+        // Retry the failed request with new token — do not navigate; refetch the endpoint that 401'd
         return api(originalRequest)
       } catch {
+        // Refresh failed — forceLogout already called in refreshAccessToken
         return Promise.reject(error)
       }
     }

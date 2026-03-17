@@ -60,7 +60,7 @@ export default function Dashboard() {
 
   const { data: activityData, isLoading: activityLoading, isFetching: activityFetching } = useQuery({
     queryKey: dashboardQueryKeys.activity,
-    queryFn: () => dashboardApi.activity({ page_size: 10 }),
+    queryFn: () => dashboardApi.activity({ limit: 10 }),
   })
 
   const { data: contactsData, isLoading: contactsLoading, isFetching: contactsFetching } = useQuery({

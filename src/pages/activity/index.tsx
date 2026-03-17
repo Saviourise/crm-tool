@@ -12,6 +12,20 @@ import type { ActivityDisplayType } from './components/ActivityTable'
 
 const ACTIVITY_QUERY_KEY = ['activity', 'list']
 
+/** Extract cursor value from next URL — API returns full URL, backend expects cursor only */
+function parseNextCursor(next: string | null | undefined): string | null {
+  if (!next) return null
+  try {
+    if (next.startsWith('http')) {
+      const u = new URL(next)
+      return u.searchParams.get('cursor') ?? next
+    }
+    return next
+  } catch {
+    return next
+  }
+}
+
 /** Map UI entity type to API entity_type (API uses plural: leads, contacts, tasks, deals, companies) */
 const ENTITY_TYPE_TO_API: Record<ActivityDisplayType, string> = {
   lead: 'leads',
@@ -58,7 +72,7 @@ export default function ActivityPage() {
     return Array.isArray(rawData) ? rawData : (rawData as CursorPaginatedResponse<ApiActivity>).results ?? []
   })()
   const response = Array.isArray(rawData) ? null : (rawData as CursorPaginatedResponse<ApiActivity> | undefined)
-  const nextCursor = response?.next ?? null
+  const nextCursor = parseNextCursor(response?.next ?? null)
   const hasNext = !!nextCursor
   const hasPrev = cursorStack.length > 0
 

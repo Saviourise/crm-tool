@@ -151,10 +151,10 @@ export const contactsApi = {
     if (columnMap) {
       form.append('column_map', JSON.stringify(columnMap))
     }
-    return api.post<{ task_id: string; status?: string; message?: string }>(
-      '/api/contacts/import/',
-      form
-    )
+    return api.post<
+      | { task_id: string; status?: string; message?: string }
+      | { created: number; errors: Array<{ row?: number; reason?: string }> }
+    >('/api/contacts/import/', form)
   },
 
   importStatus: (taskId: string) =>
