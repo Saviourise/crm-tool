@@ -9,6 +9,7 @@ interface MetricCardProps {
   trend: 'up' | 'down'
   icon: React.ElementType
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
+  isLoading?: boolean
 }
 
 const colorVariants = {
@@ -39,10 +40,20 @@ const colorVariants = {
   },
 }
 
-export function MetricCard({ title, value, change, trend, icon: Icon, color }: MetricCardProps) {
+export function MetricCard({ title, value, change, trend, icon: Icon, color, isLoading }: MetricCardProps) {
   const isPositive = trend === 'up'
   const TrendIcon = isPositive ? TrendingUp : TrendingDown
   const variant = colorVariants[color]
+
+  if (isLoading) {
+    return (
+      <Card className={cn('overflow-hidden border-l-4 transition-all duration-200', variant.border)}>
+        <CardContent className="p-4 flex items-center justify-center min-h-[100px]">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className={cn('overflow-hidden border-l-4 transition-all duration-200 hover:shadow-md', variant.border)}>

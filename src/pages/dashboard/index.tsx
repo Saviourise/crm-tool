@@ -1,24 +1,54 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Users, UserPlus, CheckSquare, Sparkles } from 'lucide-react'
+import { Users, UserPlus, CheckSquare, Sparkles, TrendingUp, DollarSign } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { formatDistanceToNow } from 'date-fns'
 import { MetricCard } from './components/MetricCard'
 import { QuickActions } from './components/QuickActions'
 import { RecentActivity } from './components/RecentActivity'
 import { BarChartComponent } from './components/PerformanceChart'
 import { LineChartComponent } from './components/LineChartComponent'
-import {
-  MOCK_METRICS,
-  MOCK_ACTIVITIES,
-  LEAD_PIPELINE_DATA,
-  REVENUE_TREND_DATA,
-  PIPELINE_CHART_CONFIG,
-  REVENUE_CHART_CONFIG,
-} from './data'
+import { PIPELINE_CHART_CONFIG, REVENUE_CHART_CONFIG } from './data'
 import { useAuth } from '@/auth/context'
 import { Button } from '@/components/ui/button'
 import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
 import { AddContactDialog } from '@/components/common/AddContactDialog'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { ROUTES } from '@/router/routes'
+import { dashboardApi } from '@/api/dashboard'
+import { dashboardQueryKeys, DASHBOARD_PERIOD } from './queryKeys'
+import type { Metric, Activity } from './typings'
+
+function formatCurrency(value: string): string {
+  const num = parseFloat(value)
+  if (Number.isNaN(num) || num < 0) return '$0'
+  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`
+  if (num >= 1_000) return `$${(num / 1_000).toFixed(1)}K`
+  return `$${num.toFixed(0)}`
+}
+
+function mapActivityType(type: string, entityType: string): 'lead' | 'contact' | 'task' | 'deal' {
+  const t = entityType?.toLowerCase() ?? ''
+  if (t === 'lead') return 'lead'
+  if (t === 'contact') return 'contact'
+  if (t === 'task') return 'task'
+  if (t === 'deal' || t === 'pipeline') return 'deal'
+  return 'lead'
+}
+
+function mapActivityTitle(type: string, entityType: string): string {
+  const t = type?.toLowerCase() ?? ''
+  const e = entityType?.toLowerCase() ?? ''
+  if (t === 'create') {
+    if (e === 'lead') return 'New lead captured'
+    if (e === 'contact') return 'Contact added'
+    if (e === 'deal') return 'Deal created'
+    if (e === 'task') return 'Task created'
+  }
+  if (t === 'call') return 'Call logged'
+  if (t === 'email') return 'Email sent'
+  if (t === 'meeting') return 'Meeting scheduled'
+  return `${entityType || 'Activity'} updated`
+}
 
 export default function Dashboard() {
   const { can, hasPlan } = useAuth()
@@ -32,6 +62,128 @@ export default function Dashboard() {
     can('tasks.create') ||
     (can('marketing.send') && hasPlan('marketing')) ||
     (can('reports.view') && hasPlan('reports'))
+
+  const { data: salesData, isLoading: salesLoading, isFetching: salesFetching } = useQuery({
+    queryKey: dashboardQueryKeys.salesPerformance,
+    queryFn: () => dashboardApi.salesPerformance(DASHBOARD_PERIOD as '7d' | '30d' | '90d' | '1y'),
+  })
+
+  const { data: leadData, isLoading: leadsLoading, isFetching: leadsFetching } = useQuery({
+    queryKey: dashboardQueryKeys.leadAnalytics,
+    queryFn: () => dashboardApi.leadAnalytics(DASHBOARD_PERIOD as '7d' | '30d' | '90d' | '1y'),
+  })
+
+  const { data: revenueData, isLoading: revenueLoading, isFetching: revenueFetching } = useQuery({
+    queryKey: dashboardQueryKeys.revenueForecast,
+    queryFn: () => dashboardApi.revenueForecast(),
+  })
+
+  const { data: activityData, isLoading: activityLoading, isFetching: activityFetching } = useQuery({
+    queryKey: dashboardQueryKeys.activity,
+    queryFn: () => dashboardApi.activity({ page_size: 10 }),
+  })
+
+  const { data: contactsData, isLoading: contactsLoading, isFetching: contactsFetching } = useQuery({
+    queryKey: dashboardQueryKeys.contactsCount,
+    queryFn: () => dashboardApi.contacts({ page_size: 1000 }),
+  })
+
+  const { data: tasksData, isLoading: tasksLoading, isFetching: tasksFetching } = useQuery({
+    queryKey: dashboardQueryKeys.tasksDue,
+    queryFn: () => dashboardApi.tasks({ status: 'pending', page_size: 1000 }),
+  })
+
+  const sales = salesData?.data
+  const leads = leadData?.data
+  const revenue = revenueData?.data
+  const activities = activityData?.data?.results ?? []
+  const contactsCount = contactsData?.data?.results?.length ?? 0
+  const tasksDueCount = tasksData?.data?.results?.length ?? 0
+
+  const openDeals = sales ? sales.total_deals - sales.won_deals : 0
+
+  const metrics: (Metric & { isLoading?: boolean })[] = [
+    {
+      id: 'leads',
+      label: 'Total Leads',
+      value: (leads?.total_leads ?? 0).toLocaleString(),
+      change: '—',
+      trend: 'up',
+      color: 'blue',
+      icon: UserPlus,
+      isLoading: leadsLoading || leadsFetching,
+    },
+    {
+      id: 'contacts',
+      label: 'Active Contacts',
+      value: contactsCount.toLocaleString(),
+      change: '—',
+      trend: 'up',
+      color: 'green',
+      icon: Users,
+      isLoading: contactsLoading || contactsFetching,
+    },
+    {
+      id: 'opportunities',
+      label: 'Open Opportunities',
+      value: openDeals.toLocaleString(),
+      change: '—',
+      trend: 'up',
+      color: 'orange',
+      icon: TrendingUp,
+      isLoading: salesLoading || salesFetching,
+    },
+    {
+      id: 'deals-closed',
+      label: 'Deals Closed',
+      value: sales?.won_value != null ? formatCurrency(String(sales.won_value)) : '$0',
+      change: '—',
+      trend: 'up',
+      color: 'purple',
+      icon: DollarSign,
+      isLoading: salesLoading || salesFetching,
+    },
+    {
+      id: 'tasks-due',
+      label: 'Tasks Due',
+      value: tasksDueCount.toLocaleString(),
+      change: '—',
+      trend: 'up',
+      color: 'red',
+      icon: CheckSquare,
+      isLoading: tasksLoading || tasksFetching,
+    },
+  ]
+
+  const leadPipelineData = (() => {
+    const byStatus = leads?.by_status
+    if (!byStatus) return []
+    if (Array.isArray(byStatus)) {
+      return byStatus.map((item) => ({ name: item.status, value: item.count }))
+    }
+    return Object.entries(byStatus).map(([name, value]) => ({ name, value }))
+  })()
+
+  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const revenueTrendData =
+    revenue?.forecast?.map((f) => {
+      const m = f.month.slice(5, 7)
+      const monthNum = parseInt(m, 10) - 1
+      const year = f.month.slice(2, 4)
+      return {
+        name: monthNum >= 0 ? `${MONTH_NAMES[monthNum]} '${year}` : f.month,
+        value: Math.round(parseFloat(f.total_forecast) / 1000),
+      }
+    }) ?? []
+
+  const mappedActivities: Activity[] = activities.map((a) => ({
+    id: a.id,
+    type: mapActivityType(a.type, a.entity_type),
+    title: mapActivityTitle(a.type, a.entity_type),
+    description: a.notes ?? '',
+    timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true }),
+    user: 'Team member',
+  }))
 
   if (fromOnboarding) {
     return (
@@ -105,7 +257,7 @@ export default function Dashboard() {
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {MOCK_METRICS.map((metric) => (
+        {metrics.map((metric) => (
           <MetricCard
             key={metric.id}
             title={metric.label}
@@ -114,28 +266,31 @@ export default function Dashboard() {
             trend={metric.trend}
             icon={metric.icon}
             color={metric.color}
+            isLoading={metric.isLoading}
           />
         ))}
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+      <div className="grid gap-4 lg:grid-cols-2 *:min-w-0 *:overflow-hidden">
         <BarChartComponent
           title="Lead Pipeline Funnel"
-          data={LEAD_PIPELINE_DATA}
+          data={leadPipelineData}
           chartConfig={PIPELINE_CHART_CONFIG}
+          isLoading={leadsLoading || leadsFetching}
         />
         <LineChartComponent
-          title="Revenue Trend (Last 6 Months)"
-          data={REVENUE_TREND_DATA}
+          title="Revenue Forecast"
+          data={revenueTrendData}
           chartConfig={REVENUE_CHART_CONFIG}
+          isLoading={revenueLoading || revenueFetching}
         />
       </div>
 
       {/* Bottom Row: Activity + Quick Actions */}
       <div className={hasQuickActions ? 'grid gap-4 md:grid-cols-3' : undefined}>
         <div className={hasQuickActions ? 'md:col-span-2' : undefined}>
-          <RecentActivity activities={MOCK_ACTIVITIES} />
+          <RecentActivity activities={mappedActivities} isLoading={activityLoading || activityFetching} />
         </div>
         {hasQuickActions && (
           <div>

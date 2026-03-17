@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -20,6 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DatePicker } from './DatePicker'
+import { tasksApi } from '@/api/crm'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 interface NewTaskDialogProps {
   trigger?: React.ReactNode
@@ -30,16 +33,43 @@ interface NewTaskDialogProps {
 export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: NewTaskDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [dueDate, setDueDate] = useState<Date | undefined>()
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium')
+  const queryClient = useQueryClient()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen
 
+  const createTask = useMutation({
+    mutationFn: (data: Parameters<typeof tasksApi.create>[0]) => tasksApi.create(data),
+    onSuccess: () => {
+      toast.success('Task created', { description: 'Your task has been added to the list.' })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.tasksDue })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      setDueDate(undefined)
+      setPriority('medium')
+      setOpen(false)
+    },
+    onError: () => {
+      toast.error('Failed to create task', { description: 'Please try again.' })
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    toast.success('Task created', { description: 'Your task has been added to the list.' })
-    setDueDate(undefined)
-    setOpen(false)
+    const form = e.target as HTMLFormElement
+    const title = (form.elements.namedItem('taskTitle') as HTMLInputElement).value.trim()
+    const description = (form.elements.namedItem('taskDescription') as HTMLInputElement).value.trim() || undefined
+
+    createTask.mutate({
+      title,
+      description,
+      priority,
+      status: 'pending',
+      due_date: dueDate ? dueDate.toISOString() : undefined,
+    })
+    form.reset()
   }
 
   const handleOpenChange = (next: boolean) => {
@@ -61,11 +91,11 @@ export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: N
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="taskTitle">Task Title *</Label>
-              <Input id="taskTitle" placeholder="Follow up with client" required />
+              <Input id="taskTitle" name="taskTitle" placeholder="Follow up with client" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="taskDescription">Description</Label>
-              <Input id="taskDescription" placeholder="Discuss proposal details" />
+              <Input id="taskDescription" name="taskDescription" placeholder="Discuss proposal details" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="taskDueDate">Due Date</Label>
@@ -78,7 +108,7 @@ export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: N
             </div>
             <div className="grid gap-2">
               <Label htmlFor="taskPriority">Priority</Label>
-              <Select defaultValue="medium">
+              <Select value={priority} onValueChange={(v) => setPriority(v as typeof priority)}>
                 <SelectTrigger id="taskPriority">
                   <SelectValue />
                 </SelectTrigger>
@@ -95,7 +125,9 @@ export function NewTaskDialog({ trigger, open: controlledOpen, onOpenChange }: N
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Create Task</Button>
+            <Button type="submit" disabled={createTask.isPending}>
+              {createTask.isPending ? 'Creating…' : 'Create Task'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

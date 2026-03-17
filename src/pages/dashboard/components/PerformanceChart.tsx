@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
+import { BarChart3 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   type ChartConfig,
@@ -6,6 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import { DashboardEmptyState } from './DashboardEmptyState'
 
 interface ChartData {
   name: string
@@ -17,15 +19,29 @@ interface BarChartComponentProps {
   title: string
   data: ChartData[]
   chartConfig: ChartConfig
+  isLoading?: boolean
 }
 
-export function BarChartComponent({ title, data, chartConfig }: BarChartComponentProps) {
+export function BarChartComponent({ title, data, chartConfig, isLoading }: BarChartComponentProps) {
+  const isEmpty = !data?.length
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
+        {isLoading ? (
+          <div className="h-[200px] sm:h-[300px] w-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          </div>
+        ) : isEmpty ? (
+          <DashboardEmptyState
+            icon={BarChart3}
+            title="No lead data yet"
+            description="Lead pipeline data will appear here as you add and qualify leads."
+          />
+        ) : (
         <ChartContainer config={chartConfig} className="h-[200px] w-full sm:h-[300px]">
           <BarChart accessibilityLayer data={data}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
@@ -41,6 +57,7 @@ export function BarChartComponent({ title, data, chartConfig }: BarChartComponen
             <Bar dataKey="value" fill="var(--color-value)" radius={8} />
           </BarChart>
         </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )

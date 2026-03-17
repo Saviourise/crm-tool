@@ -1,10 +1,11 @@
-import { UserPlus, Users, CheckSquare, DollarSign, Clock } from 'lucide-react'
+import { UserPlus, Users, CheckSquare, DollarSign, Clock, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/router/routes'
+import { DashboardEmptyState } from './DashboardEmptyState'
 
 interface Activity {
   id: string
@@ -32,23 +33,38 @@ const activityColors = {
 
 interface RecentActivityProps {
   activities: Activity[]
+  isLoading?: boolean
 }
 
-export function RecentActivity({ activities }: RecentActivityProps) {
+export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
   const navigate = useNavigate()
+  const isEmpty = activities.length === 0
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Recent Activity</CardTitle>
-        <button
-          className="text-sm text-primary hover:underline"
-          onClick={() => navigate(ROUTES.NOTIFICATIONS)}
-        >
-          View All
-        </button>
+        {!isEmpty && !isLoading && (
+          <button
+            className="text-sm text-primary hover:underline"
+            onClick={() => navigate(ROUTES.NOTIFICATIONS)}
+          >
+            View All
+          </button>
+        )}
       </CardHeader>
       <CardContent>
+        {isLoading ? (
+          <div className="py-12 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          </div>
+        ) : isEmpty ? (
+          <DashboardEmptyState
+            icon={Activity}
+            title="No activity yet"
+            description="Activity will appear here as you create leads, contacts, and deals."
+          />
+        ) : (
         <div className="space-y-4">
           {activities.map((activity) => {
             const Icon = activityIcons[activity.type]
@@ -94,6 +110,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
             )
           })}
         </div>
+        )}
       </CardContent>
     </Card>
   )

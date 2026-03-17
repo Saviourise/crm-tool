@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+import { TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   type ChartConfig,
@@ -6,6 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import { DashboardEmptyState } from './DashboardEmptyState'
 
 interface ChartData {
   name: string
@@ -16,15 +18,29 @@ interface LineChartComponentProps {
   title: string
   data: ChartData[]
   chartConfig: ChartConfig
+  isLoading?: boolean
 }
 
-export function LineChartComponent({ title, data, chartConfig }: LineChartComponentProps) {
+export function LineChartComponent({ title, data, chartConfig, isLoading }: LineChartComponentProps) {
+  const isEmpty = !data?.length
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
+        {isLoading ? (
+          <div className="h-[200px] sm:h-[300px] w-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          </div>
+        ) : isEmpty ? (
+          <DashboardEmptyState
+            icon={TrendingUp}
+            title="No revenue forecast yet"
+            description="Revenue forecast will appear here as you add deals to your pipeline."
+          />
+        ) : (
         <ChartContainer config={chartConfig} className="h-[200px] w-full sm:h-[300px]">
           <AreaChart accessibilityLayer data={data}>
             <defs>
@@ -53,6 +69,7 @@ export function LineChartComponent({ title, data, chartConfig }: LineChartCompon
             />
           </AreaChart>
         </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )

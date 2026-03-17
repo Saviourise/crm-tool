@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -19,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { leadsApi } from '@/api/crm'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 interface CreateLeadDialogProps {
   trigger?: React.ReactNode
@@ -26,21 +29,65 @@ interface CreateLeadDialogProps {
   onOpenChange?: (open: boolean) => void
 }
 
+const SOURCE_MAP: Record<string, string> = {
+  website: 'website',
+  referral: 'referral',
+  social: 'social_media',
+  email: 'email_campaign',
+  phone: 'cold_call',
+  event: 'event',
+  other: 'other',
+}
+
 export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }: CreateLeadDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [source, setSource] = useState('website')
+  const [status, setStatus] = useState('new')
+  const queryClient = useQueryClient()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen
 
+  const createLead = useMutation({
+    mutationFn: (data: Parameters<typeof leadsApi.create>[0]) => leadsApi.create(data),
+    onSuccess: (_, variables) => {
+      toast.success('Lead created', {
+        description: `${variables.first_name} ${variables.last_name} has been added to your pipeline.`,
+      })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.leadAnalytics })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      setOpen(false)
+    },
+    onError: () => {
+      toast.error('Failed to create lead', { description: 'Please try again.' })
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const form = e.target as HTMLFormElement
-    const firstName = (form.elements.namedItem('firstName') as HTMLInputElement).value
-    const lastName = (form.elements.namedItem('lastName') as HTMLInputElement).value
-    toast.success('Lead created', { description: `${firstName} ${lastName} has been added to your pipeline.` })
-    setOpen(false)
+    const firstName = (form.elements.namedItem('firstName') as HTMLInputElement).value.trim()
+    const lastName = (form.elements.namedItem('lastName') as HTMLInputElement).value.trim()
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim()
+    const company = (form.elements.namedItem('company') as HTMLInputElement).value.trim() || undefined
+    const position = (form.elements.namedItem('position') as HTMLInputElement).value.trim() || undefined
+    const phone = (form.elements.namedItem('phone') as HTMLInputElement).value.trim() || undefined
+
+    createLead.mutate({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      company,
+      position,
+      source: SOURCE_MAP[source] ?? 'website',
+      status,
+    })
     form.reset()
+    setSource('website')
+    setStatus('new')
   }
 
   return (
@@ -86,7 +133,7 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="source">Source</Label>
-                <Select name="source" defaultValue="website">
+                <Select value={source} onValueChange={setSource}>
                   <SelectTrigger id="source">
                     <SelectValue />
                   </SelectTrigger>
@@ -103,7 +150,7 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select name="status" defaultValue="new">
+                <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
@@ -120,7 +167,9 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Create Lead</Button>
+            <Button type="submit" disabled={createLead.isPending}>
+              {createLead.isPending ? 'Creating…' : 'Create Lead'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
