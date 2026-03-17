@@ -1,18 +1,27 @@
+import { useQuery } from '@tanstack/react-query'
 import { Building2, CheckCircle, Briefcase, DollarSign } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatRevenue } from '../utils'
-import type { Company } from '../typings'
+import { companiesApi } from '@/api/companies'
 
 interface CompanyStatsProps {
-  companies: Company[]
+  isLoading?: boolean
 }
 
-export function CompanyStats({ companies }: CompanyStatsProps) {
-  const total = companies.length
-  const active = companies.filter((c) => c.status === 'active').length
-  const openDeals = companies.reduce((sum, c) => sum + c.openDeals, 0)
-  const totalRevenue = companies.reduce((sum, c) => sum + c.annualRevenue, 0)
+export function CompanyStats({ isLoading }: CompanyStatsProps) {
+  const { data, isLoading: statsLoading } = useQuery({
+    queryKey: ['companies', 'stats'],
+    queryFn: () => companiesApi.stats(),
+  })
+
+  const showLoading = isLoading ?? statsLoading
+
+  const statsData = data?.data
+  const total = statsData?.total ?? 0
+  const active = statsData?.active ?? 0
+  const openDeals = statsData?.open_deals ?? 0
+  const totalRevenue = statsData?.total_revenue ?? 0
 
   const stats = [
     {
@@ -48,6 +57,24 @@ export function CompanyStats({ companies }: CompanyStatsProps) {
       border: 'border-l-violet-500',
     },
   ]
+
+  if (showLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="border-l-4 overflow-hidden">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-muted animate-pulse" />
+              <div className="flex-1">
+                <div className="h-8 w-6 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-16 mt-2 bg-muted rounded animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

@@ -133,6 +133,9 @@ export const contactsApi = {
 
   delete: (id: string) => api.delete(`/api/contacts/${id}/`),
 
+  bulkDelete: (ids: string[]) =>
+    api.post<{ deleted: number }>('/api/contacts/bulk-delete/', { ids }),
+
   export: (params?: ContactListParams) => {
     const search = new URLSearchParams()
     if (params?.status) search.set('status', params.status)

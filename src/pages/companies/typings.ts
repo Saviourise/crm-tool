@@ -1,13 +1,14 @@
-export type CompanyStatus = 'active' | 'inactive' | 'prospect'
+export type CompanyStatus = 'active' | 'inactive' | 'prospect' | 'customer'
 export type CompanyIndustry =
-  | 'Technology'
-  | 'Finance'
-  | 'Healthcare'
-  | 'Manufacturing'
-  | 'Retail'
-  | 'Education'
-  | 'IT Services'
-  | 'Media'
+  | 'technology'
+  | 'finance'
+  | 'healthcare'
+  | 'retail'
+  | 'manufacturing'
+  | 'education'
+  | 'real_estate'
+  | 'consulting'
+  | 'other'
 
 export interface Company {
   id: string
@@ -21,4 +22,6 @@ export interface Company {
   status: CompanyStatus
   owner: string
   createdAt: string
+  phone?: string
+  address?: string
 }

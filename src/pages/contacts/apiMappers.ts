@@ -10,6 +10,11 @@ export function mapApiContactToContact(api: ApiContact): Contact {
         ? api.company
         : undefined
 
+  const companyId =
+    typeof api.company === 'object' && api.company && 'id' in api.company
+      ? api.company.id
+      : undefined
+
   const lastContacted = api.last_contacted
     ? formatDistanceToNow(new Date(api.last_contacted), { addSuffix: true })
     : undefined
@@ -21,6 +26,7 @@ export function mapApiContactToContact(api: ApiContact): Contact {
     email: api.email,
     phone: api.phone ?? undefined,
     company,
+    companyId,
     position: api.position ?? undefined,
     status: (api.status as Contact['status']) || 'active',
     tags: api.tags ?? [],

@@ -1,8 +1,8 @@
-import { Globe, Users, DollarSign, User, Calendar, Briefcase } from 'lucide-react'
+import { Globe, Users, DollarSign, User, Calendar, Briefcase, Phone, MapPin } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { getStatusClass, formatRevenue } from '../../utils'
+import { getStatusClass, getIndustryLabel, formatRevenue } from '../../utils'
 import type { Company } from '../../typings'
 
 interface CompanyProfileCardProps {
@@ -11,10 +11,12 @@ interface CompanyProfileCardProps {
 
 export function CompanyProfileCard({ company }: CompanyProfileCardProps) {
   const fields = [
-    { icon: Globe, label: 'Website', value: company.website, href: `https://${company.website}` },
-    { icon: Briefcase, label: 'Industry', value: company.industry },
-    { icon: Users, label: 'Employees', value: company.employees.toLocaleString() },
+    { icon: Globe, label: 'Website', value: company.website || '—', href: company.website ? `https://${company.website.replace(/^https?:\/\//, '')}` : undefined },
+    { icon: Briefcase, label: 'Industry', value: getIndustryLabel(company.industry) },
+    { icon: Users, label: 'Employees', value: company.employees > 0 ? company.employees.toLocaleString() : '—' },
     { icon: DollarSign, label: 'Annual Revenue', value: formatRevenue(company.annualRevenue) },
+    { icon: Phone, label: 'Phone', value: company.phone || '—' },
+    { icon: MapPin, label: 'Address', value: company.address || '—' },
     { icon: User, label: 'Owner', value: company.owner },
     { icon: Calendar, label: 'Created', value: new Date(company.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
   ]
@@ -25,7 +27,7 @@ export function CompanyProfileCard({ company }: CompanyProfileCardProps) {
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-xl">{company.name}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">{company.industry}</p>
+            <p className="text-sm text-muted-foreground mt-1">{getIndustryLabel(company.industry)}</p>
           </div>
           <Badge
             variant="outline"

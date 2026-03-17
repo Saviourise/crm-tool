@@ -1,4 +1,5 @@
 import type { CompanyStatus } from './typings'
+import { INDUSTRY_OPTIONS } from './data'
 
 export function getStatusClass(status: CompanyStatus): string {
   switch (status) {
@@ -8,7 +9,15 @@ export function getStatusClass(status: CompanyStatus): string {
       return 'bg-muted text-muted-foreground border-border'
     case 'prospect':
       return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800'
+    case 'customer':
+      return 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800'
+    default:
+      return 'bg-muted text-muted-foreground border-border'
   }
+}
+
+export function getIndustryLabel(value: string): string {
+  return INDUSTRY_OPTIONS.find((o) => o.value === value)?.label ?? value
 }
 
 export function formatRevenue(value: number): string {

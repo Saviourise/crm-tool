@@ -1,11 +1,15 @@
+import { useQuery } from '@tanstack/react-query'
 import { Mail, Phone } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { MOCK_CONTACTS } from '@/pages/contacts/data'
+import { companiesApi } from '@/api/companies'
+import { mapApiContactToContact } from '@/pages/contacts/apiMappers'
+import { ROUTES } from '@/router/routes'
 
 interface CompanyContactsProps {
-  companyName: string
+  companyId: string
 }
 
 const statusStyles: Record<string, string> = {
@@ -14,10 +18,33 @@ const statusStyles: Record<string, string> = {
   inactive: 'bg-muted text-muted-foreground border-border',
 }
 
-export function CompanyContacts({ companyName }: CompanyContactsProps) {
-  const contacts = MOCK_CONTACTS.filter(
-    (c) => c.company?.toLowerCase() === companyName.toLowerCase()
-  )
+export function CompanyContacts({ companyId }: CompanyContactsProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['companies', companyId, 'contacts'],
+    queryFn: () => companiesApi.contacts(companyId),
+  })
+
+  const raw = data?.data
+  const rawResults = Array.isArray(raw) ? raw : (raw?.results ?? [])
+  const contacts = rawResults.map(mapApiContactToContact)
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
   if (contacts.length === 0) {
     return (
@@ -42,9 +69,12 @@ export function CompanyContacts({ companyName }: CompanyContactsProps) {
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium truncate">
+                  <Link
+                    to={ROUTES.CONTACT_DETAIL(contact.id)}
+                    className="text-sm font-medium truncate hover:text-primary hover:underline"
+                  >
                     {contact.firstName} {contact.lastName}
-                  </p>
+                  </Link>
                   <Badge
                     variant="outline"
                     className={`capitalize text-xs shrink-0 ${statusStyles[contact.status] ?? ''}`}

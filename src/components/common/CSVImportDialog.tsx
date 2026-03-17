@@ -21,18 +21,20 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { contactsApi } from '@/api/contacts'
+import { companiesApi } from '@/api/companies'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 export type CSVImportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  entity: 'contacts' | 'leads'
+  entity: 'contacts' | 'leads' | 'companies'
 }
 
 const CONTACT_FIELDS = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Position', 'Status', 'Skip']
 const LEAD_FIELDS = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Position', 'Status', 'Score', 'Source', 'Skip']
+const COMPANY_FIELDS = ['Name', 'Website', 'Industry', 'Status', 'Employees', 'Annual Revenue', 'Phone', 'Address', 'Skip']
 
-const UI_TO_API_FIELD: Record<string, string> = {
+const CONTACT_UI_TO_API: Record<string, string> = {
   'First Name': 'first_name',
   'Last Name': 'last_name',
   Email: 'email',
@@ -40,6 +42,23 @@ const UI_TO_API_FIELD: Record<string, string> = {
   Company: 'company',
   Position: 'position',
   Status: 'status',
+}
+
+const COMPANY_UI_TO_API: Record<string, string> = {
+  Name: 'name',
+  Website: 'website',
+  Industry: 'industry',
+  Status: 'status',
+  Employees: 'employees',
+  'Annual Revenue': 'annual_revenue',
+  Phone: 'phone',
+  Address: 'address',
+}
+
+const UI_TO_API_FIELD: Record<string, Record<string, string>> = {
+  contacts: CONTACT_UI_TO_API,
+  leads: CONTACT_UI_TO_API,
+  companies: COMPANY_UI_TO_API,
 }
 
 type Step = 1 | 2 | 3 | 4
@@ -81,7 +100,8 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fieldOptions = entity === 'contacts' ? CONTACT_FIELDS : LEAD_FIELDS
+  const fieldOptions =
+    entity === 'contacts' ? CONTACT_FIELDS : entity === 'companies' ? COMPANY_FIELDS : LEAD_FIELDS
 
   const resetState = () => {
     setStep(1)
@@ -152,29 +172,32 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
   const mappedColumns = csvHeaders
     .map((_, idx) => columnMapping[idx])
     .filter((f) => f && f !== 'Skip')
-  const emailColIdx = csvHeaders.findIndex(
-    (_, idx) => columnMapping[idx] === 'Email'
+  const requiredColIdx = csvHeaders.findIndex(
+    (_, idx) => columnMapping[idx] === (entity === 'companies' ? 'Name' : 'Email')
   )
   const rowsWithIssues = previewRows.filter(
-    (row) => emailColIdx >= 0 && !row[emailColIdx]?.trim()
+    (row) => requiredColIdx >= 0 && !row[requiredColIdx]?.trim()
   ).length
   const rowsReady = previewRows.length - rowsWithIssues
 
   const buildColumnMap = (): Record<string, string> => {
     const map: Record<string, string> = {}
+    const uiToApi = UI_TO_API_FIELD[entity] ?? CONTACT_UI_TO_API
     csvHeaders.forEach((_, idx) => {
       const uiField = columnMapping[idx]
       if (uiField && uiField !== 'Skip') {
-        const apiField = UI_TO_API_FIELD[uiField]
+        const apiField = uiToApi[uiField]
         if (apiField) map[String(idx)] = apiField
       }
     })
     return map
   }
 
-  const pollImportStatus = async (taskId: string): Promise<void> => {
+  const pollImportStatus = async (taskId: string, entityType: 'contacts' | 'companies'): Promise<void> => {
+    const api = entityType === 'contacts' ? contactsApi : companiesApi
+    const entityLabel = entityType === 'contacts' ? 'contacts' : 'companies'
     const poll = async (): Promise<void> => {
-      const { data } = await contactsApi.importStatus(taskId)
+      const { data } = await api.importStatus(taskId)
       if (data.status === 'SUCCESS') {
         setImportResult({
           imported: data.result?.imported ?? 0,
@@ -183,11 +206,13 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
         })
         setImportProgress(100)
         setImportDone(true)
-        queryClient.invalidateQueries({ queryKey: ['contacts'] })
-        queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
-        queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+        queryClient.invalidateQueries({ queryKey: [entityType] })
+        queryClient.invalidateQueries({ queryKey: [entityType, 'stats'] })
+        if (entityType === 'contacts') {
+          queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+        }
         toast.success('Import complete', {
-          description: `${data.result?.imported ?? 0} contacts imported successfully.`,
+          description: `${data.result?.imported ?? 0} ${entityLabel} imported successfully.`,
         })
         return
       }
@@ -226,11 +251,13 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
 
     let progressCleanup: (() => void) | undefined
 
-    if (entity === 'contacts' && file) {
+    if ((entity === 'contacts' || entity === 'companies') && file) {
+      const api = entity === 'contacts' ? contactsApi : companiesApi
+      const entityLabel = entity === 'contacts' ? 'contacts' : 'companies'
       progressCleanup = runProgressBar(95)
       try {
         const columnMap = buildColumnMap()
-        const { data } = await contactsApi.import(file, columnMap)
+        const { data } = await api.import(file, columnMap)
         progressCleanup?.()
         if (data && 'created' in data) {
           const rawErrors = data.errors ?? []
@@ -241,15 +268,17 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
           })
           setImportProgress(100)
           setImportDone(true)
-          queryClient.invalidateQueries({ queryKey: ['contacts'] })
-          queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
-          queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+          queryClient.invalidateQueries({ queryKey: [entity] })
+          queryClient.invalidateQueries({ queryKey: [entity, 'stats'] })
+          if (entity === 'contacts') {
+            queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+          }
           toast.success('Import complete', {
-            description: `${data.created} contacts imported successfully.`,
+            description: `${data.created} ${entityLabel} imported successfully.`,
           })
         } else if (data?.task_id) {
           progressCleanup = runProgressBar(99)
-          await pollImportStatus(data.task_id)
+          await pollImportStatus(data.task_id, entity)
           progressCleanup?.()
         } else {
           setImportError((data as { message?: string })?.message ?? 'Import failed')
@@ -280,14 +309,14 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
   }
 
   const totalRows = csvRows.length
-  const importedRows = importResult?.imported ?? (entity === 'contacts' ? 0 : totalRows - Math.max(0, Math.floor(totalRows * 0.06)))
-  const skippedRows = importResult?.skipped ?? (entity === 'contacts' ? 0 : Math.max(0, Math.floor(totalRows * 0.06)))
+  const importedRows = importResult?.imported ?? (entity === 'contacts' || entity === 'companies' ? 0 : totalRows - Math.max(0, Math.floor(totalRows * 0.06)))
+  const skippedRows = importResult?.skipped ?? (entity === 'contacts' || entity === 'companies' ? 0 : Math.max(0, Math.floor(totalRows * 0.06)))
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent className="sm:max-w-[560px] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Import {entity === 'contacts' ? 'Contacts' : 'Leads'} from CSV</DialogTitle>
+          <DialogTitle>Import {entity === 'contacts' ? 'Contacts' : entity === 'companies' ? 'Companies' : 'Leads'} from CSV</DialogTitle>
           <DialogDescription>
             {step === 1 && 'Upload a CSV file to import your data.'}
             {step === 2 && 'Map each CSV column to the correct CRM field.'}
@@ -380,7 +409,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
 
         {/* Step 3: Preview */}
         {step === 3 && (
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             <div className="flex items-center gap-2 text-xs">
               <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800">
                 {rowsReady} rows ready
@@ -395,8 +424,8 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
                 <span className="text-muted-foreground">Showing first 5 of {csvRows.length} rows</span>
               )}
             </div>
-            <div className="overflow-x-auto rounded border">
-              <table className="text-xs w-full">
+            <div className="min-w-0 overflow-x-auto rounded border">
+              <table className="text-xs w-full min-w-max">
                 <thead>
                   <tr className="bg-muted/50 border-b">
                     {csvHeaders.map((_, idx) =>
@@ -410,7 +439,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
                 </thead>
                 <tbody>
                   {previewRows.map((row, rIdx) => {
-                    const hasIssue = emailColIdx >= 0 && !row[emailColIdx]?.trim()
+                    const hasIssue = requiredColIdx >= 0 && !row[requiredColIdx]?.trim()
                     return (
                       <tr
                         key={rIdx}
@@ -422,10 +451,10 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
                               key={cIdx}
                               className={cn(
                                 'px-3 py-1.5 whitespace-nowrap',
-                                hasIssue && cIdx === emailColIdx && 'text-amber-600 font-medium'
+                                hasIssue && cIdx === requiredColIdx && 'text-amber-600 font-medium'
                               )}
                             >
-                              {row[cIdx] || (hasIssue && cIdx === emailColIdx ? (
+                              {row[cIdx] || (hasIssue && cIdx === requiredColIdx ? (
                                 <span className="flex items-center gap-1 text-amber-600">
                                   <AlertTriangle className="h-3 w-3" /> Missing
                                 </span>

@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Loader2 } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -34,7 +35,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
   const formRef = useRef<HTMLFormElement>(null)
   const queryClient = useQueryClient()
 
-  const { data: companiesData } = useQuery({
+  const { data: companiesData, isLoading: companiesLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: () => companiesApi.list({ limit: 200 }),
     enabled: open,
@@ -69,6 +70,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
     const lastName = (form.elements.namedItem('contactLastName') as HTMLInputElement).value.trim()
     const email = (form.elements.namedItem('contactEmail') as HTMLInputElement).value.trim()
     const position = (form.elements.namedItem('contactPosition') as HTMLInputElement).value.trim() || undefined
+    const phone = (form.elements.namedItem('contactPhone') as HTMLInputElement).value.trim() || undefined
 
     createContact.mutate({
       first_name: firstName,
@@ -76,6 +78,7 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
       email,
       ...(companyId && { company: companyId }),
       position,
+      ...(phone && { phone }),
     })
   }
 
@@ -107,9 +110,16 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="contactCompany">Company</Label>
-              <Select value={companyId || 'none'} onValueChange={(v) => setCompanyId(v === 'none' ? '' : v)}>
+              <Select value={companyId || 'none'} onValueChange={(v) => setCompanyId(v === 'none' ? '' : v)} disabled={companiesLoading}>
                 <SelectTrigger id="contactCompany" className="w-full">
-                  <SelectValue placeholder="Select a company" />
+                  {companiesLoading ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading companies…
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Select a company" />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -124,6 +134,10 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
             <div className="grid gap-2">
               <Label htmlFor="contactPosition">Position</Label>
               <Input id="contactPosition" name="contactPosition" placeholder="VP of Sales" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="contactPhone">Phone</Label>
+              <Input id="contactPhone" name="contactPhone" type="tel" placeholder="+1 (555) 000-0000" />
             </div>
           </div>
           <DialogFooter>

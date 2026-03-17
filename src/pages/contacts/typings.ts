@@ -7,6 +7,7 @@ export interface Contact {
   email: string
   phone?: string
   company?: string
+  companyId?: string
   position?: string
   status: ContactStatus
   tags: string[]

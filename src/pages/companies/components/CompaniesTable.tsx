@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Pencil, Eye, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Eye, Trash2, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -29,23 +30,140 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/router/routes'
-import type { Company, CompanyStatus } from '../typings'
+import type { Company } from '../typings'
 import { INDUSTRY_OPTIONS, STATUS_OPTIONS } from '../data'
-import { getStatusClass, formatRevenue } from '../utils'
+import { getStatusClass, getIndustryLabel, formatRevenue } from '../utils'
 import { useAuth } from '@/auth/context'
+import { companiesApi } from '@/api/companies'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+
+const COMPANIES_QUERY_KEY = ['companies']
+
+// ─── Bulk Actions Bar (Delete only) ──────────────────────────────────────────
+
+function BulkActionsBar({
+  count,
+  onDeleteClick,
+  onClear,
+  isDeleting,
+}: {
+  count: number
+  onDeleteClick: () => void
+  onClear: () => void
+  isDeleting: boolean
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground animate-in slide-in-from-top-2 duration-200">
+      <span className="text-sm font-medium tabular-nums shrink-0">
+        {count} compan{count !== 1 ? 'ies' : 'y'} selected
+      </span>
+      <div className="h-4 w-px bg-primary-foreground/25" />
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
+        onClick={onDeleteClick}
+        disabled={isDeleting}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        {isDeleting ? 'Deleting…' : 'Delete'}
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/15 shrink-0 ml-auto"
+        onClick={onClear}
+        disabled={isDeleting}
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  )
+}
+
+function BulkDeleteConfirmDialog({
+  open,
+  onOpenChange,
+  count,
+  entityLabel,
+  onConfirm,
+  isDeleting,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  count: number
+  entityLabel: string
+  onConfirm: () => void
+  isDeleting: boolean
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Delete {count} {entityLabel}?</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete {count} {entityLabel}? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
+            {isDeleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 function EditCompanyDialog({ company, open, onOpenChange }: {
   company: Company
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [industry, setIndustry] = useState<string>(company.industry)
+  const [status, setStatus] = useState<string>(company.status)
+  const queryClient = useQueryClient()
+  const updateCompany = useMutation({
+    mutationFn: (data: { name?: string; industry?: string; website?: string; status?: string; employees?: number; annual_revenue?: number; phone?: string; address?: string }) =>
+      companiesApi.update(company.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COMPANIES_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['companies', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      toast.success('Company updated', { description: `${company.name} has been updated.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to update company', { description: 'Please try again.' })
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    toast.success('Company updated', { description: `${company.name} has been updated.` })
-    onOpenChange(false)
+    const form = e.currentTarget
+    const employeesRaw = (form.elements.namedItem('edit-company-employees') as HTMLInputElement).value.trim()
+    const employees = employeesRaw ? parseInt(employeesRaw, 10) : undefined
+    const annualRevenueRaw = (form.elements.namedItem('edit-company-annual-revenue') as HTMLInputElement).value.trim()
+    const annualRevenue = annualRevenueRaw ? parseFloat(annualRevenueRaw.replace(/,/g, '')) : undefined
+    const data = {
+      name: (form.elements.namedItem('edit-company-name') as HTMLInputElement).value.trim(),
+      website: (form.elements.namedItem('edit-company-website') as HTMLInputElement).value.trim() || undefined,
+      industry: industry || undefined,
+      status: status || undefined,
+      ...(employees !== undefined && !isNaN(employees) && { employees }),
+      ...(annualRevenue !== undefined && !isNaN(annualRevenue) && { annual_revenue: annualRevenue }),
+      phone: (form.elements.namedItem('edit-company-phone') as HTMLInputElement).value.trim() || undefined,
+      address: (form.elements.namedItem('edit-company-address') as HTMLInputElement).value.trim() || undefined,
+    }
+    updateCompany.mutate(data)
   }
 
   return (
@@ -59,16 +177,32 @@ function EditCompanyDialog({ company, open, onOpenChange }: {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="edit-company-name">Company Name</Label>
-              <Input id="edit-company-name" defaultValue={company.name} />
+              <Input id="edit-company-name" name="edit-company-name" defaultValue={company.name} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-company-website">Website</Label>
-              <Input id="edit-company-website" defaultValue={company.website} />
+              <Input id="edit-company-website" name="edit-company-website" defaultValue={company.website} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-company-employees">Number of Employees</Label>
+              <Input id="edit-company-employees" name="edit-company-employees" type="number" min={0} defaultValue={company.employees || ''} placeholder="e.g. 50" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-company-annual-revenue">Annual Revenue</Label>
+              <Input id="edit-company-annual-revenue" name="edit-company-annual-revenue" defaultValue={company.annualRevenue ? String(company.annualRevenue) : ''} placeholder="e.g. 1500000.00" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-company-phone">Phone</Label>
+              <Input id="edit-company-phone" name="edit-company-phone" type="tel" defaultValue={company.phone ?? ''} placeholder="+1 (555) 000-0000" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-company-address">Address</Label>
+              <Input id="edit-company-address" name="edit-company-address" defaultValue={company.address ?? ''} placeholder="123 Main St, City, Country" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-company-industry">Industry</Label>
-                <Select defaultValue={company.industry}>
+                <Select value={industry} onValueChange={setIndustry}>
                   <SelectTrigger id="edit-company-industry"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {INDUSTRY_OPTIONS.filter((o) => o.value !== 'all').map((opt) => (
@@ -79,7 +213,7 @@ function EditCompanyDialog({ company, open, onOpenChange }: {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-company-status">Status</Label>
-                <Select defaultValue={company.status}>
+                <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger id="edit-company-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.filter((o) => o.value !== 'all').map((opt) => (
@@ -89,20 +223,12 @@ function EditCompanyDialog({ company, open, onOpenChange }: {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-company-employees">Employees</Label>
-                <Input id="edit-company-employees" type="number" defaultValue={company.employees} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-company-revenue">Annual Revenue ($)</Label>
-                <Input id="edit-company-revenue" type="number" defaultValue={company.annualRevenue} />
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={updateCompany.isPending}>
+              {updateCompany.isPending ? 'Saving…' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -115,9 +241,24 @@ function DeleteCompanyDialog({ company, open, onOpenChange }: {
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const queryClient = useQueryClient()
+  const deleteCompany = useMutation({
+    mutationFn: () => companiesApi.delete(company.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COMPANIES_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['companies', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      toast.success('Company deleted', { description: `${company.name} has been removed.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to delete company', { description: 'Please try again.' })
+    },
+  })
+
   const handleDelete = () => {
-    toast.error('Company deleted', { description: `${company.name} has been removed.` })
-    onOpenChange(false)
+    deleteCompany.mutate()
   }
 
   return (
@@ -131,7 +272,9 @@ function DeleteCompanyDialog({ company, open, onOpenChange }: {
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="destructive" onClick={handleDelete}>Delete Company</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteCompany.isPending}>
+            {deleteCompany.isPending ? 'Deleting…' : 'Delete Company'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -188,142 +331,265 @@ function CompanyRowActions({ company }: { company: Company }) {
   )
 }
 
-const columns: ColumnDef<Company, unknown>[] = [
-  {
-    id: 'name',
-    accessorFn: (row) => `${row.name} ${row.website}`,
-    header: 'Company',
-    size: 220,
-    cell: ({ row }) => {
-      const company = row.original
-      return (
-        <div>
-          <Link
-            to={ROUTES.COMPANY_DETAIL(company.id)}
-            className="text-sm font-medium hover:text-primary transition-colors"
-          >
-            {company.name}
-          </Link>
-          <p className="text-xs text-muted-foreground mt-0.5">{company.website}</p>
-        </div>
-      )
+function buildColumns(
+  selectedIds: Set<string>,
+  onSelectAll: (checked: boolean) => void,
+  onSelectRow: (id: string, checked: boolean) => void,
+): ColumnDef<Company, unknown>[] {
+  return [
+    {
+      id: 'select',
+      size: 40,
+      enableSorting: false,
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getRowModel().rows.length > 0 &&
+            table.getRowModel().rows.every((r) => selectedIds.has(r.original.id))
+          }
+          onCheckedChange={(v) => onSelectAll(!!v)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedIds.has(row.original.id)}
+          onCheckedChange={(v) => onSelectRow(row.original.id, !!v)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
     },
-  },
-  {
-    accessorKey: 'industry',
-    header: 'Industry',
-    filterFn: 'equals',
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="text-xs">
-        {row.original.industry}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'employees',
-    header: 'Employees',
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.employees.toLocaleString()}</span>
-    ),
-  },
-  {
-    accessorKey: 'contactCount',
-    header: 'Contacts',
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.contactCount}</span>
-    ),
-  },
-  {
-    accessorKey: 'openDeals',
-    header: 'Open Deals',
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.openDeals}</span>
-    ),
-  },
-  {
-    accessorKey: 'annualRevenue',
-    header: 'Revenue',
-    cell: ({ row }) => (
-      <span className="text-sm font-medium">{formatRevenue(row.original.annualRevenue)}</span>
-    ),
-  },
-  {
-    accessorKey: 'owner',
-    header: 'Owner',
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.owner}</span>
-    ),
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    filterFn: 'equals',
-    cell: ({ row }) => (
-      <Badge
-        variant="outline"
-        className={cn('capitalize text-xs font-medium', getStatusClass(row.original.status))}
-      >
-        {row.original.status}
-      </Badge>
-    ),
-  },
-  {
-    id: 'actions',
-    header: '',
-    size: 60,
-    enableSorting: false,
-    cell: ({ row }) => <CompanyRowActions company={row.original} />,
-  },
-]
+    {
+      id: 'name',
+      accessorFn: (row) => `${row.name} ${row.website}`,
+      header: 'Company',
+      size: 220,
+      cell: ({ row }) => {
+        const company = row.original
+        return (
+          <div>
+            <Link
+              to={ROUTES.COMPANY_DETAIL(company.id)}
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              {company.name}
+            </Link>
+            <p className="text-xs text-muted-foreground mt-0.5">{company.website}</p>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'industry',
+      header: 'Industry',
+      filterFn: 'equals',
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="text-xs">
+          {getIndustryLabel(row.original.industry)}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'employees',
+      header: 'Employees',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.employees.toLocaleString()}</span>
+      ),
+    },
+    {
+      accessorKey: 'contactCount',
+      header: 'Contacts',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.contactCount}</span>
+      ),
+    },
+    {
+      accessorKey: 'openDeals',
+      header: 'Open Deals',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.openDeals}</span>
+      ),
+    },
+    {
+      accessorKey: 'annualRevenue',
+      header: 'Revenue',
+      cell: ({ row }) => (
+        <span className="text-sm font-medium">{formatRevenue(row.original.annualRevenue)}</span>
+      ),
+    },
+    {
+      accessorKey: 'owner',
+      header: 'Owner',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.owner}</span>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      filterFn: 'equals',
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className={cn('capitalize text-xs font-medium', getStatusClass(row.original.status))}
+        >
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      size: 60,
+      enableSorting: false,
+      cell: ({ row }) => <CompanyRowActions company={row.original} />,
+    },
+  ]
+}
 
-export function CompaniesTable({ companies }: { companies: Company[] }) {
+interface CompaniesTableProps {
+  companies: Company[]
+  isLoading?: boolean
+  search?: string
+  onSearchChange?: (value: string) => void
+  status?: string
+  onStatusChange?: (value: string) => void
+  industry?: string
+  onIndustryChange?: (value: string) => void
+  serverSide?: {
+    pageSize: number
+    onPageSizeChange: (size: number) => void
+    hasNext: boolean
+    hasPrev: boolean
+    onNext: () => void
+    onPrev: () => void
+    totalLabel?: string
+  }
+}
+
+export function CompaniesTable({
+  companies,
+  isLoading,
+  search = '',
+  onSearchChange,
+  status = 'all',
+  onStatusChange,
+  industry = 'all',
+  onIndustryChange,
+  serverSide,
+}: CompaniesTableProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const queryClient = useQueryClient()
+  const { can } = useAuth()
+  const canDelete = can('companies.delete')
+
+  const bulkDelete = useMutation({
+    mutationFn: (ids: string[]) => companiesApi.bulkDelete(ids),
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: COMPANIES_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['companies', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      toast.success('Companies deleted', { description: `${ids.length} compan${ids.length !== 1 ? 'ies' : 'y'} removed.` })
+      setSelectedIds(new Set())
+    },
+    onError: () => {
+      toast.error('Failed to delete companies', { description: 'Please try again.' })
+    },
+  })
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? new Set(companies.map((c) => c.id)) : new Set())
+  }
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      checked ? next.add(id) : next.delete(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+
+  const handleBulkDeleteConfirm = () => {
+    const ids = Array.from(selectedIds)
+    if (ids.length > 0) {
+      bulkDelete.mutate(ids)
+      setDeleteConfirmOpen(false)
+    }
+  }
+
+  const columns = buildColumns(selectedIds, handleSelectAll, handleSelectRow)
+
   return (
-    <DataTable
-      columns={columns}
-      data={companies}
-      searchPlaceholder="Search companies..."
-      toolbar={(table) => (
-        <div className="flex items-center gap-2">
-          <Select
-            value={(table.getColumn('industry')?.getFilterValue() as string | undefined) ?? 'all'}
-            onValueChange={(val) => {
-              table.getColumn('industry')?.setFilterValue(val === 'all' ? undefined : val)
-              table.setPageIndex(0)
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All Industries" />
-            </SelectTrigger>
-            <SelectContent>
-              {INDUSTRY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={(table.getColumn('status')?.getFilterValue() as CompanyStatus | undefined) ?? 'all'}
-            onValueChange={(val) => {
-              table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
-              table.setPageIndex(0)
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-2">
+      {selectedIds.size > 0 && canDelete && (
+        <>
+          <BulkActionsBar
+            count={selectedIds.size}
+            onDeleteClick={() => setDeleteConfirmOpen(true)}
+            onClear={clearSelection}
+            isDeleting={bulkDelete.isPending}
+          />
+          <BulkDeleteConfirmDialog
+            open={deleteConfirmOpen}
+            onOpenChange={setDeleteConfirmOpen}
+            count={selectedIds.size}
+            entityLabel={selectedIds.size === 1 ? 'company' : 'companies'}
+            onConfirm={handleBulkDeleteConfirm}
+            isDeleting={bulkDelete.isPending}
+          />
+        </>
       )}
-      emptyMessage="No companies found"
-      emptyDescription="Try adjusting your search or filters"
-    />
+      <DataTable
+        isLoading={isLoading}
+        columns={columns}
+        data={companies}
+        searchPlaceholder="Search companies..."
+        serverSide={
+          serverSide
+            ? {
+              ...serverSide,
+              searchValue: search,
+              onSearchChange: onSearchChange ?? undefined,
+            }
+            : undefined
+        }
+        toolbar={() => (
+          <div className="flex items-center gap-2">
+            <Select value={industry} onValueChange={onIndustryChange ?? (() => { })}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All Industries" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDUSTRY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={onStatusChange ?? (() => { })}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        emptyMessage="No companies found"
+        emptyDescription="Try adjusting your search or filters"
+      />
+    </div>
   )
 }

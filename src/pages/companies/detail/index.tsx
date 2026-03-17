@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/router/routes'
-import { MOCK_COMPANIES } from '../data'
+import { companiesApi } from '@/api/companies'
+import { mapApiCompanyToCompany } from '../apiMappers'
 import { CompanyProfileCard } from './components/CompanyProfileCard'
 import { CompanyContacts } from './components/CompanyContacts'
 import { CompanyDeals } from './components/CompanyDeals'
@@ -21,7 +23,37 @@ export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
-  const company = MOCK_COMPANIES.find((c) => c.id === id)
+  const { data, isLoading } = useQuery({
+    queryKey: ['companies', id],
+    queryFn: () => companiesApi.get(id!),
+    enabled: !!id,
+  })
+
+  const apiCompany = data?.data
+  const company = apiCompany ? mapApiCompanyToCompany(apiCompany) : null
+
+  if (!id) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <p className="text-lg font-medium">Invalid company</p>
+        <Button asChild variant="outline">
+          <Link to={ROUTES.COMPANIES}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Companies
+          </Link>
+        </Button>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-10 w-48 bg-muted rounded animate-pulse" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
+      </div>
+    )
+  }
 
   if (!company) {
     return (
@@ -49,12 +81,12 @@ export default function CompanyDetail() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
           <a
-            href={`https://${company.website}`}
+            href={company.website ? `https://${company.website.replace(/^https?:\/\//, '')}` : undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-primary transition-colors mt-0.5 inline-block"
           >
-            {company.website}
+            {company.website || '—'}
           </a>
         </div>
       </div>
@@ -81,8 +113,8 @@ export default function CompanyDetail() {
 
       {/* Tab content */}
       {activeTab === 'overview' && <CompanyProfileCard company={company} />}
-      {activeTab === 'contacts' && <CompanyContacts companyName={company.name} />}
-      {activeTab === 'deals' && <CompanyDeals companyName={company.name} />}
+      {activeTab === 'contacts' && <CompanyContacts companyId={company.id} />}
+      {activeTab === 'deals' && <CompanyDeals companyId={company.id} />}
     </div>
   )
 }
