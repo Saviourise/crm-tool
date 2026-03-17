@@ -1,10 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { MOCK_TASKS } from '@/pages/tasks/data'
+import { contactsApi } from '@/api/contacts'
 
 interface RelatedTasksProps {
-  contactName: string
+  contactId: string
 }
 
 const priorityStyles: Record<string, string> = {
@@ -15,30 +16,50 @@ const priorityStyles: Record<string, string> = {
 }
 
 const statusStyles: Record<string, string> = {
-  'todo': 'bg-muted text-muted-foreground border-border',
+  todo: 'bg-muted text-muted-foreground border-border',
   'in-progress': 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800',
-  'completed': 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
-  'cancelled': 'bg-muted text-muted-foreground border-border',
+  completed: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
+  cancelled: 'bg-muted text-muted-foreground border-border',
 }
 
 const statusLabels: Record<string, string> = {
-  'todo': 'To Do',
+  todo: 'To Do',
   'in-progress': 'In Progress',
-  'completed': 'Completed',
-  'cancelled': 'Cancelled',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
 }
 
-export function RelatedTasks({ contactName }: RelatedTasksProps) {
-  const matched = MOCK_TASKS.filter(
-    (t) => t.relatedTo && t.relatedTo.name === contactName
-  )
-  const tasks = matched.length > 0 ? matched : MOCK_TASKS.slice(0, 3)
+function formatDueDate(iso?: string): string {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  } catch {
+    return iso
+  }
+}
+
+export function RelatedTasks({ contactId }: RelatedTasksProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['contacts', contactId, 'tasks'],
+    queryFn: () => contactsApi.tasks(contactId),
+    enabled: !!contactId,
+  })
+
+  const tasks = data?.data?.results ?? []
 
   return (
     <Card>
       <CardContent className="pt-6">
         <h3 className="font-semibold text-sm mb-4">Related Tasks</h3>
-        {tasks.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+          </div>
+        ) : tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No tasks found.</p>
         ) : (
           <div className="flex flex-col divide-y divide-border">
@@ -48,18 +69,20 @@ export function RelatedTasks({ contactName }: RelatedTasksProps) {
                   <p className="text-sm font-medium leading-snug line-clamp-1 flex-1">{task.title}</p>
                   <Badge
                     variant="outline"
-                    className={cn('text-xs capitalize shrink-0', priorityStyles[task.priority])}
+                    className={cn('text-xs capitalize shrink-0', priorityStyles[task.priority] ?? '')}
                   >
                     {task.priority}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-muted-foreground">Due: {task.dueDate}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Due: {formatDueDate(task.due_date)}
+                  </span>
                   <Badge
                     variant="outline"
-                    className={cn('text-xs', statusStyles[task.status])}
+                    className={cn('text-xs', statusStyles[task.status] ?? '')}
                   >
-                    {statusLabels[task.status]}
+                    {statusLabels[task.status] ?? task.status}
                   </Badge>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import { ContactProfileCard } from './components/ContactProfileCard'
 import { ActivityTimeline } from './components/ActivityTimeline'
 import { RelatedDeals } from './components/RelatedDeals'
 import { RelatedTasks } from './components/RelatedTasks'
+import { ContactMessages } from './components/ContactMessages'
 import { cn } from '@/lib/utils'
 
 type Tab = 'overview' | 'activity' | 'tasks' | 'deals' | 'communication'
@@ -19,30 +20,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'tasks', label: 'Tasks' },
   { id: 'deals', label: 'Deals' },
   { id: 'communication', label: 'Communication' },
-]
-
-const MOCK_MESSAGES = [
-  {
-    id: 1,
-    direction: 'inbound' as const,
-    text: 'Hi, just wanted to follow up on the proposal you sent last week. We had a chance to review it internally.',
-    time: '2 hours ago',
-    channel: 'Email',
-  },
-  {
-    id: 2,
-    direction: 'outbound' as const,
-    text: 'Great to hear! Happy to jump on a call this week to address any questions. Does Thursday afternoon work?',
-    time: '1 hour ago',
-    channel: 'Email',
-  },
-  {
-    id: 3,
-    direction: 'inbound' as const,
-    text: 'Thursday works perfectly. Let us say 2 PM EST?',
-    time: '45 min ago',
-    channel: 'Email',
-  },
 ]
 
 export default function ContactDetail() {
@@ -78,10 +55,8 @@ export default function ContactDetail() {
     )
   }
 
-  const contactName = `${contact.firstName} ${contact.lastName}`
-
   return (
-    <div className="flex flex-col gap-6 px-4 md:px-6 lg:px-8 py-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6">
       {/* Back button */}
       <div>
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -117,8 +92,8 @@ export default function ContactDetail() {
       {activeTab === 'overview' && (
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <RelatedDeals contactName={contactName} />
-            <RelatedTasks contactName={contactName} />
+            <RelatedDeals contactId={contact.id} />
+            <RelatedTasks contactId={contact.id} />
           </div>
         </div>
       )}
@@ -128,86 +103,15 @@ export default function ContactDetail() {
       )}
 
       {activeTab === 'tasks' && (
-        <RelatedTasks contactName={contactName} />
+        <RelatedTasks contactId={contact.id} />
       )}
 
       {activeTab === 'deals' && (
-        <RelatedDeals contactName={contactName} />
+        <RelatedDeals contactId={contact.id} />
       )}
 
       {activeTab === 'communication' && (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-              Recent Messages
-            </h3>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/communication?contactId=${contact.id}`}>
-                <ExternalLink className="h-4 w-4 mr-1.5" />
-                Open Full Inbox
-              </Link>
-            </Button>
-          </div>
-
-          {/* Mock messages */}
-          <div className="flex flex-col gap-3">
-            {MOCK_MESSAGES.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  'flex',
-                  msg.direction === 'outbound' ? 'justify-end' : 'justify-start'
-                )}
-              >
-                <div
-                  className={cn(
-                    'max-w-[75%] rounded-xl px-4 py-2.5',
-                    msg.direction === 'outbound'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground'
-                  )}
-                >
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                  <div
-                    className={cn(
-                      'flex items-center gap-1.5 mt-1',
-                      msg.direction === 'outbound' ? 'justify-end' : 'justify-start'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'text-xs',
-                        msg.direction === 'outbound'
-                          ? 'text-primary-foreground/70'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      {msg.time}
-                    </span>
-                    <MessageSquare
-                      className={cn(
-                        'h-3 w-3',
-                        msg.direction === 'outbound'
-                          ? 'text-primary-foreground/70'
-                          : 'text-muted-foreground'
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        'text-xs',
-                        msg.direction === 'outbound'
-                          ? 'text-primary-foreground/70'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      {msg.channel}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ContactMessages contactId={contact.id} />
       )}
     </div>
   )

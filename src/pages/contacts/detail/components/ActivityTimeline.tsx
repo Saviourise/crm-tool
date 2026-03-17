@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Mail, Phone, FileText, CheckSquare } from 'lucide-react'
+import { Mail, Phone, FileText, CheckSquare, Video } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { contactsApi } from '@/api/contacts'
@@ -8,13 +8,14 @@ interface ActivityTimelineProps {
   contactId: string
 }
 
-type ActivityType = 'email' | 'call' | 'note' | 'task'
+type ActivityType = 'email' | 'call' | 'note' | 'task' | 'meeting'
 
 interface Activity {
   type: ActivityType
   title: string
   time: string
   description: string
+  actor?: string
 }
 
 const iconMap: Record<ActivityType, React.ElementType> = {
@@ -22,6 +23,7 @@ const iconMap: Record<ActivityType, React.ElementType> = {
   call: Phone,
   note: FileText,
   task: CheckSquare,
+  meeting: Video,
 }
 
 const iconBgMap: Record<ActivityType, string> = {
@@ -29,7 +31,14 @@ const iconBgMap: Record<ActivityType, string> = {
   call: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
   note: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
   task: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
+  meeting: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400',
 }
+
+const normalizeType = (t: string): ActivityType =>
+  (['email', 'call', 'note', 'task', 'meeting'].includes(t) ? t : 'note') as ActivityType
+
+const formatTypeLabel = (t: string): string =>
+  t.charAt(0).toUpperCase() + t.slice(1)
 
 function formatRelativeTime(iso: string): string {
   const d = new Date(iso)
@@ -52,13 +61,17 @@ export function ActivityTimeline({ contactId }: ActivityTimelineProps) {
   })
 
   const results = data?.data?.results ?? []
-  const activities: (Activity & { id: string })[] = results.map((r) => ({
-    id: r.id,
-    type: (r.type === 'email' || r.type === 'call' || r.type === 'note' || r.type === 'task' ? r.type : 'note') as ActivityType,
-    title: r.summary ?? r.type,
-    time: formatRelativeTime(r.timestamp),
-    description: r.summary ?? '',
-  }))
+  const activities: (Activity & { id: string })[] = results.map((r) => {
+    const summary = r.summary?.trim()
+    return {
+      id: r.id,
+      type: normalizeType(r.type),
+      title: summary || formatTypeLabel(r.type),
+      time: formatRelativeTime(r.timestamp),
+      description: summary ?? '',
+      actor: r.actor?.name,
+    }
+  })
   return (
     <Card>
       <CardContent className="pt-6">
@@ -93,7 +106,11 @@ export function ActivityTimeline({ contactId }: ActivityTimelineProps) {
                         <p className="text-sm font-medium">{activity.title}</p>
                         <span className="text-xs text-muted-foreground shrink-0">{activity.time}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{activity.description}</p>
+                      {(activity.actor || activity.description) && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {[activity.actor, activity.description].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )

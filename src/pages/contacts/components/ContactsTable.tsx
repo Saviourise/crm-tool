@@ -35,7 +35,7 @@ import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { DataTable } from '@/components/common/DataTable'
 import { cn } from '@/lib/utils'
-import type { Contact, ContactStatus } from '../typings'
+import type { Contact } from '../typings'
 import { STATUS_OPTIONS } from '../data'
 import { ROUTES } from '@/router/routes'
 import { useAuth } from '@/auth/context'
@@ -256,6 +256,7 @@ function ContactRowActions({ contact }: { contact: Contact }) {
         open={logOpen}
         onOpenChange={setLogOpen}
         entityName={`${contact.firstName} ${contact.lastName}`}
+        contactId={contact.id}
       />
     </>
   )
@@ -363,6 +364,10 @@ const columns: ColumnDef<Contact, unknown>[] = [
 interface ContactsTableProps {
   contacts: Contact[]
   isLoading?: boolean
+  search?: string
+  onSearchChange?: (value: string) => void
+  status?: string
+  onStatusChange?: (value: string) => void
   serverSide?: {
     pageSize: number
     onPageSizeChange: (size: number) => void
@@ -374,29 +379,32 @@ interface ContactsTableProps {
   }
 }
 
-export function ContactsTable({ contacts, isLoading, serverSide }: ContactsTableProps) {
-  if (isLoading) {
-    return (
-      <div className="rounded-xl border flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-      </div>
-    )
-  }
-
+export function ContactsTable({
+  contacts,
+  isLoading,
+  search = '',
+  onSearchChange,
+  status = 'all',
+  onStatusChange,
+  serverSide,
+}: ContactsTableProps) {
   return (
     <DataTable
+      isLoading={isLoading}
       columns={columns}
       data={contacts}
       searchPlaceholder="Search by name, email, company..."
-      serverSide={serverSide}
-      toolbar={(table) => (
-        <Select
-          value={(table.getColumn('status')?.getFilterValue() as ContactStatus | undefined) ?? 'all'}
-          onValueChange={(val) => {
-            table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
-            table.setPageIndex(0)
-          }}
-        >
+      serverSide={
+        serverSide
+          ? {
+              ...serverSide,
+              searchValue: search,
+              onSearchChange: onSearchChange ?? undefined,
+            }
+          : undefined
+      }
+      toolbar={() => (
+        <Select value={status} onValueChange={onStatusChange ?? (() => {})}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>

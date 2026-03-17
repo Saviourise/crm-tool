@@ -83,6 +83,9 @@ function isNoWorkspaceRequest(config: InternalAxiosRequestConfig): boolean {
 }
 
 api.interceptors.request.use((config) => {
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
   if (isPublicRequest(config)) return config
 
   const { accessToken, workspaceId } = useAuthStore.getState()

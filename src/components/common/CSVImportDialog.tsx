@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { CloudUpload, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
@@ -19,6 +20,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { contactsApi } from '@/api/contacts'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 export type CSVImportDialogProps = {
   open: boolean
@@ -28,6 +31,16 @@ export type CSVImportDialogProps = {
 
 const CONTACT_FIELDS = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Position', 'Status', 'Skip']
 const LEAD_FIELDS = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Position', 'Status', 'Score', 'Source', 'Skip']
+
+const UI_TO_API_FIELD: Record<string, string> = {
+  'First Name': 'first_name',
+  'Last Name': 'last_name',
+  Email: 'email',
+  Phone: 'phone',
+  Company: 'company',
+  Position: 'position',
+  Status: 'status',
+}
 
 type Step = 1 | 2 | 3 | 4
 
@@ -54,14 +67,18 @@ function parseCSV(text: string): string[][] {
 }
 
 export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogProps) {
+  const queryClient = useQueryClient()
   const [step, setStep] = useState<Step>(1)
   const [fileName, setFileName] = useState('')
+  const [file, setFile] = useState<File | null>(null)
   const [csvHeaders, setCSVHeaders] = useState<string[]>([])
   const [csvRows, setCSVRows] = useState<string[][]>([])
   const [columnMapping, setColumnMapping] = useState<Record<number, string>>({})
   const [isDragOver, setIsDragOver] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
   const [importDone, setImportDone] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fieldOptions = entity === 'contacts' ? CONTACT_FIELDS : LEAD_FIELDS
@@ -69,12 +86,15 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
   const resetState = () => {
     setStep(1)
     setFileName('')
+    setFile(null)
     setCSVHeaders([])
     setCSVRows([])
     setColumnMapping({})
     setIsDragOver(false)
     setImportProgress(0)
     setImportDone(false)
+    setImportError(null)
+    setImportResult(null)
   }
 
   const handleClose = (v: boolean) => {
@@ -82,12 +102,13 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
     onOpenChange(v)
   }
 
-  const processFile = (file: File) => {
-    if (!file.name.endsWith('.csv')) {
+  const processFile = (selectedFile: File) => {
+    if (!selectedFile.name.endsWith('.csv')) {
       toast.error('Invalid file', { description: 'Please upload a .csv file.' })
       return
     }
-    setFileName(file.name)
+    setFileName(selectedFile.name)
+    setFile(selectedFile)
     const reader = new FileReader()
     reader.onload = (e) => {
       const text = e.target?.result as string
@@ -111,7 +132,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
       setColumnMapping(defaultMapping)
       setStep(2)
     }
-    reader.readAsText(file)
+    reader.readAsText(selectedFile)
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -139,15 +160,89 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
   ).length
   const rowsReady = previewRows.length - rowsWithIssues
 
-  const handleImport = () => {
+  const buildColumnMap = (): Record<string, string> => {
+    const map: Record<string, string> = {}
+    csvHeaders.forEach((_, idx) => {
+      const uiField = columnMapping[idx]
+      if (uiField && uiField !== 'Skip') {
+        const apiField = UI_TO_API_FIELD[uiField]
+        if (apiField) map[String(idx)] = apiField
+      }
+    })
+    return map
+  }
+
+  const pollImportStatus = async (taskId: string): Promise<void> => {
+    const poll = async (): Promise<void> => {
+      const { data } = await contactsApi.importStatus(taskId)
+      if (data.status === 'SUCCESS') {
+        setImportResult({
+          imported: data.result?.imported ?? 0,
+          skipped: data.result?.skipped ?? 0,
+          errors: data.result?.errors ?? [],
+        })
+        setImportProgress(100)
+        setImportDone(true)
+        queryClient.invalidateQueries({ queryKey: ['contacts'] })
+        queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+        queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+        toast.success('Import complete', {
+          description: `${data.result?.imported ?? 0} contacts imported successfully.`,
+        })
+        return
+      }
+      if (data.status === 'FAILURE') {
+        setImportError(data.error ?? 'Import failed')
+        setImportDone(true)
+        toast.error('Import failed', { description: data.error })
+        return
+      }
+      setImportProgress((p) => Math.min(p + 15, 95))
+      await new Promise((r) => setTimeout(r, 1500))
+      return poll()
+    }
+    return poll()
+  }
+
+  const handleImport = async () => {
     setStep(4)
     setImportProgress(0)
     setImportDone(false)
+    setImportError(null)
+    setImportResult(null)
+
+    if (entity === 'contacts' && file) {
+      try {
+        const columnMap = buildColumnMap()
+        const { data } = await contactsApi.import(file, columnMap)
+        if (data?.task_id) {
+          setImportProgress(10)
+          await pollImportStatus(data.task_id)
+        } else {
+          setImportError(data?.message ?? 'Import failed')
+          setImportDone(true)
+          toast.error('Import failed', { description: data?.message })
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Import failed'
+        setImportError(msg)
+        setImportDone(true)
+        toast.error('Import failed', { description: msg })
+      }
+      return
+    }
+
+    // Leads: simulated import (no API yet)
     const interval = setInterval(() => {
       setImportProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval)
           setImportDone(true)
+          setImportResult({
+            imported: csvRows.length - Math.floor(csvRows.length * 0.06),
+            skipped: Math.floor(csvRows.length * 0.06),
+            errors: [],
+          })
           return 100
         }
         return prev + 10
@@ -156,8 +251,8 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
   }
 
   const totalRows = csvRows.length
-  const skippedRows = Math.max(0, Math.floor(totalRows * 0.06))
-  const importedRows = totalRows - skippedRows
+  const importedRows = importResult?.imported ?? (entity === 'contacts' ? 0 : totalRows - Math.max(0, Math.floor(totalRows * 0.06)))
+  const skippedRows = importResult?.skipped ?? (entity === 'contacts' ? 0 : Math.max(0, Math.floor(totalRows * 0.06)))
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -168,7 +263,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
             {step === 1 && 'Upload a CSV file to import your data.'}
             {step === 2 && 'Map each CSV column to the correct CRM field.'}
             {step === 3 && 'Review the first 5 rows before importing.'}
-            {step === 4 && (importDone ? 'Import complete.' : 'Importing your data...')}
+            {step === 4 && (importDone ? (importError ? 'Import failed.' : 'Import complete.') : 'Importing your data...')}
           </DialogDescription>
         </DialogHeader>
 
@@ -334,6 +429,16 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
                   />
                 </div>
               </div>
+            ) : importError ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-destructive">
+                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <span className="font-medium">Import failed</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{importError}</p>
+              </div>
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-emerald-600">
@@ -345,6 +450,11 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{importedRows} {entity} imported successfully</p>
                   {skippedRows > 0 && <p>{skippedRows} rows skipped due to missing required fields</p>}
+                  {importResult && importResult.errors.length > 0 && (
+                    <p className="text-amber-600 dark:text-amber-400">
+                      {importResult.errors.length} row(s) had errors
+                    </p>
+                  )}
                 </div>
               </div>
             )}

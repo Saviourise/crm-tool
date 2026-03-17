@@ -48,7 +48,7 @@ export interface ApiActivity {
   entity_id: string | null
   notes: string | null
   duration_minutes: number | null
-  actor: string
+  actor: string | { id: string; name: string }
   logged_at: string
   created_at?: string
   updated_at?: string
@@ -92,6 +92,7 @@ export const dashboardApi = {
     entity_id?: string
     actor?: string
     type?: string
+    search?: string
     page_size?: number
     limit?: number
     cursor?: string
@@ -101,6 +102,7 @@ export const dashboardApi = {
     if (params?.entity_id) search.set('entity_id', params.entity_id)
     if (params?.actor) search.set('actor', params.actor)
     if (params?.type) search.set('type', params.type)
+    if (params?.search) search.set('search', params.search)
     if (params?.page_size) search.set('page_size', String(params.page_size))
     if (params?.limit) search.set('limit', String(params.limit))
     if (params?.cursor) search.set('cursor', params.cursor)

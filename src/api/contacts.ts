@@ -71,10 +71,43 @@ export interface UpdateContactRequest {
 }
 
 export interface ImportStatusResponse {
+  status: 'PENDING' | 'SUCCESS' | 'FAILURE'
+  result?: { imported?: number; skipped?: number; errors?: { row: number; reason: string }[] }
+  error?: string
+}
+
+export interface LogActivityRequest {
+  type: 'call' | 'email' | 'meeting' | 'note'
+  summary?: string
+  duration_minutes?: number
+  notes?: string
+}
+
+export interface ApiDeal {
+  id: string
+  name: string
+  stage: string
+  value: number
+  expected_close_date?: string
+}
+
+export interface ApiTask {
+  id: string
+  title: string
+  priority: string
   status: string
-  imported?: number
-  skipped?: number
-  errors?: { row: number; reason: string }[]
+  due_date?: string
+}
+
+export interface ApiMessage {
+  id: string
+  direction: 'inbound' | 'outbound'
+  text?: string
+  body?: string
+  timestamp?: string
+  sent_at?: string
+  created_at?: string
+  channel: string
 }
 
 export const contactsApi = {
@@ -120,8 +153,7 @@ export const contactsApi = {
     }
     return api.post<{ task_id: string; status?: string; message?: string }>(
       '/api/contacts/import/',
-      form,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      form
     )
   },
 
@@ -132,6 +164,15 @@ export const contactsApi = {
     api.get<{ results: Array<{ id: string; type: string; summary?: string; actor?: { id: string; name: string }; timestamp: string }> }>(
       `/api/contacts/${id}/activity/`
     ),
+
+  logActivity: (id: string, data: LogActivityRequest) =>
+    api.post(`/api/contacts/${id}/activity/`, data),
+
+  deals: (id: string) => api.get<{ results: ApiDeal[] }>(`/api/contacts/${id}/deals/`),
+
+  tasks: (id: string) => api.get<{ results: ApiTask[] }>(`/api/contacts/${id}/tasks/`),
+
+  messages: (id: string) => api.get<{ results: ApiMessage[] }>(`/api/contacts/${id}/messages/`),
 
   stats: () => api.get<ContactStatsResponse>('/api/contacts/stats/'),
 }

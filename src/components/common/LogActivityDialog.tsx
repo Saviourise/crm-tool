@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Phone, Mail, Users, FileText, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { contactsApi } from '@/api/contacts'
 
 type ActivityType = 'call' | 'email' | 'meeting' | 'note'
 
@@ -26,12 +28,32 @@ interface LogActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   entityName: string
+  /** When provided, logs activity via API. Required for contacts. */
+  contactId?: string
 }
 
-export function LogActivityDialog({ open, onOpenChange, entityName }: LogActivityDialogProps) {
+export function LogActivityDialog({ open, onOpenChange, entityName, contactId }: LogActivityDialogProps) {
   const [type, setType] = useState<ActivityType>('call')
   const [notes, setNotes] = useState('')
   const [duration, setDuration] = useState('')
+  const queryClient = useQueryClient()
+
+  const logActivity = useMutation({
+    mutationFn: (data: Parameters<typeof contactsApi.logActivity>[1]) =>
+      contactsApi.logActivity(contactId!, data),
+    onSuccess: (_, variables) => {
+      const label = ACTIVITY_TYPES.find((a) => a.value === variables.type)?.label ?? variables.type
+      toast.success('Activity logged', {
+        description: `${label} logged for ${entityName}.`,
+      })
+      queryClient.invalidateQueries({ queryKey: ['contacts', contactId, 'activity'] })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      handleClose()
+    },
+    onError: () => {
+      toast.error('Failed to log activity', { description: 'Please try again.' })
+    },
+  })
 
   const handleClose = () => {
     setType('call')
@@ -42,11 +64,22 @@ export function LogActivityDialog({ open, onOpenChange, entityName }: LogActivit
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const label = ACTIVITY_TYPES.find((a) => a.value === type)?.label ?? type
-    toast.success('Activity logged', {
-      description: `${label} logged for ${entityName}.`,
-    })
-    handleClose()
+    if (contactId) {
+      const summary = notes.trim() || undefined
+      const durationMinutes = duration ? parseInt(duration, 10) : undefined
+      logActivity.mutate({
+        type,
+        summary,
+        duration_minutes: durationMinutes,
+        notes: summary,
+      })
+    } else {
+      const label = ACTIVITY_TYPES.find((a) => a.value === type)?.label ?? type
+      toast.success('Activity logged', {
+        description: `${label} logged for ${entityName}.`,
+      })
+      handleClose()
+    }
   }
 
   const showDuration = type === 'call' || type === 'meeting'
@@ -119,7 +152,9 @@ export function LogActivityDialog({ open, onOpenChange, entityName }: LogActivit
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
-            <Button type="submit">Log Activity</Button>
+            <Button type="submit" disabled={contactId ? logActivity.isPending : false}>
+              {contactId && logActivity.isPending ? 'Logging…' : 'Log Activity'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

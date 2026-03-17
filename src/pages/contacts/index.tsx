@@ -5,6 +5,7 @@ import { mapApiContactToContact } from './apiMappers'
 import { ContactsHeader } from './components/ContactsHeader'
 import { ContactsTable } from './components/ContactsTable'
 import { ContactStats } from './components/ContactStats'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 
 const CONTACTS_QUERY_KEY = ['contacts']
 
@@ -12,10 +13,20 @@ export default function Contacts() {
   const [pageSize, setPageSize] = useState(10)
   const [cursor, setCursor] = useState<string | undefined>()
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState<string>('all')
+
+  const debouncedSearch = useDebouncedValue(search, 300)
 
   const { data, isLoading } = useQuery({
-    queryKey: [...CONTACTS_QUERY_KEY, pageSize, cursor],
-    queryFn: () => contactsApi.list({ limit: pageSize, cursor }),
+    queryKey: [...CONTACTS_QUERY_KEY, pageSize, cursor, debouncedSearch, status],
+    queryFn: () =>
+      contactsApi.list({
+        limit: pageSize,
+        cursor,
+        search: debouncedSearch.trim() || undefined,
+        status: status === 'all' ? undefined : status,
+      }),
   })
 
   const response = data?.data
@@ -47,6 +58,18 @@ export default function Contacts() {
     setCursorStack([])
   }, [])
 
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setCursor(undefined)
+    setCursorStack([])
+  }, [])
+
+  const handleStatusChange = useCallback((value: string) => {
+    setStatus(value)
+    setCursor(undefined)
+    setCursorStack([])
+  }, [])
+
   const paginationLabel =
     contacts.length === 0
       ? 'No results'
@@ -59,6 +82,10 @@ export default function Contacts() {
       <ContactsTable
         contacts={contacts}
         isLoading={isLoading}
+        search={search}
+        onSearchChange={handleSearchChange}
+        status={status}
+        onStatusChange={handleStatusChange}
         serverSide={{
           pageSize,
           onPageSizeChange: handlePageSizeChange,

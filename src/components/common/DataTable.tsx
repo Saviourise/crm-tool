@@ -53,6 +53,8 @@ interface DataTableProps<TData> {
   emptyMessage?: string
   emptyDescription?: string
   defaultPageSize?: number
+  /** When true, shows spinner in table body only; toolbar and pagination remain visible */
+  isLoading?: boolean
   /** Server-side pagination: pageSize and callbacks are controlled by parent */
   serverSide?: {
     pageSize: number
@@ -62,6 +64,9 @@ interface DataTableProps<TData> {
     onNext: () => void
     onPrev: () => void
     totalLabel?: string
+    /** Controlled search for server-side filtering */
+    searchValue?: string
+    onSearchChange?: (value: string) => void
   }
 }
 
@@ -73,11 +78,16 @@ export function DataTable<TData>({
   emptyMessage = 'No results found',
   emptyDescription = 'Try adjusting your search or filters',
   defaultPageSize = 10,
+  isLoading = false,
   serverSide,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+
+  const useServerSearch = serverSide?.onSearchChange !== undefined
+  const searchValue = useServerSearch ? (serverSide?.searchValue ?? '') : globalFilter
+  const onSearchChange = useServerSearch ? serverSide!.onSearchChange! : setGlobalFilter
 
   const pageSize = serverSide ? serverSide.pageSize : defaultPageSize
   const usePagination = !serverSide
@@ -85,7 +95,7 @@ export function DataTable<TData>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnFilters, globalFilter },
+    state: { sorting, columnFilters, globalFilter: useServerSearch ? '' : globalFilter },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
@@ -113,10 +123,11 @@ export function DataTable<TData>({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
-            value={globalFilter}
+            value={searchValue}
             onChange={(e) => {
-              setGlobalFilter(e.target.value)
-              table.setPageIndex(0)
+              const val = e.target.value
+              onSearchChange(val)
+              if (!useServerSearch) table.setPageIndex(0)
             }}
             className="pl-8"
           />
@@ -167,7 +178,15 @@ export function DataTable<TData>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="py-24 text-center">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} className="group">
                   {row.getVisibleCells().map((cell) => (

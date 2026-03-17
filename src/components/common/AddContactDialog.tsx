@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useRef } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -13,7 +13,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { contactsApi } from '@/api/contacts'
+import { companiesApi } from '@/api/companies'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 interface AddContactDialogProps {
@@ -22,7 +30,17 @@ interface AddContactDialogProps {
 
 export function AddContactDialog({ trigger }: AddContactDialogProps) {
   const [open, setOpen] = useState(false)
+  const [companyId, setCompanyId] = useState<string>('')
+  const formRef = useRef<HTMLFormElement>(null)
   const queryClient = useQueryClient()
+
+  const { data: companiesData } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => companiesApi.list({ limit: 200 }),
+    enabled: open,
+  })
+
+  const companies = companiesData?.data?.results ?? []
 
   const createContact = useMutation({
     mutationFn: (data: Parameters<typeof contactsApi.create>[0]) => contactsApi.create(data),
@@ -35,6 +53,8 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
       queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+      formRef.current?.reset()
+      setCompanyId('')
       setOpen(false)
     },
     onError: () => {
@@ -44,35 +64,33 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const form = e.target as HTMLFormElement
+    const form = e.currentTarget as HTMLFormElement
     const firstName = (form.elements.namedItem('contactFirstName') as HTMLInputElement).value.trim()
     const lastName = (form.elements.namedItem('contactLastName') as HTMLInputElement).value.trim()
     const email = (form.elements.namedItem('contactEmail') as HTMLInputElement).value.trim()
     const position = (form.elements.namedItem('contactPosition') as HTMLInputElement).value.trim() || undefined
-    const company = (form.elements.namedItem('contactCompany') as HTMLInputElement).value.trim() || undefined
 
     createContact.mutate({
       first_name: firstName,
       last_name: lastName,
       email,
-      ...(company && { company }),
+      ...(companyId && { company: companyId }),
       position,
     })
-    form.reset()
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
-        <form onSubmit={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add Contact</DialogTitle>
             <DialogDescription>
               Add a new contact to your CRM. Keep your network organized.
             </DialogDescription>
           </DialogHeader>
-            <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="contactFirstName">First Name *</Label>
@@ -89,7 +107,19 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="contactCompany">Company</Label>
-              <Input id="contactCompany" name="contactCompany" placeholder="Tech Solutions Inc" />
+              <Select value={companyId || 'none'} onValueChange={(v) => setCompanyId(v === 'none' ? '' : v)}>
+                <SelectTrigger id="contactCompany" className="w-full">
+                  <SelectValue placeholder="Select a company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="contactPosition">Position</Label>

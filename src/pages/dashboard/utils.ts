@@ -1,5 +1,3 @@
-import type { Activity } from "./typings"
-
 // Dashboard utility functions
 export const formatMetricValue = (value: number): string => {
   return new Intl.NumberFormat('en-US').format(value)
@@ -10,7 +8,7 @@ export const calculatePercentageChange = (current: number, previous: number): nu
   return ((current - previous) / previous) * 100
 }
 
-export function mapActivityType(entityType: string): Activity['type'] {
+export function mapActivityType(entityType: string): 'lead' | 'contact' | 'task' | 'deal' | 'company' {
   const t = entityType?.toLowerCase() ?? ''
   switch (t) {
     case 'lead':
@@ -27,6 +25,9 @@ export function mapActivityType(entityType: string): Activity['type'] {
     case 'pipeline':
     case 'pipelines':
       return 'deal'
+    case 'company':
+    case 'companies':
+      return 'company'
     default:
       return 'lead'
   }
@@ -40,6 +41,7 @@ export function mapActivityTitle(type: string, entityType: string): string {
     if (e === 'contact' || e === 'contacts') return 'Contact added'
     if (e === 'deal' || e === 'deals' || e === 'pipeline' || e === 'pipelines') return 'Deal created'
     if (e === 'task' || e === 'tasks') return 'Task created'
+    if (e === 'company' || e === 'companies') return 'Company created'
   }
   if (t === 'call' || t === 'calls') return 'Call logged'
   if (t === 'email' || t === 'emails') return 'Email sent'

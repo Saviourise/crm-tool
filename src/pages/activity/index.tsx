@@ -1,20 +1,54 @@
+import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { dashboardApi, type ApiActivity } from '@/api/dashboard'
 import type { CursorPaginatedResponse } from '@/api/dashboard'
+import { usersApi } from '@/api/auth'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { ActivityHeader } from './components/ActivityHeader'
 import { ActivityTable, type ActivityRow } from './components/ActivityTable'
 import { mapActivityType, mapActivityTitle } from '../dashboard/utils'
+import type { ActivityDisplayType } from './components/ActivityTable'
 
-const PAGE_SIZE = 500
+const ACTIVITY_QUERY_KEY = ['activity', 'list']
+
+/** Map UI entity type to API entity_type (API uses plural: leads, contacts, tasks, deals, companies) */
+const ENTITY_TYPE_TO_API: Record<ActivityDisplayType, string> = {
+  lead: 'leads',
+  contact: 'contacts',
+  task: 'tasks',
+  deal: 'deals',
+  company: 'companies',
+}
 
 export default function ActivityPage() {
+  const [pageSize, setPageSize] = useState(10)
+  const [cursor, setCursor] = useState<string | undefined>()
+  const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
+  const [search, setSearch] = useState('')
+  const [entityType, setEntityType] = useState<ActivityDisplayType | 'all'>('all')
+  const [activityType, setActivityType] = useState<string>('all')
+  const [actorId, setActorId] = useState<string>('all')
+
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersApi.list(),
+  })
+  const users = usersData?.data ?? []
+
   const { data, isLoading } = useQuery({
-    queryKey: ['activity', 'list'],
+    queryKey: [...ACTIVITY_QUERY_KEY, pageSize, cursor, debouncedSearch, entityType, activityType, actorId],
     queryFn: () =>
       dashboardApi.activity({
-        page_size: PAGE_SIZE,
-        limit: PAGE_SIZE,
+        page_size: pageSize,
+        limit: pageSize,
+        cursor,
+        search: debouncedSearch.trim() || undefined,
+        entity_type: entityType === 'all' ? undefined : ENTITY_TYPE_TO_API[entityType],
+        type: activityType === 'all' ? undefined : activityType,
+        actor: actorId === 'all' ? undefined : actorId,
       }),
   })
 
@@ -23,6 +57,55 @@ export default function ActivityPage() {
     if (!rawData) return []
     return Array.isArray(rawData) ? rawData : (rawData as CursorPaginatedResponse<ApiActivity>).results ?? []
   })()
+  const response = Array.isArray(rawData) ? null : (rawData as CursorPaginatedResponse<ApiActivity> | undefined)
+  const nextCursor = response?.next ?? null
+  const hasNext = !!nextCursor
+  const hasPrev = cursorStack.length > 0
+
+  const goNext = useCallback(() => {
+    if (nextCursor) {
+      setCursorStack((prev) => [...prev, cursor ?? null])
+      setCursor(nextCursor)
+    }
+  }, [nextCursor, cursor])
+
+  const goPrev = useCallback(() => {
+    if (cursorStack.length > 0) {
+      const prev = cursorStack[cursorStack.length - 1]
+      setCursorStack((prevStack) => prevStack.slice(0, -1))
+      setCursor(prev ?? undefined)
+    }
+  }, [cursorStack])
+
+  const resetPagination = useCallback(() => {
+    setCursor(undefined)
+    setCursorStack([])
+  }, [])
+
+  const handlePageSizeChange = useCallback((size: number) => {
+    setPageSize(size)
+    resetPagination()
+  }, [resetPagination])
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    resetPagination()
+  }, [resetPagination])
+
+  const handleEntityTypeChange = useCallback((value: ActivityDisplayType | 'all') => {
+    setEntityType(value)
+    resetPagination()
+  }, [resetPagination])
+
+  const handleActivityTypeChange = useCallback((value: string) => {
+    setActivityType(value)
+    resetPagination()
+  }, [resetPagination])
+
+  const handleActorIdChange = useCallback((value: string) => {
+    setActorId(value)
+    resetPagination()
+  }, [resetPagination])
 
   const rows: ActivityRow[] = activities.map((a) => {
     const notes = a.notes ?? ''
@@ -35,15 +118,41 @@ export default function ActivityPage() {
       title: mapActivityTitle(a.type, a.entity_type),
       description,
       timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true }),
-      user: 'Team member',
+      user: typeof a.actor === 'string' ? a.actor : a.actor?.name ?? '',
       logged_at: a.logged_at,
     }
   })
 
+  const startRow = cursorStack.length * pageSize + 1
+  const endRow = cursorStack.length * pageSize + rows.length
+  const paginationLabel =
+    rows.length === 0 ? 'No results' : hasNext ? `${startRow}–${endRow}+` : `${startRow}–${endRow} of ${endRow}`
+
   return (
     <div className="space-y-6">
       <ActivityHeader total={rows.length} />
-      <ActivityTable activities={rows} isLoading={isLoading} />
+      <ActivityTable
+        activities={rows}
+        isLoading={isLoading}
+        entityType={entityType}
+        onEntityTypeChange={handleEntityTypeChange}
+        activityType={activityType}
+        onActivityTypeChange={handleActivityTypeChange}
+        actorId={actorId}
+        onActorIdChange={handleActorIdChange}
+        users={users}
+        serverSide={{
+          pageSize,
+          onPageSizeChange: handlePageSizeChange,
+          hasNext,
+          hasPrev,
+          onNext: goNext,
+          onPrev: goPrev,
+          totalLabel: paginationLabel,
+          searchValue: search,
+          onSearchChange: handleSearchChange,
+        }}
+      />
     </div>
   )
 }

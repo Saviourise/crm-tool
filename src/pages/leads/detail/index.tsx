@@ -37,7 +37,7 @@ export default function LeadDetail() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 md:px-6 lg:px-8 py-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6">
       {/* Back button */}
       <div>
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>

@@ -35,12 +35,27 @@ const typeLabels: Record<AppNotification['type'], string> = {
   system: 'System',
 }
 
+interface NotificationsTableServerSide {
+  pageSize: number
+  onPageSizeChange: (size: number) => void
+  hasNext: boolean
+  hasPrev: boolean
+  onNext: () => void
+  onPrev: () => void
+  totalLabel?: string
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+}
+
 interface NotificationsTableProps {
   notifications: AppNotification[]
   onMarkRead: (id: string) => void
   onMarkAllRead: () => void
   isMarkAllPending: boolean
   isLoading?: boolean
+  statusFilter?: 'all' | 'read' | 'unread'
+  onStatusChange?: (value: 'all' | 'read' | 'unread') => void
+  serverSide?: NotificationsTableServerSide
 }
 
 export function NotificationsTable({
@@ -49,6 +64,9 @@ export function NotificationsTable({
   onMarkAllRead,
   isMarkAllPending,
   isLoading,
+  statusFilter = 'all',
+  onStatusChange,
+  serverSide,
 }: NotificationsTableProps) {
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -146,14 +164,6 @@ export function NotificationsTable({
     },
   ]
 
-  if (isLoading) {
-    return (
-      <div className="rounded-xl border flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-      </div>
-    )
-  }
-
   return (
     <DataTable
       columns={columns}
@@ -162,10 +172,14 @@ export function NotificationsTable({
       toolbar={(table) => (
         <>
           <Select
-            value={(table.getColumn('status')?.getFilterValue() as string | undefined) ?? 'all'}
+            value={serverSide ? statusFilter : ((table.getColumn('status')?.getFilterValue() as string | undefined) ?? 'all')}
             onValueChange={(val) => {
-              table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
-              table.setPageIndex(0)
+              if (serverSide && onStatusChange) {
+                onStatusChange(val as 'all' | 'read' | 'unread')
+              } else {
+                table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
+                table.setPageIndex(0)
+              }
             }}
           >
             <SelectTrigger className="w-[130px]">
@@ -193,7 +207,9 @@ export function NotificationsTable({
       )}
       emptyMessage="No notifications"
       emptyDescription="You're all caught up. New notifications will appear here."
-      defaultPageSize={20}
+      defaultPageSize={10}
+      isLoading={isLoading}
+      serverSide={serverSide}
     />
   )
 }
