@@ -231,15 +231,21 @@ function ContactRowActions({ contact }: { contact: Contact }) {
     <>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-          <a href={`mailto:${contact.email}`} title="Send email">
+          <Link
+            to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=email`}
+            title="Send email"
+          >
             <Mail className="h-3.5 w-3.5" />
-          </a>
+          </Link>
         </Button>
         {contact.phone && (
           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-            <a href={`tel:${contact.phone}`} title="Call">
+            <Link
+              to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=call`}
+              title="Call"
+            >
               <Phone className="h-3.5 w-3.5" />
-            </a>
+            </Link>
           </Button>
         )}
         {contact.linkedin && (
@@ -428,12 +434,12 @@ function buildColumns(
             >
               {contact.firstName} {contact.lastName}
             </Link>
-            <a
-              href={`mailto:${contact.email}`}
+            <Link
+              to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=email`}
               className="text-xs text-muted-foreground hover:text-primary truncate max-w-[160px] block"
             >
               {contact.email}
-            </a>
+            </Link>
           </div>
         </div>
       )

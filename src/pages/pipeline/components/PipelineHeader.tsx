@@ -12,10 +12,12 @@ interface PipelineHeaderProps {
   onViewChange: (view: PipelineView) => void
   config: BoardConfig
   onConfigChange: (config: BoardConfig) => void
+  activePipelineId?: string
+  isLoading?: boolean
   pipelineSelector?: React.ReactNode
 }
 
-export function PipelineHeader({ total, view, onViewChange, config, onConfigChange, pipelineSelector }: PipelineHeaderProps) {
+export function PipelineHeader({ total, view, onViewChange, config, onConfigChange, activePipelineId, isLoading, pipelineSelector }: PipelineHeaderProps) {
   const { can } = useAuth()
 
   return (
@@ -23,7 +25,7 @@ export function PipelineHeader({ total, view, onViewChange, config, onConfigChan
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Pipeline</h1>
         <p className="text-muted-foreground mt-1">
-          {total} deal{total !== 1 ? 's' : ''} across all stages
+          {isLoading ? 'Loading...' : `${total} deal${total !== 1 ? 's' : ''} across all stages`}
         </p>
       </div>
 
@@ -67,6 +69,7 @@ export function PipelineHeader({ total, view, onViewChange, config, onConfigChan
 
         {can('pipeline.create') && (
           <AddDealDialog
+            activePipelineId={activePipelineId}
             trigger={
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />

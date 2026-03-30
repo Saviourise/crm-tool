@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -20,36 +21,84 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/common/DatePicker'
+import { pipelineApi } from '@/api/pipeline'
+import { FRONTEND_TO_API_STAGE } from '../apiMappers'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
+import type { Stage } from '../typings'
+
+const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
 
 interface AddDealDialogProps {
   trigger?: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
   defaultStage?: string
+  activePipelineId?: string
 }
 
-export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, defaultStage = 'prospecting' }: AddDealDialogProps) {
+export function AddDealDialog({
+  trigger,
+  open: controlledOpen,
+  onOpenChange,
+  defaultStage = 'prospecting',
+  activePipelineId,
+}: AddDealDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [closeDate, setCloseDate] = useState<Date | undefined>()
+  const [stage, setStage] = useState<Stage>((defaultStage as Stage) || 'prospecting')
+  const [name, setName] = useState('')
+  const [value, setValue] = useState('')
+  const [probability, setProbability] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const queryClient = useQueryClient()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const form = e.target as HTMLFormElement
-    const name = (form.elements.namedItem('dealName') as HTMLInputElement).value
-    toast.success('Deal created', { description: `"${name}" has been added to your pipeline.` })
+  const createDeal = useMutation({
+    mutationFn: () =>
+      pipelineApi.createDeal({
+        name: name.trim(),
+        stage: FRONTEND_TO_API_STAGE[stage],
+        pipeline: activePipelineId || undefined,
+        value: value ? String(parseFloat(value)) : undefined,
+        probability: probability ? Number(probability) : undefined,
+        expected_close_date: closeDate
+          ? closeDate.toISOString().split('T')[0]
+          : undefined,
+        notes: notes.trim() || undefined,
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      toast.success('Deal created', { description: `"${res.data.name}" has been added to your pipeline.` })
+      resetForm()
+      setOpen(false)
+    },
+    onError: () => {
+      toast.error('Failed to create deal')
+    },
+  })
+
+  function resetForm() {
+    setName('')
+    setValue('')
+    setProbability('')
+    setNotes('')
     setCloseDate(undefined)
-    setOpen(false)
-    form.reset()
+    setStage((defaultStage as Stage) || 'prospecting')
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setCloseDate(undefined)
+    if (!next) resetForm()
     setOpen(next)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    createDeal.mutate()
   }
 
   return (
@@ -66,39 +115,50 @@ export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, def
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="dealName">Deal Name *</Label>
-              <Input id="dealName" name="dealName" placeholder="Enterprise CRM Migration" required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="company">Company *</Label>
-                <Input id="company" name="company" placeholder="Acme Corp" required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="contact">Contact Name</Label>
-                <Input id="contact" name="contact" placeholder="John Smith" />
-              </div>
+              <Input
+                id="dealName"
+                placeholder="Enterprise CRM Migration"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="value">Est. Value ($)</Label>
-                <Input id="value" name="value" type="number" min={0} placeholder="50000" />
+                <Input
+                  id="value"
+                  type="number"
+                  min={0}
+                  placeholder="50000"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="probability">Probability (%)</Label>
-                <Input id="probability" name="probability" type="number" min={0} max={100} placeholder="50" />
+                <Input
+                  id="probability"
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="50"
+                  value={probability}
+                  onChange={(e) => setProbability(e.target.value)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="stage">Stage</Label>
-                <Select name="stage" defaultValue={defaultStage}>
+                <Select value={stage} onValueChange={(v) => setStage(v as Stage)}>
                   <SelectTrigger id="stage">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PIPELINE_STAGES.map((stage) => (
-                      <SelectItem key={stage} value={stage}>
-                        {STAGE_CONFIG[stage].label}
+                    {PIPELINE_STAGES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {STAGE_CONFIG[s].label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -115,13 +175,20 @@ export function AddDealDialog({ trigger, open: controlledOpen, onOpenChange, def
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="assignedTo">Assigned To</Label>
-              <Input id="assignedTo" name="assignedTo" placeholder="Sarah K." />
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                placeholder="Optional notes..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
-            <Button type="submit">Add Deal</Button>
+            <Button type="submit" disabled={!name.trim() || createDeal.isPending}>
+              {createDeal.isPending ? 'Adding...' : 'Add Deal'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

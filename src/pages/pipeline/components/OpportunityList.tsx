@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -36,12 +37,31 @@ import { currencyFormat } from '../utils'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
 import type { Opportunity, Stage } from '../typings'
 import { ROUTES } from '@/router/routes'
+import { pipelineApi } from '@/api/pipeline'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+
+const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
 
 function DeleteDealDialog({ opportunity, open, onOpenChange }: {
   opportunity: Opportunity
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const queryClient = useQueryClient()
+
+  const deleteDeal = useMutation({
+    mutationFn: () => pipelineApi.deleteDeal(opportunity.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to delete deal')
+    },
+  })
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
@@ -55,12 +75,10 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             variant="destructive"
-            onClick={() => {
-              toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
-              onOpenChange(false)
-            }}
+            disabled={deleteDeal.isPending}
+            onClick={() => deleteDeal.mutate()}
           >
-            Delete Deal
+            {deleteDeal.isPending ? 'Deleting...' : 'Delete Deal'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -130,7 +148,11 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
           >
             {opp.name}
           </Link>
-          <p className="text-xs text-muted-foreground mt-0.5">{opp.company} · {opp.contact}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {opp.company !== '—' ? opp.company : ''}
+            {opp.company !== '—' && opp.contact !== '—' ? ' · ' : ''}
+            {opp.contact !== '—' ? opp.contact : ''}
+          </p>
         </div>
       )
     },
@@ -177,7 +199,7 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
     accessorFn: (row) => row.expectedCloseDate,
     header: 'Close Date',
     cell: ({ row }) => (
-      <p className="text-sm text-muted-foreground">{row.original.expectedCloseDate}</p>
+      <p className="text-sm text-muted-foreground">{row.original.expectedCloseDate || '—'}</p>
     ),
   },
   {
@@ -185,7 +207,9 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
     accessorFn: (row) => row.assignedTo,
     header: 'Assigned To',
     cell: ({ row }) => {
-      const initials = row.original.assignedTo.split(' ').map((n) => n[0]).join('')
+      const name = row.original.assignedTo
+      if (name === '—') return <p className="text-sm text-muted-foreground">—</p>
+      const initials = name.split(' ').map((n) => n[0]).join('')
       return (
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
@@ -193,7 +217,7 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
               {initials}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm">{row.original.assignedTo}</span>
+          <span className="text-sm">{name}</span>
         </div>
       )
     },
@@ -207,7 +231,12 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
   },
 ]
 
-export function OpportunityList({ opportunities }: { opportunities: Opportunity[] }) {
+interface OpportunityListProps {
+  opportunities: Opportunity[]
+  activePipelineId?: string
+}
+
+export function OpportunityList({ opportunities }: OpportunityListProps) {
   return (
     <DataTable
       columns={columns}

@@ -36,12 +36,16 @@ export interface Opportunity {
   id: string
   name: string
   company: string
+  companyId?: string
   contact: string
+  contactId?: string
   value: number
   stage: Stage
   probability: number
   expectedCloseDate: string
   assignedTo: string
+  assignedToId?: string
+  pipelineId?: string
   notes?: string
   createdAt: string
 }

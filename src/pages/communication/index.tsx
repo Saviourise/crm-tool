@@ -30,6 +30,9 @@ export default function CommunicationCenter() {
 
   const [searchParams] = useSearchParams()
   const contactId = searchParams.get('contactId')
+  const leadId = searchParams.get('leadId')
+  const entityName = searchParams.get('name')
+  const tabParam = searchParams.get('tab') as Channel | null
 
   const [selectedId, setSelectedId] = useState<string | null>(MOCK_CONVERSATIONS[0]?.thread.id ?? null)
   const [activeTab, setActiveTab] = useState<Channel>('email')
@@ -39,27 +42,39 @@ export default function CommunicationCenter() {
   // Mobile: 'list' shows the conversation list, 'detail' shows the selected conversation
   const [mobilePanel, setMobilePanel] = useState<'list' | 'detail'>('list')
 
-  // Auto-select conversation when navigated from a contact
+  // Auto-select conversation when navigated from a contact or lead
   useEffect(() => {
-    if (!contactId || MOCK_CONVERSATIONS.length === 0) return
-    const directMatch = MOCK_CONVERSATIONS.find((c) => c.thread.id === contactId)
-    if (directMatch) {
-      setSelectedId(directMatch.thread.id)
-      setViewMode('conversations')
-      setMobilePanel('detail')
-      return
-    }
-    const nameMatch = MOCK_CONVERSATIONS.find(
-      (c) =>
-        c.thread.contactName.toLowerCase().includes(contactId.toLowerCase()) ||
-        c.thread.contactCompany?.toLowerCase().includes(contactId.toLowerCase())
-    )
+    const identifier = contactId ?? leadId
+    if ((!identifier && !entityName) || MOCK_CONVERSATIONS.length === 0) return
+
+    // 1. Exact thread ID match (works when real API IDs align with thread IDs)
+    const directMatch = identifier
+      ? MOCK_CONVERSATIONS.find((c) => c.thread.id === identifier)
+      : undefined
+
+    // 2. Name-based fuzzy match — uses the `name` param (passed from tables) or falls
+    //    back to using the raw identifier string (legacy contactId behaviour)
+    const nameQuery = (entityName ?? identifier ?? '').toLowerCase()
+    const nameMatch =
+      directMatch ??
+      MOCK_CONVERSATIONS.find(
+        (c) =>
+          c.thread.contactName.toLowerCase().includes(nameQuery) ||
+          c.thread.contactCompany?.toLowerCase().includes(nameQuery)
+      )
+
     if (nameMatch) {
       setSelectedId(nameMatch.thread.id)
       setViewMode('conversations')
       setMobilePanel('detail')
     }
-  }, [contactId])
+
+    // Switch to the requested tab if provided
+    const validTabs: Channel[] = ['email', 'sms', 'call', 'note']
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [contactId, leadId, entityName, tabParam])
 
   const selected = MOCK_CONVERSATIONS.find((c) => c.thread.id === selectedId) ?? null
 

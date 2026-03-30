@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -17,27 +18,46 @@ import { KanbanBoard } from './components/KanbanBoard'
 import { OpportunityList } from './components/OpportunityList'
 import { PipelineSelector } from './components/PipelineSelector'
 import { PipelineFiltersBar } from './components/PipelineFiltersBar'
+import { DEFAULT_BOARD_CONFIG } from './data'
+import { pipelineApi } from '@/api/pipeline'
 import {
-  MOCK_OPPORTUNITIES,
-  DEFAULT_BOARD_CONFIG,
-  MOCK_PIPELINES,
-  MOCK_SAVED_VIEWS,
-} from './data'
-import type { Opportunity, PipelineView, Stage, BoardConfig, PipelineFilters, SavedView } from './typings'
+  mapApiDealToOpportunity,
+  mapApiPipelineToPipeline,
+  mapApiSavedViewToSavedView,
+  FRONTEND_TO_API_STAGE,
+} from './apiMappers'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import type { PipelineView, Stage, BoardConfig, PipelineFilters, SavedView, Opportunity } from './typings'
+
+export const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
+export const PIPELINE_PIPELINES_QUERY_KEY = ['pipeline', 'pipelines']
+export const PIPELINE_SAVED_VIEWS_QUERY_KEY = ['pipeline', 'saved-views']
 
 // ─── Create Pipeline Dialog ────────────────────────────────────────────────────
 
 function CreatePipelineDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const queryClient = useQueryClient()
+
+  const createPipeline = useMutation({
+    mutationFn: () => pipelineApi.createPipeline({ name: name.trim(), description: description.trim() || undefined }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: PIPELINE_PIPELINES_QUERY_KEY })
+      toast.success('Pipeline created', { description: `"${res.data.name}" pipeline is ready.` })
+      setName('')
+      setDescription('')
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to create pipeline')
+    },
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    toast.success('Pipeline created', { description: `"${name.trim()}" pipeline is ready.` })
-    setName('')
-    setDescription('')
-    onOpenChange(false)
+    createPipeline.mutate()
   }
 
   return (
@@ -70,7 +90,9 @@ function CreatePipelineDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={!name.trim()}>Create Pipeline</Button>
+            <Button type="submit" disabled={!name.trim() || createPipeline.isPending}>
+              {createPipeline.isPending ? 'Creating...' : 'Create Pipeline'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -78,30 +100,7 @@ function CreatePipelineDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   )
 }
 
-// ─── Pipeline filtering by pipeline ID ────────────────────────────────────────
-
-function getOpportunitiesForPipeline(pipelineId: string, allOpps: Opportunity[]): Opportunity[] {
-  if (pipelineId === '2') {
-    // Enterprise Deals: negotiation + closed-won stages
-    return allOpps.filter(
-      (o) => o.stage === 'negotiation' || o.stage === 'closed-won'
-    )
-  }
-  if (pipelineId === '3') {
-    // Partnerships: everything not in pipeline 1 or 2
-    const p2Ids = new Set(
-      allOpps.filter(
-        (o) => o.stage === 'negotiation' || o.stage === 'closed-won'
-      ).map((o) => o.id)
-    )
-    const first12Ids = new Set(allOpps.slice(0, 12).map((o) => o.id))
-    return allOpps.filter(
-      (o) => !p2Ids.has(o.id) && !first12Ids.has(o.id)
-    )
-  }
-  // Default pipeline 1: first 12
-  return allOpps.slice(0, 12)
-}
+// ─── Client-side filter helper ────────────────────────────────────────────────
 
 function applyFilters(opps: Opportunity[], filters: PipelineFilters): Opportunity[] {
   return opps.filter((opp) => {
@@ -125,37 +124,144 @@ const EMPTY_FILTERS: PipelineFilters = {
 }
 
 export default function Pipeline() {
+  const queryClient = useQueryClient()
+
   const [view, setView] = useState<PipelineView>('kanban')
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES)
   const [boardConfig, setBoardConfig] = useState<BoardConfig>(DEFAULT_BOARD_CONFIG)
-  const [activePipelineId, setActivePipelineId] = useState('1')
+  const [activePipelineId, setActivePipelineId] = useState<string>('')
   const [filters, setFilters] = useState<PipelineFilters>(EMPTY_FILTERS)
-  const [savedViews, setSavedViews] = useState<SavedView[]>(MOCK_SAVED_VIEWS)
   const [createPipelineOpen, setCreatePipelineOpen] = useState(false)
 
+  // Optimistic stage overrides for drag-and-drop
+  const [stageOverrides, setStageOverrides] = useState<Record<string, Stage>>({})
+
+  // ─── Data fetching ────────────────────────────────────────────────────────
+
+  const { data: pipelinesRes, isLoading: pipelinesLoading } = useQuery({
+    queryKey: PIPELINE_PIPELINES_QUERY_KEY,
+    queryFn: () => pipelineApi.listPipelines(),
+  })
+
+  // API may return plain array or paginated { results: [] }
+  const rawPipelines = (() => {
+    const d = pipelinesRes?.data
+    if (!d) return []
+    if (Array.isArray(d)) return d
+    return (d as unknown as { results: typeof d }).results ?? []
+  })()
+
+  // Set default active pipeline when pipelines load
+  useEffect(() => {
+    if (!activePipelineId && rawPipelines.length > 0) {
+      const defaultPipeline = rawPipelines.find((p) => p.is_default) ?? rawPipelines[0]
+      setActivePipelineId(defaultPipeline.id)
+    }
+  }, [rawPipelines, activePipelineId])
+
+  const { data: dealsRes, isLoading: dealsLoading } = useQuery({
+    queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId],
+    queryFn: () => pipelineApi.listDeals({ pipeline: activePipelineId, limit: 200 }),
+    enabled: !!activePipelineId,
+  })
+
+  const { data: savedViewsRes } = useQuery({
+    queryKey: PIPELINE_SAVED_VIEWS_QUERY_KEY,
+    queryFn: () => pipelineApi.listSavedViews(),
+  })
+
+  const apiOpportunities = useMemo(
+    () => (dealsRes?.data?.results ?? []).map(mapApiDealToOpportunity),
+    [dealsRes]
+  )
+
+  // Apply optimistic stage overrides for smooth drag-and-drop UX
+  const opportunities = useMemo(
+    () =>
+      apiOpportunities.map((opp) =>
+        stageOverrides[opp.id] ? { ...opp, stage: stageOverrides[opp.id] } : opp
+      ),
+    [apiOpportunities, stageOverrides]
+  )
+
+  const pipelines = useMemo(
+    () =>
+      rawPipelines.map((p) => {
+        const dealCount = p.id === activePipelineId ? opportunities.length : 0
+        const totalValue = p.id === activePipelineId
+          ? opportunities.reduce((sum, o) => sum + o.value, 0)
+          : 0
+        return mapApiPipelineToPipeline(p, dealCount, totalValue)
+      }),
+    [rawPipelines, opportunities, activePipelineId]
+  )
+
+  const savedViews = useMemo(() => {
+    const d = savedViewsRes?.data
+    if (!d) return []
+    const arr = Array.isArray(d) ? d : (d as unknown as { results: typeof d }).results ?? []
+    return arr.map(mapApiSavedViewToSavedView)
+  }, [savedViewsRes])
+
+  const filteredOpportunities = applyFilters(opportunities, filters)
+
+  // ─── Mutations ────────────────────────────────────────────────────────────
+
+  const moveStage = useMutation({
+    mutationFn: ({ id, stage }: { id: string; stage: Stage }) =>
+      pipelineApi.moveStage(id, FRONTEND_TO_API_STAGE[stage]),
+    onSuccess: (_, { id }) => {
+      setStageOverrides((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+    },
+    onError: (_, { id }) => {
+      setStageOverrides((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId] })
+      toast.error('Failed to move deal')
+    },
+  })
+
+  const createSavedView = useMutation({
+    mutationFn: (name: string) =>
+      pipelineApi.createSavedView({
+        name,
+        entity_type: 'deal',
+        filters: filters as unknown as Record<string, unknown>,
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: PIPELINE_SAVED_VIEWS_QUERY_KEY })
+      toast.success('View saved', { description: `"${res.data.name}" has been saved.` })
+    },
+    onError: () => {
+      toast.error('Failed to save view')
+    },
+  })
+
+  // ─── Event handlers ───────────────────────────────────────────────────────
+
   const handleMoveOpportunity = (id: string, newStage: Stage) => {
-    setOpportunities((prev) =>
-      prev.map((opp) => (opp.id === id ? { ...opp, stage: newStage } : opp))
-    )
+    setStageOverrides((prev) => ({ ...prev, [id]: newStage }))
+    moveStage.mutate({ id, stage: newStage })
   }
 
-  const pipelineOpps = getOpportunitiesForPipeline(activePipelineId, opportunities)
-  const filteredOpportunities = applyFilters(pipelineOpps, filters)
-
   const handleSaveView = (name: string) => {
-    const newView: SavedView = {
-      id: String(Date.now()),
-      name,
-      filters: { ...filters },
-    }
-    setSavedViews((prev) => [...prev, newView])
-    toast.success('View saved', { description: `"${name}" has been saved.` })
+    createSavedView.mutate(name)
   }
 
   const handleLoadView = (savedView: SavedView) => {
     setFilters(savedView.filters)
     toast.info('View loaded', { description: `Showing "${savedView.name}" filter.` })
   }
+
+  const isLoading = pipelinesLoading || (!!activePipelineId && dealsLoading)
 
   return (
     <div className="space-y-4">
@@ -165,9 +271,11 @@ export default function Pipeline() {
         onViewChange={setView}
         config={boardConfig}
         onConfigChange={setBoardConfig}
+        activePipelineId={activePipelineId}
+        isLoading={isLoading}
         pipelineSelector={
           <PipelineSelector
-            pipelines={MOCK_PIPELINES}
+            pipelines={pipelines}
             activePipelineId={activePipelineId}
             onSelect={setActivePipelineId}
             onNewPipeline={() => setCreatePipelineOpen(true)}
@@ -190,11 +298,15 @@ export default function Pipeline() {
           <KanbanBoard
             opportunities={filteredOpportunities}
             config={boardConfig}
+            activePipelineId={activePipelineId}
             onMoveOpportunity={handleMoveOpportunity}
           />
         </div>
       ) : (
-        <OpportunityList opportunities={filteredOpportunities} />
+        <OpportunityList
+          opportunities={filteredOpportunities}
+          activePipelineId={activePipelineId}
+        />
       )}
 
       <CreatePipelineDialog open={createPipelineOpen} onOpenChange={setCreatePipelineOpen} />

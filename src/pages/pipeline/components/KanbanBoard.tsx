@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
   DragOverlay,
@@ -48,6 +49,11 @@ import { AddDealDialog } from './AddDealDialog'
 import type { Opportunity, Stage, BoardConfig, ColorConfig, CardFieldSettings, StageSettings } from '../typings'
 import { ROUTES } from '@/router/routes'
 import { useAuth } from '@/auth/context'
+import { pipelineApi } from '@/api/pipeline'
+import { FRONTEND_TO_API_STAGE } from '../apiMappers'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+
+const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
 
 // ─── Edit Deal Dialog ─────────────────────────────────────────────────────────
 
@@ -56,10 +62,37 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(opportunity.name)
+  const [value, setValue] = useState(String(opportunity.value))
+  const [probability, setProbability] = useState(String(opportunity.probability))
+  const [stage, setStage] = useState<Stage>(opportunity.stage)
+  const [notes, setNotes] = useState(opportunity.notes ?? '')
+
+  const updateDeal = useMutation({
+    mutationFn: () =>
+      pipelineApi.updateDeal(opportunity.id, {
+        name: name.trim(),
+        value: value ? String(parseFloat(value)) : undefined,
+        probability: probability ? Number(probability) : undefined,
+        stage: FRONTEND_TO_API_STAGE[stage],
+        notes: notes.trim() || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      toast.success('Deal updated', { description: `"${name.trim()}" has been updated.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to update deal')
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    toast.success('Deal updated', { description: `"${opportunity.name}" has been updated.` })
-    onOpenChange(false)
+    if (!name.trim()) return
+    updateDeal.mutate()
   }
 
   return (
@@ -73,53 +106,64 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="edit-name">Deal Name</Label>
-              <Input id="edit-name" defaultValue={opportunity.name} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-company">Company</Label>
-                <Input id="edit-company" defaultValue={opportunity.company} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-contact">Contact</Label>
-                <Input id="edit-contact" defaultValue={opportunity.contact} />
-              </div>
+              <Input
+                id="edit-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-value">Value ($)</Label>
-                <Input id="edit-value" type="number" defaultValue={opportunity.value} />
+                <Input
+                  id="edit-value"
+                  type="number"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-probability">Probability (%)</Label>
-                <Input id="edit-probability" type="number" min={0} max={100} defaultValue={opportunity.probability} />
+                <Input
+                  id="edit-probability"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={probability}
+                  onChange={(e) => setProbability(e.target.value)}
+                />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-stage">Stage</Label>
-                <Select defaultValue={opportunity.stage}>
-                  <SelectTrigger id="edit-stage">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PIPELINE_STAGES.map((stage) => (
-                      <SelectItem key={stage} value={stage}>
-                        {STAGE_CONFIG[stage].label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-assigned">Assigned To</Label>
-                <Input id="edit-assigned" defaultValue={opportunity.assignedTo} />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-stage">Stage</Label>
+              <Select value={stage} onValueChange={(v) => setStage(v as Stage)}>
+                <SelectTrigger id="edit-stage">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PIPELINE_STAGES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {STAGE_CONFIG[s].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Input
+                id="edit-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes..."
+              />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={!name.trim() || updateDeal.isPending}>
+              {updateDeal.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -132,6 +176,21 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const queryClient = useQueryClient()
+
+  const deleteDeal = useMutation({
+    mutationFn: () => pipelineApi.deleteDeal(opportunity.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
+      onOpenChange(false)
+    },
+    onError: () => {
+      toast.error('Failed to delete deal')
+    },
+  })
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
@@ -145,12 +204,10 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             variant="destructive"
-            onClick={() => {
-              toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
-              onOpenChange(false)
-            }}
+            disabled={deleteDeal.isPending}
+            onClick={() => deleteDeal.mutate()}
           >
-            Delete Deal
+            {deleteDeal.isPending ? 'Deleting...' : 'Delete Deal'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -255,7 +312,7 @@ function DealCardContent({
         )}
 
         {/* Company */}
-        {cardFields.company && (
+        {cardFields.company && opportunity.company !== '—' && (
           <p className="text-xs text-muted-foreground mb-2">{opportunity.company}</p>
         )}
 
@@ -289,7 +346,7 @@ function DealCardContent({
             ) : (
               <span />
             )}
-            {cardFields.assignee && (
+            {cardFields.assignee && opportunity.assignedTo !== '—' && (
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
                   {assigneeInitials}
@@ -352,12 +409,14 @@ function KanbanColumn({
   cardFields,
   columnWidth,
   canCreate,
+  activePipelineId,
 }: {
   settings: StageSettings
   opportunities: Opportunity[]
   cardFields: CardFieldSettings
   columnWidth: number
   canCreate: boolean
+  activePipelineId?: string
 }) {
   const colorConfig = STAGE_COLORS[settings.color]
   const { setNodeRef, isOver } = useDroppable({ id: settings.stage })
@@ -406,6 +465,7 @@ function KanbanColumn({
         {canCreate && (
           <AddDealDialog
             defaultStage={settings.stage}
+            activePipelineId={activePipelineId}
             trigger={
               <button className="w-full flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors">
                 <Plus className="h-3.5 w-3.5" />
@@ -424,10 +484,11 @@ function KanbanColumn({
 interface KanbanBoardProps {
   opportunities: Opportunity[]
   config: BoardConfig
+  activePipelineId?: string
   onMoveOpportunity: (id: string, newStage: Stage) => void
 }
 
-export function KanbanBoard({ opportunities, config, onMoveOpportunity }: KanbanBoardProps) {
+export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpportunity }: KanbanBoardProps) {
   const [activeOpp, setActiveOpp] = useState<Opportunity | null>(null)
   const { can } = useAuth()
   const canCreate = can('pipeline.create')
@@ -485,6 +546,7 @@ export function KanbanBoard({ opportunities, config, onMoveOpportunity }: Kanban
             cardFields={config.cardFields}
             columnWidth={config.columnWidth}
             canCreate={canCreate}
+            activePipelineId={activePipelineId}
           />
         ))}
       </div>

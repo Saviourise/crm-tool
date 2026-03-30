@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { MOCK_OPPORTUNITIES } from '../data'
+import { pipelineApi } from '@/api/pipeline'
+import { mapApiDealToOpportunity } from '../apiMappers'
 import { DealProfileCard } from './components/DealProfileCard'
 import { DealStageProgress } from './components/DealStageProgress'
 import { DealActivityTimeline } from './components/DealActivityTimeline'
@@ -22,9 +24,23 @@ export default function DealDetail() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
-  const opportunity = MOCK_OPPORTUNITIES.find((o) => o.id === id)
+  const { data: dealRes, isLoading, isError } = useQuery({
+    queryKey: ['pipeline', 'deals', id, 'detail'],
+    queryFn: () => pipelineApi.getDeal(id!),
+    enabled: !!id,
+  })
 
-  if (!opportunity) {
+  const opportunity = dealRes?.data ? mapApiDealToOpportunity(dealRes.data) : null
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (isError || !opportunity) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <p className="text-muted-foreground text-lg">Deal not found.</p>
@@ -77,11 +93,14 @@ export default function DealDetail() {
       )}
 
       {activeTab === 'activity' && (
-        <DealActivityTimeline />
+        <DealActivityTimeline dealId={opportunity.id} />
       )}
 
       {activeTab === 'contacts' && (
-        <DealContactsCard contactName={opportunity.contact} />
+        <DealContactsCard
+          contactName={opportunity.contact}
+          contactId={opportunity.contactId}
+        />
       )}
     </div>
   )

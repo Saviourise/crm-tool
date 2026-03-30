@@ -1,4 +1,5 @@
 import { Mail, Phone, User, Calendar, Clock } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -120,17 +121,23 @@ export function LeadProfileCard({ lead }: LeadProfileCardProps) {
           {lead.email && (
             <div className="flex items-center gap-2.5 text-sm">
               <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-              <a href={`mailto:${lead.email}`} className="text-primary hover:underline truncate">
+              <Link
+                to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
+                className="text-primary hover:underline truncate"
+              >
                 {lead.email}
-              </a>
+              </Link>
             </div>
           )}
           {lead.phone && (
             <div className="flex items-center gap-2.5 text-sm">
               <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-              <a href={`tel:${lead.phone}`} className="hover:text-primary">
+              <Link
+                to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=call`}
+                className="hover:text-primary"
+              >
                 {lead.phone}
-              </a>
+              </Link>
             </div>
           )}
           {lead.assignedTo && (

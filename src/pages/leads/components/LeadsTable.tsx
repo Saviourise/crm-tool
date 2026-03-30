@@ -342,15 +342,21 @@ function LeadRowActions({ lead }: { lead: Lead }) {
     <>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-          <a href={`mailto:${lead.email}`} title="Send email">
+          <Link
+            to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
+            title="Send email"
+          >
             <Mail className="h-3.5 w-3.5" />
-          </a>
+          </Link>
         </Button>
         {lead.phone && (
           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-            <a href={`tel:${lead.phone}`} title="Call">
+            <Link
+              to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=call`}
+              title="Call"
+            >
               <Phone className="h-3.5 w-3.5" />
-            </a>
+            </Link>
           </Button>
         )}
         {hasWriteAccess && (
@@ -542,12 +548,12 @@ function buildColumns(
             >
               {lead.firstName} {lead.lastName}
             </Link>
-            <a
-              href={`mailto:${lead.email}`}
+            <Link
+              to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
               className="text-xs text-muted-foreground hover:text-primary truncate max-w-[150px] block"
             >
               {lead.email}
-            </a>
+            </Link>
           </div>
         </div>
       )
