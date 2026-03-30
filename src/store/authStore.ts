@@ -6,7 +6,8 @@ export interface AuthTokensState {
   accessToken: string | null
   refreshToken: string | null
   workspaceId: string | null
-  setTokens: (access: string, refresh: string, workspaceId?: string) => void
+  /** When `workspaceId` is omitted, the current workspace is kept (required for token refresh). */
+  setTokens: (access: string, refresh: string, workspaceId?: string | null) => void
   clearTokens: () => void
 }
 
@@ -17,7 +18,11 @@ export const useAuthStore = create<AuthTokensState>()(
       refreshToken: null,
       workspaceId: null,
       setTokens: (access, refresh, workspaceId) =>
-        set({ accessToken: access, refreshToken: refresh, workspaceId: workspaceId ?? null }),
+        set((state) => ({
+          accessToken: access,
+          refreshToken: refresh,
+          workspaceId: workspaceId !== undefined ? workspaceId : state.workspaceId,
+        })),
       clearTokens: () =>
         set({ accessToken: null, refreshToken: null, workspaceId: null }),
     }),

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { AuthUser, AuthState, RoleId, Permission, Feature, PlanId } from './types'
 import { hasPermission, hasFeature, planMeetsMinimum } from './permissions'
 import { useAuthStore } from '@/store/authStore'
@@ -100,15 +100,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  /** After first hydrate; when access/refresh rotate, show loading so route guards don't flash /onboarding. */
+  const hasCompletedHydrationCycleRef = useRef(false)
 
   const { accessToken, refreshToken, clearTokens } = useAuthStore()
 
   useEffect(() => {
     if (!accessToken || !refreshToken) {
+      hasCompletedHydrationCycleRef.current = false
       setUser(null)
       setOnboardingComplete(null)
       setIsLoading(false)
       return
+    }
+
+    if (hasCompletedHydrationCycleRef.current) {
+      setIsLoading(true)
     }
 
     let cancelled = false
@@ -136,10 +143,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   if (!cancelled) setOnboardingComplete(res.data.onboarding_complete)
                 })
                 .catch(() => {
-                  if (!cancelled) setOnboardingComplete(false)
+                  // Transient errors during token refresh can 401; keep "complete" so we don't bounce to /onboarding
+                  if (!cancelled) {
+                    setOnboardingComplete((prev) => (prev === true ? true : false))
+                  }
                 })
             } else {
-              setOnboardingComplete(false)
+              setOnboardingComplete((prev) => (prev === true ? true : false))
             }
           }
         }
@@ -148,7 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setUser(null)
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false)
+        if (!cancelled) {
+          setIsLoading(false)
+          hasCompletedHydrationCycleRef.current = true
+        }
       })
 
     return () => { cancelled = true }

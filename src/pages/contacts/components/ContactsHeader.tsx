@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Upload, Download, Plus } from 'lucide-react'
+import { Upload, Download, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { AddContactDialog } from '@/components/common/AddContactDialog'
@@ -50,7 +50,7 @@ export function ContactsHeader({ total, isLoading }: ContactsHeaderProps) {
             size="sm"
             onClick={() => setImportOpen(true)}
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2" />
             Import
           </Button>
         )}
@@ -61,7 +61,11 @@ export function ContactsHeader({ total, isLoading }: ContactsHeaderProps) {
             onClick={handleExport}
             disabled={exporting}
           >
-            <Download className="h-4 w-4 mr-2" />
+            {exporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
             {exporting ? 'Exporting…' : 'Export'}
           </Button>
         )}

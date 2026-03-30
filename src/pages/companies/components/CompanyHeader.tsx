@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Upload, Download, Plus } from 'lucide-react'
+import { Upload, Download, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { AddCompanyDialog } from '@/components/common/AddCompanyDialog'
@@ -46,7 +46,7 @@ export function CompanyHeader({ total, isLoading }: CompanyHeaderProps) {
       <div className="flex items-center gap-2 flex-wrap">
         {can('companies.create') && hasPlan('csv-import') && (
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2" />
             Import
           </Button>
         )}
@@ -57,7 +57,11 @@ export function CompanyHeader({ total, isLoading }: CompanyHeaderProps) {
             onClick={handleExport}
             disabled={exporting}
           >
-            <Download className="h-4 w-4 mr-2" />
+            {exporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
             {exporting ? 'Exporting…' : 'Export'}
           </Button>
         )}

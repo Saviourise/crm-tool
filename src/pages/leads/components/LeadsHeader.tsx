@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Upload, Download, Plus } from 'lucide-react'
+import { Upload, Download, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
 import { CSVImportDialog } from '@/components/common/CSVImportDialog'
@@ -8,12 +8,23 @@ import { useAuth } from '@/auth/context'
 interface LeadsHeaderProps {
   total: number
   isLoading?: boolean
-  onExport?: () => void
+  onExport?: () => void | Promise<void>
 }
 
 export function LeadsHeader({ total, isLoading, onExport }: LeadsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
+
+  async function handleExportClick() {
+    if (!onExport) return
+    try {
+      setExporting(true)
+      await onExport()
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -30,7 +41,7 @@ export function LeadsHeader({ total, isLoading, onExport }: LeadsHeaderProps) {
             size="sm"
             onClick={() => setImportOpen(true)}
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2" />
             Import
           </Button>
         )}
@@ -38,10 +49,15 @@ export function LeadsHeader({ total, isLoading, onExport }: LeadsHeaderProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={onExport}
+            onClick={handleExportClick}
+            disabled={exporting}
           >
-            <Download className="h-4 w-4 mr-2" />
-            Export
+            {exporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {exporting ? 'Exporting…' : 'Export'}
           </Button>
         )}
         {can('leads.create') && (

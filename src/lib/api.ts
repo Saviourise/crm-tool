@@ -112,7 +112,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined
+
+    if (!originalRequest) return Promise.reject(error)
 
     // Don't try refresh for public endpoints — 401 means auth failed, not expired token
     if (isPublicRequest(originalRequest)) return Promise.reject(error)
@@ -124,9 +126,10 @@ api.interceptors.response.use(
 
       try {
         const newAccess = await refreshAccessToken()
+        originalRequest.headers = originalRequest.headers ?? {}
         originalRequest.headers.Authorization = `Bearer ${newAccess}`
-        // Retry the failed request with new token — do not navigate; refetch the endpoint that 401'd
-        return api(originalRequest)
+        // Retry goes through request interceptors again (picks up workspaceId from store after refresh).
+        return api.request(originalRequest)
       } catch {
         // Refresh failed — forceLogout already called in refreshAccessToken
         return Promise.reject(error)
