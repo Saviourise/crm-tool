@@ -20,8 +20,6 @@ export function UserMenu() {
 
   if (!user) return null
 
-  const planLabel = user.plan.charAt(0).toUpperCase() + user.plan.slice(1)
-
   function handleLogout() {
     logout()
     navigate('/login')
@@ -32,7 +30,7 @@ export function UserMenu() {
       {/* Name + role text — hidden on mobile */}
       <div className="hidden md:flex flex-col items-end">
         <span className="text-sm font-medium leading-none">{user.name}</span>
-        <span className="text-xs text-muted-foreground mt-0.5">{planLabel}</span>
+        <span className="text-xs text-muted-foreground mt-0.5">{user.jobTitle}</span>
       </div>
 
       <DropdownMenu>
