@@ -60,6 +60,7 @@ function EditContactDialog({ contact, open, onOpenChange }: {
 }) {
   const queryClient = useQueryClient()
   const [companyId, setCompanyId] = useState<string>(contact.companyId ?? '')
+  const [status, setStatus] = useState<string>(contact.status)
 
   const { data: companiesData, isLoading: companiesLoading } = useQuery({
     queryKey: ['companies'],
@@ -70,11 +71,14 @@ function EditContactDialog({ contact, open, onOpenChange }: {
   const companies = companiesData?.data?.results ?? []
 
   useEffect(() => {
-    if (open) setCompanyId(contact.companyId ?? '')
-  }, [open, contact.companyId])
+    if (open) {
+      setCompanyId(contact.companyId ?? '')
+      setStatus(contact.status)
+    }
+  }, [open, contact.companyId, contact.status])
 
   const updateContact = useMutation({
-    mutationFn: (data: { first_name: string; last_name: string; email: string; company?: string; position?: string; phone?: string }) =>
+    mutationFn: (data: { first_name: string; last_name: string; email: string; company?: string; position?: string; phone?: string; status?: string }) =>
       contactsApi.update(contact.id, data),
     onSuccess: (res) => {
       const api = res.data
@@ -102,6 +106,7 @@ function EditContactDialog({ contact, open, onOpenChange }: {
       ...(companyId && { company: companyId }),
       position: (form.elements.namedItem('edit-position') as HTMLInputElement).value || undefined,
       phone: (form.elements.namedItem('edit-phone') as HTMLInputElement).value || undefined,
+      status,
     }
     updateContact.mutate(data)
   }
@@ -159,6 +164,19 @@ function EditContactDialog({ contact, open, onOpenChange }: {
             <div className="grid gap-2">
               <Label htmlFor="edit-phone">Phone</Label>
               <Input id="edit-phone" name="edit-phone" defaultValue={contact.phone ?? ''} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger id="edit-status" className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.filter((o) => o.value !== 'all').map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

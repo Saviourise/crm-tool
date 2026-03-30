@@ -10,11 +10,6 @@ export const API_TO_FRONTEND_STAGE: Record<string, Stage> = {
   negotiation: 'negotiation',
   won: 'closed-won',
   lost: 'closed-lost',
-  // passthrough for stages already using frontend keys (e.g. if API changes)
-  prospecting: 'prospecting',
-  qualification: 'qualification',
-  'closed-won': 'closed-won',
-  'closed-lost': 'closed-lost',
 }
 
 // Frontend Stage → API stage

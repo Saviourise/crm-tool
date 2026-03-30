@@ -72,6 +72,9 @@ export interface UpdateDealRequest {
   probability?: number
   expected_close_date?: string
   notes?: string
+  contact?: string | null
+  company?: string | null
+  assigned_to?: string | null
 }
 
 export interface CreatePipelineRequest {
@@ -84,6 +87,26 @@ export interface CreateSavedViewRequest {
   entity_type: 'deal'
   filters: Record<string, unknown>
   columns?: string[]
+}
+
+export interface LogDealActivityRequest {
+  type: 'call' | 'email' | 'meeting' | 'note' | 'task'
+  summary?: string
+  duration_minutes?: number
+  notes?: string
+}
+
+export interface ApiDealContact {
+  role: string
+  contact: {
+    id: string
+    first_name: string
+    last_name: string
+    email: string
+    phone?: string | null
+    position?: string | null
+    avatar_url?: string | null
+  }
 }
 
 export const pipelineApi = {
@@ -140,4 +163,11 @@ export const pipelineApi = {
 
   deleteSavedView: (id: string) =>
     api.delete(`/api/pipeline/saved-views/${id}/`),
+
+  // Deal sub-resources
+  logActivity: (id: string, data: LogDealActivityRequest) =>
+    api.post(`/api/pipeline/deals/${id}/activity/`, data),
+
+  dealContacts: (id: string) =>
+    api.get<{ results: ApiDealContact[] }>(`/api/pipeline/deals/${id}/contacts/`),
 }

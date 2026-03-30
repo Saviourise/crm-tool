@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { contactsApi } from '@/api/contacts'
 import { leadsApi } from '@/api/leads'
+import { pipelineApi } from '@/api/pipeline'
 
 type ActivityType = 'call' | 'email' | 'meeting' | 'note'
 
@@ -33,21 +34,25 @@ interface LogActivityDialogProps {
   contactId?: string
   /** When provided, logs activity via leads API. */
   leadId?: string
+  /** When provided, logs activity via pipeline deals API. */
+  dealId?: string
 }
 
-export function LogActivityDialog({ open, onOpenChange, entityName, contactId, leadId }: LogActivityDialogProps) {
+export function LogActivityDialog({ open, onOpenChange, entityName, contactId, leadId, dealId }: LogActivityDialogProps) {
   const [type, setType] = useState<ActivityType>('call')
   const [notes, setNotes] = useState('')
   const [duration, setDuration] = useState('')
   const queryClient = useQueryClient()
 
-  const entityId = contactId ?? leadId
+  const entityId = contactId ?? leadId ?? dealId
   const isContact = !!contactId
   const isLead = !!leadId
+  const isDeal = !!dealId
 
   const logActivity = useMutation({
     mutationFn: (data: Parameters<typeof contactsApi.logActivity>[1]) => {
       if (isContact) return contactsApi.logActivity(contactId!, data)
+      if (isDeal) return pipelineApi.logActivity(dealId!, data)
       return leadsApi.logActivity(leadId!, data)
     },
     onSuccess: (_, variables) => {
@@ -57,6 +62,7 @@ export function LogActivityDialog({ open, onOpenChange, entityName, contactId, l
       })
       if (isContact) queryClient.invalidateQueries({ queryKey: ['contacts', contactId, 'activity'] })
       if (isLead) queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'activity'] })
+      if (isDeal) queryClient.invalidateQueries({ queryKey: ['pipeline', 'deals', dealId, 'activity'] })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       handleClose()
     },

@@ -97,10 +97,7 @@ export default function DealDetail() {
       )}
 
       {activeTab === 'contacts' && (
-        <DealContactsCard
-          contactName={opportunity.contact}
-          contactId={opportunity.contactId}
-        />
+        <DealContactsCard dealId={opportunity.id} />
       )}
     </div>
   )
