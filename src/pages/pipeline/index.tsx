@@ -26,7 +26,7 @@ import {
   mapApiSavedViewToSavedView,
   FRONTEND_TO_API_STAGE,
 } from './apiMappers'
-import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import type { PipelineView, Stage, BoardConfig, PipelineFilters, SavedView, Opportunity } from './typings'
 
 export const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
@@ -230,6 +230,7 @@ export default function Pipeline() {
     onSuccess: () => {
       // Override stays in place until the refetch confirms the new stage (see useEffect above).
       queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId] })
+      invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
     },
     onError: (_, { id }) => {

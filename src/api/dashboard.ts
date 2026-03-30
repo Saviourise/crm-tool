@@ -1,14 +1,29 @@
 import { api } from '@/lib/api'
 
+/** One row in `stage_distribution` from GET /api/reports/sales-performance/ */
+export interface SalesStageDistributionItem {
+  stage: string
+  count: number
+  value: number
+}
+
 /** Sales performance from GET /api/reports/sales-performance/ */
 export interface SalesPerformanceResponse {
+  period_days: number
   total_deals: number
-  total_value: string
+  total_value: number
   won_deals: number
-  won_value: string
+  lost_deals: number
   win_rate: number
-  avg_deal_value: string
-  by_stage: Record<string, number>
+  stage_distribution: SalesStageDistributionItem[]
+}
+
+/** Total currency in closed-won stages (API puts won deal value on `won` rows). */
+export function getClosedWonValue(sales: SalesPerformanceResponse): number {
+  return sales.stage_distribution.reduce((sum, row) => {
+    if (row.stage.toLowerCase() !== 'won') return sum
+    return sum + (Number(row.value) || 0)
+  }, 0)
 }
 
 /** Lead analytics from GET /api/reports/lead-analytics/ */
@@ -30,10 +45,10 @@ export interface LeadAnalyticsResponse {
 
 /** Revenue forecast from GET /api/reports/revenue-forecast/ */
 export interface RevenueForecastItem {
+  stage: string
   month: string
-  committed: string
-  upside: string
-  total_forecast: string
+  total: number
+  count: number
 }
 
 export interface RevenueForecastResponse {

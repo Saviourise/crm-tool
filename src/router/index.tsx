@@ -1,11 +1,17 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { ROUTES } from './routes'
+import { AuthProvider } from '@/auth/context'
 import { RequireAuth, RequireOnboarding, RequirePermission, RequireFeature } from '@/auth/guards'
 import type { Permission, Feature } from '@/auth/types'
 
+/** Auth wraps all routes so lazy-loaded pages always share the same provider tree as the router. */
 function RootLayout() {
-  return <Outlet />
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  )
 }
 
 // Layout

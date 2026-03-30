@@ -10,7 +10,7 @@ export const PIPELINE_CHART_CONFIG: ChartConfig = {
 
 export const REVENUE_CHART_CONFIG: ChartConfig = {
   value: {
-    label: 'Revenue (K)',
+    label: 'Revenue',
     color: 'oklch(0.58 0.22 245)', // Primary blue
   },
 }

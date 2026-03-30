@@ -38,7 +38,7 @@ import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
 import type { Opportunity, Stage } from '../typings'
 import { ROUTES } from '@/router/routes'
 import { pipelineApi } from '@/api/pipeline'
-import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 
 const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
 
@@ -53,6 +53,7 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
     mutationFn: () => pipelineApi.deleteDeal(opportunity.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
       onOpenChange(false)

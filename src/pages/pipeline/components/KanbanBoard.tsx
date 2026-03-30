@@ -51,7 +51,7 @@ import { ROUTES } from '@/router/routes'
 import { useAuth } from '@/auth/context'
 import { pipelineApi } from '@/api/pipeline'
 import { FRONTEND_TO_API_STAGE } from '../apiMappers'
-import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 
 const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
 
@@ -80,6 +80,7 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       toast.success('Deal updated', { description: `"${name.trim()}" has been updated.` })
       onOpenChange(false)
@@ -182,6 +183,7 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
     mutationFn: () => pipelineApi.deleteDeal(opportunity.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
       onOpenChange(false)

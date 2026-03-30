@@ -43,7 +43,7 @@ import { useAuth } from '@/auth/context'
 import { leadsApi } from '@/api/leads'
 import { companiesApi } from '@/api/companies'
 import { SOURCE_UI_TO_API } from '../apiMappers'
-import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { LEADS_QUERY_KEY } from '../index'
 import { patchLeadsListCaches } from '@/lib/listQueryCache'
 
@@ -253,6 +253,7 @@ function ConvertLeadDialog({ lead, open, onOpenChange }: {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       toast.success('Lead converted', {
         description: `${lead.firstName} ${lead.lastName} has been added to Contacts.${res.data.deal_id ? ' Deal created.' : ''}`,

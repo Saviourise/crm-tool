@@ -23,6 +23,7 @@ import {
 import { DatePicker } from '@/components/common/DatePicker'
 import { pipelineApi } from '@/api/pipeline'
 import { FRONTEND_TO_API_STAGE } from '../apiMappers'
+import { invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
 import type { Stage } from '../typings'
 
@@ -72,6 +73,7 @@ export function AddDealDialog({
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
+      invalidateDashboardPipelineMetrics(queryClient)
       toast.success('Deal created', { description: `"${res.data.name}" has been added to your pipeline.` })
       resetForm()
       setOpen(false)

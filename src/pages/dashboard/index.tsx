@@ -14,7 +14,7 @@ import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
 import { AddContactDialog } from '@/components/common/AddContactDialog'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { ROUTES } from '@/router/routes'
-import { dashboardApi } from '@/api/dashboard'
+import { dashboardApi, getClosedWonValue } from '@/api/dashboard'
 import { dashboardQueryKeys, DASHBOARD_PERIOD } from './queryKeys'
 import type { Metric } from './typings'
 import { mapActivityType, mapActivityTitle } from './utils'
@@ -84,7 +84,9 @@ export default function Dashboard() {
   const contactsCount = contactsData?.data?.results?.length ?? 0
   const tasksDueCount = tasksData?.data?.results?.length ?? 0
 
-  const openDeals = sales ? sales.total_deals - sales.won_deals : 0
+  const openDeals = sales
+    ? sales.total_deals - sales.won_deals - sales.lost_deals
+    : 0
 
   const metrics: (Metric & { isLoading?: boolean; isFetching?: boolean })[] = [
     {
@@ -123,7 +125,7 @@ export default function Dashboard() {
     {
       id: 'deals-closed',
       label: 'Deals Closed',
-      value: sales?.won_value != null ? formatCurrency(String(sales.won_value)) : '$0',
+      value: sales ? formatCurrency(String(getClosedWonValue(sales))) : '$0',
       change: '—',
       trend: 'up',
       color: 'purple',
@@ -154,16 +156,27 @@ export default function Dashboard() {
   })()
 
   const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const revenueTrendData =
-    revenue?.forecast?.map((f) => {
-      const m = f.month.slice(5, 7)
+  const revenueTrendData = (() => {
+    const rows = revenue?.forecast ?? []
+    if (rows.length === 0) return []
+    const byMonth = new Map<string, number>()
+    for (const f of rows) {
+      const amount = Number(f.total) || 0
+      byMonth.set(f.month, (byMonth.get(f.month) ?? 0) + amount)
+    }
+    const sorted = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b))
+    return sorted.map(([month, total]) => {
+      const m = month.slice(5, 7)
       const monthNum = parseInt(m, 10) - 1
-      const year = f.month.slice(2, 4)
+      const year = month.slice(2, 4)
       return {
-        name: monthNum >= 0 ? `${MONTH_NAMES[monthNum]} '${year}` : f.month,
-        value: Math.round(parseFloat(f.total_forecast) / 1000),
+        name: monthNum >= 0 ? `${MONTH_NAMES[monthNum]} '${year}` : month,
+        value: Math.round(total / 1000),
+        fullValue: total,
+        isoDate: month,
       }
-    }) ?? []
+    })
+  })()
 
   const mappedActivities: ActivityRow[] = activities.map((a) => {
     const notes = a.notes ?? ''
