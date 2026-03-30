@@ -43,7 +43,7 @@ const colorVariants = {
   },
 }
 
-export function MetricCard({ title, value, change, trend, icon: Icon, color, isLoading, isFetching }: MetricCardProps) {
+export function MetricCard({ title, value, change, trend, icon: Icon, color, isLoading }: MetricCardProps) {
   const isPositive = trend === 'up'
   const TrendIcon = isPositive ? TrendingUp : TrendingDown
   const variant = colorVariants[color]
@@ -58,16 +58,6 @@ export function MetricCard({ title, value, change, trend, icon: Icon, color, isL
             <div className="h-3 w-24 bg-muted rounded animate-pulse" />
           </div>
           <div className="h-10 w-10 rounded-lg bg-muted animate-pulse shrink-0" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (isFetching) {
-    return (
-      <Card className={cn('overflow-hidden border-l-4 transition-all duration-200', variant.border)}>
-        <CardContent className="p-4 flex items-center justify-center min-h-[100px]">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
         </CardContent>
       </Card>
     )
