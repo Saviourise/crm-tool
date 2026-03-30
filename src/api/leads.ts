@@ -6,7 +6,7 @@ export interface ApiLead {
   last_name: string
   email: string
   phone?: string | null
-  company?: string | null
+  company?: string | { id: string; name: string } | null
   position?: string | null
   status: string
   source: string

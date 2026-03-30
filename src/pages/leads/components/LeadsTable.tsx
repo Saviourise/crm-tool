@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Mail, Phone, Trash2, Pencil, CheckSquare, Clock, ArrowRightLeft, UserCheck, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -41,6 +41,7 @@ import { LEAD_STATUS_OPTIONS, LEAD_SOURCE_OPTIONS } from '../data'
 import { ROUTES } from '@/router/routes'
 import { useAuth } from '@/auth/context'
 import { leadsApi } from '@/api/leads'
+import { companiesApi } from '@/api/companies'
 import { SOURCE_UI_TO_API } from '../apiMappers'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 import { LEADS_QUERY_KEY } from '../index'
@@ -86,6 +87,19 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
   const queryClient = useQueryClient()
   const [status, setStatus] = useState<string>(lead.status)
   const [source, setSource] = useState<string>(lead.source)
+  const [companyId, setCompanyId] = useState<string>(lead.companyId ?? '')
+
+  const { data: companiesData, isLoading: companiesLoading } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => companiesApi.list({ limit: 200 }),
+    enabled: open,
+  })
+
+  const companies = companiesData?.data?.results ?? []
+
+  useEffect(() => {
+    if (open) setCompanyId(lead.companyId ?? '')
+  }, [open, lead.companyId])
 
   const updateLead = useMutation({
     mutationFn: (data: Parameters<typeof leadsApi.update>[1]) =>
@@ -93,6 +107,7 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['leads', lead.id] })
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       toast.success('Lead updated', { description: `${lead.firstName} ${lead.lastName} has been updated.` })
       onOpenChange(false)
@@ -109,7 +124,7 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
       first_name: (form.elements.namedItem('edit-first') as HTMLInputElement).value,
       last_name: (form.elements.namedItem('edit-last') as HTMLInputElement).value,
       email: (form.elements.namedItem('edit-email') as HTMLInputElement).value,
-      company: (form.elements.namedItem('edit-company') as HTMLInputElement).value || undefined,
+      ...(companyId && { company: companyId }),
       position: (form.elements.namedItem('edit-position') as HTMLInputElement).value || undefined,
       status,
       source: SOURCE_UI_TO_API[source as LeadSource] ?? source,
@@ -144,7 +159,26 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-company">Company</Label>
-                <Input id="edit-company" name="edit-company" defaultValue={lead.company ?? ''} />
+                <Select value={companyId || 'none'} onValueChange={(v) => setCompanyId(v === 'none' ? '' : v)} disabled={companiesLoading}>
+                  <SelectTrigger id="edit-company" className="w-full">
+                    {companiesLoading ? (
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading companies…
+                      </span>
+                    ) : (
+                      <SelectValue placeholder="Select a company" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-position">Position</Label>

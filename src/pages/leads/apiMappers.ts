@@ -30,13 +30,26 @@ export function mapApiLeadToLead(apiLead: ApiLead): Lead {
     ? (apiLead.source as LeadSource)
     : 'other'
 
+  const company =
+    typeof apiLead.company === 'object' && apiLead.company && 'name' in apiLead.company
+      ? apiLead.company.name
+      : typeof apiLead.company === 'string'
+        ? apiLead.company
+        : undefined
+
+  const companyId =
+    typeof apiLead.company === 'object' && apiLead.company && 'id' in apiLead.company
+      ? apiLead.company.id
+      : undefined
+
   return {
     id: apiLead.id,
     firstName: apiLead.first_name,
     lastName: apiLead.last_name,
     email: apiLead.email,
     phone: apiLead.phone ?? undefined,
-    company: apiLead.company ?? undefined,
+    company,
+    companyId,
     position: apiLead.position ?? undefined,
     status,
     source,

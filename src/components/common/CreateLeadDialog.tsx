@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -20,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { leadsApi } from '@/api/crm'
+import { leadsApi } from '@/api/leads'
+import { companiesApi } from '@/api/companies'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 interface CreateLeadDialogProps {
@@ -43,11 +45,24 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
   const [internalOpen, setInternalOpen] = useState(false)
   const [source, setSource] = useState('website')
   const [status, setStatus] = useState('new')
+  const [companyId, setCompanyId] = useState('')
   const queryClient = useQueryClient()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen
+
+  const { data: companiesData, isLoading: companiesLoading } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => companiesApi.list({ limit: 200 }),
+    enabled: open,
+  })
+
+  const companies = companiesData?.data?.results ?? []
+
+  useEffect(() => {
+    if (!open) setCompanyId('')
+  }, [open])
 
   const createLead = useMutation({
     mutationFn: (data: Parameters<typeof leadsApi.create>[0]) => leadsApi.create(data),
@@ -59,6 +74,8 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
+      setCompanyId('')
       setOpen(false)
     },
     onError: () => {
@@ -72,7 +89,6 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
     const firstName = (form.elements.namedItem('firstName') as HTMLInputElement).value.trim()
     const lastName = (form.elements.namedItem('lastName') as HTMLInputElement).value.trim()
     const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim()
-    const company = (form.elements.namedItem('company') as HTMLInputElement).value.trim() || undefined
     const position = (form.elements.namedItem('position') as HTMLInputElement).value.trim() || undefined
     const phone = (form.elements.namedItem('phone') as HTMLInputElement).value.trim() || undefined
 
@@ -81,7 +97,7 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
       last_name: lastName,
       email,
       phone,
-      company,
+      ...(companyId && { company: companyId }),
       position,
       source: SOURCE_MAP[source] ?? 'website',
       status,
@@ -120,7 +136,26 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="company">Company</Label>
-                <Input id="company" name="company" placeholder="Acme Corp" />
+                <Select value={companyId || 'none'} onValueChange={(v) => setCompanyId(v === 'none' ? '' : v)} disabled={companiesLoading}>
+                  <SelectTrigger id="company" className="w-full">
+                    {companiesLoading ? (
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading companies…
+                      </span>
+                    ) : (
+                      <SelectValue placeholder="Select a company" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="position">Position</Label>
