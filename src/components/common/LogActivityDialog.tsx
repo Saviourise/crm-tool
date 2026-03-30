@@ -14,6 +14,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { contactsApi } from '@/api/contacts'
+import { leadsApi } from '@/api/leads'
 
 type ActivityType = 'call' | 'email' | 'meeting' | 'note'
 
@@ -28,25 +29,34 @@ interface LogActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   entityName: string
-  /** When provided, logs activity via API. Required for contacts. */
+  /** When provided, logs activity via contacts API. */
   contactId?: string
+  /** When provided, logs activity via leads API. */
+  leadId?: string
 }
 
-export function LogActivityDialog({ open, onOpenChange, entityName, contactId }: LogActivityDialogProps) {
+export function LogActivityDialog({ open, onOpenChange, entityName, contactId, leadId }: LogActivityDialogProps) {
   const [type, setType] = useState<ActivityType>('call')
   const [notes, setNotes] = useState('')
   const [duration, setDuration] = useState('')
   const queryClient = useQueryClient()
 
+  const entityId = contactId ?? leadId
+  const isContact = !!contactId
+  const isLead = !!leadId
+
   const logActivity = useMutation({
-    mutationFn: (data: Parameters<typeof contactsApi.logActivity>[1]) =>
-      contactsApi.logActivity(contactId!, data),
+    mutationFn: (data: Parameters<typeof contactsApi.logActivity>[1]) => {
+      if (isContact) return contactsApi.logActivity(contactId!, data)
+      return leadsApi.logActivity(leadId!, data)
+    },
     onSuccess: (_, variables) => {
       const label = ACTIVITY_TYPES.find((a) => a.value === variables.type)?.label ?? variables.type
       toast.success('Activity logged', {
         description: `${label} logged for ${entityName}.`,
       })
-      queryClient.invalidateQueries({ queryKey: ['contacts', contactId, 'activity'] })
+      if (isContact) queryClient.invalidateQueries({ queryKey: ['contacts', contactId, 'activity'] })
+      if (isLead) queryClient.invalidateQueries({ queryKey: ['leads', leadId, 'activity'] })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       handleClose()
     },
@@ -64,7 +74,7 @@ export function LogActivityDialog({ open, onOpenChange, entityName, contactId }:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (contactId) {
+    if (entityId) {
       const summary = notes.trim() || undefined
       const durationMinutes = duration ? parseInt(duration, 10) : undefined
       logActivity.mutate({
@@ -152,8 +162,8 @@ export function LogActivityDialog({ open, onOpenChange, entityName, contactId }:
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
-            <Button type="submit" disabled={contactId ? logActivity.isPending : false}>
-              {contactId && logActivity.isPending ? 'Logging…' : 'Log Activity'}
+            <Button type="submit" disabled={entityId ? logActivity.isPending : false}>
+              {entityId && logActivity.isPending ? 'Logging…' : 'Log Activity'}
             </Button>
           </DialogFooter>
         </form>

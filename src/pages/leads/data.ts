@@ -197,6 +197,7 @@ export const LEAD_STATUS_OPTIONS = [
   { value: 'qualified', label: 'Qualified' },
   { value: 'unqualified', label: 'Unqualified' },
   { value: 'converted', label: 'Converted' },
+  { value: 'lost', label: 'Lost' },
 ]
 
 export const LEAD_SOURCE_OPTIONS = [

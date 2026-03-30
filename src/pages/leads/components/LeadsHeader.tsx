@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Upload, Download, Plus } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CreateLeadDialog } from '@/components/common/CreateLeadDialog'
 import { CSVImportDialog } from '@/components/common/CSVImportDialog'
@@ -8,9 +7,11 @@ import { useAuth } from '@/auth/context'
 
 interface LeadsHeaderProps {
   total: number
+  isLoading?: boolean
+  onExport?: () => void
 }
 
-export function LeadsHeader({ total }: LeadsHeaderProps) {
+export function LeadsHeader({ total, isLoading, onExport }: LeadsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
   const { can, hasPlan } = useAuth()
 
@@ -19,7 +20,7 @@ export function LeadsHeader({ total }: LeadsHeaderProps) {
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Leads</h1>
         <p className="text-muted-foreground mt-1">
-          {total} lead{total !== 1 ? 's' : ''} in your pipeline
+          {isLoading ? 'Loading…' : `${total} lead${total !== 1 ? 's' : ''} in your pipeline`}
         </p>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -37,7 +38,7 @@ export function LeadsHeader({ total }: LeadsHeaderProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => toast.success('Leads exported', { description: 'Your leads have been exported as CSV.' })}
+            onClick={onExport}
           >
             <Download className="h-4 w-4 mr-2" />
             Export

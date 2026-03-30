@@ -1,25 +1,21 @@
+import { useQuery } from '@tanstack/react-query'
 import { Users, Sparkles, CheckCircle, ArrowRightLeft, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import type { Lead } from '../typings'
+import { leadsApi } from '@/api/leads'
 
-interface LeadsStatsProps {
-  leads: Lead[]
-}
+export function LeadsStats() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['leads', 'stats'],
+    queryFn: () => leadsApi.stats(),
+  })
 
-export function LeadsStats({ leads }: LeadsStatsProps) {
-  const total = leads.length
-  const newLeads = leads.filter((l) => l.status === 'new').length
-  const qualified = leads.filter((l) => l.status === 'qualified').length
-  const converted = leads.filter((l) => l.status === 'converted').length
-  const avgScore = total > 0
-    ? Math.round(leads.reduce((sum, l) => sum + l.score, 0) / total)
-    : 0
+  const s = data?.data
 
   const stats = [
     {
       label: 'Total Leads',
-      value: total,
+      value: s?.total ?? 0,
       icon: Users,
       bg: 'bg-[oklch(var(--metric-blue))]',
       text: 'text-primary',
@@ -27,7 +23,7 @@ export function LeadsStats({ leads }: LeadsStatsProps) {
     },
     {
       label: 'New',
-      value: newLeads,
+      value: s?.new ?? 0,
       icon: Sparkles,
       bg: 'bg-[oklch(var(--metric-blue))]',
       text: 'text-primary',
@@ -35,7 +31,7 @@ export function LeadsStats({ leads }: LeadsStatsProps) {
     },
     {
       label: 'Qualified',
-      value: qualified,
+      value: s?.qualified ?? 0,
       icon: CheckCircle,
       bg: 'bg-[oklch(var(--metric-green))]',
       text: 'text-[oklch(var(--success))]',
@@ -43,7 +39,7 @@ export function LeadsStats({ leads }: LeadsStatsProps) {
     },
     {
       label: 'Converted',
-      value: converted,
+      value: s?.converted ?? 0,
       icon: ArrowRightLeft,
       bg: 'bg-[oklch(var(--metric-purple))]',
       text: 'text-[oklch(var(--secondary))]',
@@ -51,7 +47,7 @@ export function LeadsStats({ leads }: LeadsStatsProps) {
     },
     {
       label: 'Avg Score',
-      value: avgScore,
+      value: s ? Math.round(s.avg_score) : 0,
       icon: TrendingUp,
       bg: 'bg-[oklch(var(--metric-orange))]',
       text: 'text-[oklch(var(--warning))]',
@@ -68,7 +64,9 @@ export function LeadsStats({ leads }: LeadsStatsProps) {
               <stat.icon className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stat.value}</p>
+              <p className={cn('text-2xl font-bold', isLoading && 'opacity-40')}>
+                {isLoading ? '—' : stat.value}
+              </p>
               <p className="text-xs text-muted-foreground">{stat.label}</p>
             </div>
           </CardContent>

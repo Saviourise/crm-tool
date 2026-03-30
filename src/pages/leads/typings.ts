@@ -1,4 +1,4 @@
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'unqualified' | 'converted'
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'unqualified' | 'converted' | 'lost'
 export type LeadSource = 'website' | 'referral' | 'social' | 'email' | 'phone' | 'event' | 'other'
 
 export interface Lead {

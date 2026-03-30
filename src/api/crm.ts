@@ -1,19 +1,5 @@
 import { api } from '@/lib/api'
 
-/** Create lead - POST /api/leads/ */
-export interface CreateLeadRequest {
-  first_name: string
-  last_name: string
-  email: string
-  phone?: string
-  company?: string
-  position?: string
-  status?: string
-  source?: string
-  notes?: string
-  value?: string
-}
-
 /** Create task - POST /api/tasks/ */
 export interface CreateTaskRequest {
   title: string
@@ -26,10 +12,10 @@ export interface CreateTaskRequest {
   related_id?: string
 }
 
-export const leadsApi = {
-  create: (data: CreateLeadRequest) => api.post('/api/leads/', data),
-}
-
 export const tasksApi = {
   create: (data: CreateTaskRequest) => api.post('/api/tasks/', data),
 }
+
+// Re-export leadsApi from the canonical leads module
+export { leadsApi } from '@/api/leads'
+export type { CreateLeadRequest } from '@/api/leads'

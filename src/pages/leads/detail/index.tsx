@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { MOCK_LEADS } from '../data'
+import { leadsApi } from '@/api/leads'
+import { mapApiLeadToLead } from '../apiMappers'
 import { LeadProfileCard } from './components/LeadProfileCard'
 import { LeadScoreBreakdown } from './components/LeadScoreBreakdown'
 import { ActivityTimeline } from './components/ActivityTimeline'
@@ -22,9 +24,23 @@ export default function LeadDetail() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
-  const lead = MOCK_LEADS.find((l) => l.id === id)
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['leads', id],
+    queryFn: () => leadsApi.get(id!),
+    enabled: !!id,
+  })
 
-  if (!lead) {
+  const lead = data?.data ? mapApiLeadToLead(data.data) : undefined
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!id || error || !lead) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <p className="text-muted-foreground text-lg">Lead not found.</p>
@@ -72,7 +88,7 @@ export default function LeadDetail() {
       {/* Tab content */}
       {activeTab === 'overview' && (
         <div className="flex flex-col gap-6">
-          <LeadScoreBreakdown score={lead.score} />
+          <LeadScoreBreakdown score={lead.score} leadId={lead.id} />
         </div>
       )}
 
@@ -81,7 +97,7 @@ export default function LeadDetail() {
       )}
 
       {activeTab === 'ai-insights' && (
-        <AISuggestions />
+        <AISuggestions leadId={lead.id} />
       )}
     </div>
   )

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { CloudUpload, ChevronRight, Check, AlertTriangle } from 'lucide-react'
+import { CloudUpload, ChevronRight, Check, AlertTriangle, Download } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { contactsApi } from '@/api/contacts'
 import { companiesApi } from '@/api/companies'
+import { leadsApi } from '@/api/leads'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 export type CSVImportDialogProps = {
@@ -44,6 +45,18 @@ const CONTACT_UI_TO_API: Record<string, string> = {
   Status: 'status',
 }
 
+const LEAD_UI_TO_API: Record<string, string> = {
+  'First Name': 'first_name',
+  'Last Name': 'last_name',
+  Email: 'email',
+  Phone: 'phone',
+  Company: 'company',
+  Position: 'position',
+  Status: 'status',
+  Score: 'score',
+  Source: 'source',
+}
+
 const COMPANY_UI_TO_API: Record<string, string> = {
   Name: 'name',
   Website: 'website',
@@ -57,8 +70,36 @@ const COMPANY_UI_TO_API: Record<string, string> = {
 
 const UI_TO_API_FIELD: Record<string, Record<string, string>> = {
   contacts: CONTACT_UI_TO_API,
-  leads: CONTACT_UI_TO_API,
+  leads: LEAD_UI_TO_API,
   companies: COMPANY_UI_TO_API,
+}
+
+const SAMPLE_TEMPLATES: Record<'contacts' | 'leads' | 'companies', { headers: string[]; row: string[] }> = {
+  contacts: {
+    headers: ['first_name', 'last_name', 'email', 'phone', 'company', 'position', 'status'],
+    row: ['John', 'Doe', 'john.doe@example.com', '+1 555 000 1234', 'Acme Corp', 'Product Manager', 'active'],
+  },
+  leads: {
+    headers: ['first_name', 'last_name', 'email', 'phone', 'company', 'position', 'status', 'score', 'source'],
+    row: ['Jane', 'Smith', 'jane.smith@techcorp.com', '+1 555 000 5678', 'TechCorp', 'CTO', 'new', '75', 'website'],
+  },
+  companies: {
+    headers: ['name', 'website', 'industry', 'status', 'employees', 'annual_revenue', 'phone', 'address'],
+    row: ['Acme Corp', 'https://acme.com', 'Technology', 'active', '150', '5000000', '+1 555 000 9999', '123 Main St, San Francisco, CA'],
+  },
+}
+
+function downloadTemplate(entity: 'contacts' | 'leads' | 'companies') {
+  const { headers, row } = SAMPLE_TEMPLATES[entity]
+  const escape = (v: string) => (v.includes(',') ? `"${v}"` : v)
+  const csv = [headers.map(escape).join(','), row.map(escape).join(',')].join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${entity}_template.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 type Step = 1 | 2 | 3 | 4
@@ -141,12 +182,16 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
       const rows = parsed.slice(1)
       setCSVHeaders(headers)
       setCSVRows(rows)
-      // Auto-map headers by name similarity
+      // Auto-map headers by name similarity.
+      // Handles both "First Name" (title-case) and "first_name" (snake_case) formats.
       const defaultMapping: Record<number, string> = {}
       headers.forEach((header, idx) => {
         const lower = header.toLowerCase()
-        const match = fieldOptions.find((f) => f.toLowerCase() === lower) ??
-          fieldOptions.find((f) => lower.includes(f.toLowerCase().replace(' ', '')))
+        const spaced = lower.replace(/_/g, ' ')  // "first_name" → "first name"
+        const match =
+          fieldOptions.find((f) => f.toLowerCase() === lower) ??          // exact: "Email" → "Email"
+          fieldOptions.find((f) => f.toLowerCase() === spaced) ??          // snake: "first_name" → "First Name"
+          fieldOptions.find((f) => lower.includes(f.toLowerCase().replace(/\s+/g, '')))
         defaultMapping[idx] = match ?? 'Skip'
       })
       setColumnMapping(defaultMapping)
@@ -193,11 +238,11 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
     return map
   }
 
-  const pollImportStatus = async (taskId: string, entityType: 'contacts' | 'companies'): Promise<void> => {
-    const api = entityType === 'contacts' ? contactsApi : companiesApi
-    const entityLabel = entityType === 'contacts' ? 'contacts' : 'companies'
+  const pollImportStatus = async (taskId: string, entityType: 'contacts' | 'companies' | 'leads'): Promise<void> => {
+    const apiModule = entityType === 'contacts' ? contactsApi : entityType === 'companies' ? companiesApi : leadsApi
+    const entityLabel = entityType
     const poll = async (): Promise<void> => {
-      const { data } = await api.importStatus(taskId)
+      const { data } = await apiModule.importStatus(taskId)
       if (data.status === 'SUCCESS') {
         setImportResult({
           imported: data.result?.imported ?? 0,
@@ -251,19 +296,26 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
 
     let progressCleanup: (() => void) | undefined
 
-    if ((entity === 'contacts' || entity === 'companies') && file) {
-      const api = entity === 'contacts' ? contactsApi : companiesApi
-      const entityLabel = entity === 'contacts' ? 'contacts' : 'companies'
+    if (file) {
+      const apiModule =
+        entity === 'contacts' ? contactsApi
+        : entity === 'companies' ? companiesApi
+        : leadsApi
+      const entityLabel = entity
       progressCleanup = runProgressBar(95)
       try {
         const columnMap = buildColumnMap()
-        const { data } = await api.import(file, columnMap)
+        const { data } = await apiModule.import(file, columnMap)
         progressCleanup?.()
-        if (data && 'created' in data) {
-          const rawErrors = data.errors ?? []
+        const syncImported = 'imported' in data ? (data as { imported: number }).imported
+          : 'created' in data ? data.created
+          : null
+        if (syncImported !== null) {
+          const rawErrors = (data as { errors?: Array<{ row?: number; reason?: string }> }).errors ?? []
+          const skipped = (data as { skipped?: number }).skipped ?? 0
           setImportResult({
-            imported: data.created,
-            skipped: 0,
+            imported: syncImported,
+            skipped,
             errors: rawErrors.map((e) => ({ row: e.row ?? 0, reason: e.reason ?? '' })),
           })
           setImportProgress(100)
@@ -274,7 +326,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
             queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
           }
           toast.success('Import complete', {
-            description: `${data.created} ${entityLabel} imported successfully.`,
+            description: `${syncImported} ${entityLabel} imported successfully.`,
           })
         } else if (data?.task_id) {
           progressCleanup = runProgressBar(99)
@@ -296,21 +348,11 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
       }
       return
     }
-
-    // Leads: simulated import (no API yet)
-    runProgressBar(100, () => {
-      setImportDone(true)
-      setImportResult({
-        imported: csvRows.length - Math.floor(csvRows.length * 0.06),
-        skipped: Math.floor(csvRows.length * 0.06),
-        errors: [],
-      })
-    })
   }
 
   const totalRows = csvRows.length
-  const importedRows = importResult?.imported ?? (entity === 'contacts' || entity === 'companies' ? 0 : totalRows - Math.max(0, Math.floor(totalRows * 0.06)))
-  const skippedRows = importResult?.skipped ?? (entity === 'contacts' || entity === 'companies' ? 0 : Math.max(0, Math.floor(totalRows * 0.06)))
+  const importedRows = importResult?.imported ?? 0
+  const skippedRows = importResult?.skipped ?? 0
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -521,7 +563,13 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
 
         <DialogFooter className="gap-2">
           {step === 1 && (
-            <Button variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+            <>
+              <Button variant="ghost" size="sm" onClick={() => downloadTemplate(entity)}>
+                <Download className="h-4 w-4 mr-2" />
+                Download template
+              </Button>
+              <Button variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+            </>
           )}
           {step === 2 && (
             <>
