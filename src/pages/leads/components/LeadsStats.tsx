@@ -4,11 +4,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { leadsApi } from '@/api/leads'
 
-export function LeadsStats() {
-  const { data, isLoading } = useQuery({
+export function LeadsStats({ isLoading }: { isLoading: boolean }) {
+  const { data, isLoading: statsLoading } = useQuery({
     queryKey: ['leads', 'stats'],
     queryFn: () => leadsApi.stats(),
   })
+
+  const showLoading = isLoading ?? statsLoading
 
   const s = data?.data
 
@@ -55,6 +57,24 @@ export function LeadsStats() {
     },
   ]
 
+  if (showLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="border-l-4 overflow-hidden">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-muted animate-pulse" />
+              <div className="flex-1">
+                <div className="h-8 w-6 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-16 mt-2 bg-muted rounded animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
       {stats.map((stat) => (
@@ -64,8 +84,8 @@ export function LeadsStats() {
               <stat.icon className="h-5 w-5" />
             </div>
             <div>
-              <p className={cn('text-2xl font-bold', isLoading && 'opacity-40')}>
-                {isLoading ? '—' : stat.value}
+              <p className={cn('text-2xl font-bold')}>
+                {stat.value}
               </p>
               <p className="text-xs text-muted-foreground">{stat.label}</p>
             </div>

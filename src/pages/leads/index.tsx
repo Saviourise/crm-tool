@@ -107,7 +107,7 @@ export default function Leads() {
   return (
     <div className="space-y-6">
       <LeadsHeader total={totalCount} isLoading={isLoading} onExport={handleExport} />
-      <LeadsStats />
+      <LeadsStats isLoading={isLoading} />
       <LeadsTable
         leads={leads}
         isLoading={isLoading}
