@@ -43,6 +43,7 @@ import { useAuth } from '@/auth/context'
 import { contactsApi } from '@/api/contacts'
 import { companiesApi } from '@/api/companies'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import { patchContactsListCaches } from '@/lib/listQueryCache'
 
 const CONTACTS_QUERY_KEY = ['contacts']
 
@@ -75,13 +76,15 @@ function EditContactDialog({ contact, open, onOpenChange }: {
   const updateContact = useMutation({
     mutationFn: (data: { first_name: string; last_name: string; email: string; company?: string; position?: string; phone?: string }) =>
       contactsApi.update(contact.id, data),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const api = res.data
+      patchContactsListCaches(queryClient, contact.id, api)
       queryClient.invalidateQueries({ queryKey: CONTACTS_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['companies'] })
-      toast.success('Contact updated', { description: `${contact.firstName} ${contact.lastName} has been updated.` })
+      toast.success('Contact updated', { description: `${api.first_name} ${api.last_name} has been updated.` })
       onOpenChange(false)
     },
     onError: () => {

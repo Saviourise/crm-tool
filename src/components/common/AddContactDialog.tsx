@@ -27,9 +27,11 @@ import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 
 interface AddContactDialogProps {
   trigger?: React.ReactNode
+  /** After a successful create: modal is already closed; use for list refetch + loading on list pages. */
+  onListReload?: () => void | Promise<void>
 }
 
-export function AddContactDialog({ trigger }: AddContactDialogProps) {
+export function AddContactDialog({ trigger, onListReload }: AddContactDialogProps) {
   const [open, setOpen] = useState(false)
   const [companyId, setCompanyId] = useState<string>('')
   const formRef = useRef<HTMLFormElement>(null)
@@ -45,19 +47,23 @@ export function AddContactDialog({ trigger }: AddContactDialogProps) {
 
   const createContact = useMutation({
     mutationFn: (data: Parameters<typeof contactsApi.create>[0]) => contactsApi.create(data),
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       toast.success('Contact added', {
         description: `${variables.first_name} ${variables.last_name} has been added to your CRM.`,
       })
-      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
-      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
-      queryClient.invalidateQueries({ queryKey: ['activity'] })
-      queryClient.invalidateQueries({ queryKey: ['contacts'] })
-      queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
-      queryClient.invalidateQueries({ queryKey: ['companies'] })
       formRef.current?.reset()
       setCompanyId('')
       setOpen(false)
+      if (onListReload) {
+        await onListReload()
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false })
+        queryClient.invalidateQueries({ queryKey: ['contacts', 'stats'] })
+      }
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.contactsCount })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
     },
     onError: () => {
       toast.error('Failed to add contact', { description: 'Please try again.' })

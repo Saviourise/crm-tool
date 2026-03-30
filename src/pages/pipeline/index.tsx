@@ -183,6 +183,24 @@ export default function Pipeline() {
     [apiOpportunities, stageOverrides]
   )
 
+  // Remove an override only once the refetched server data confirms the new stage.
+  // This prevents the card from snapping back to the old stage during the in-flight refetch.
+  useEffect(() => {
+    if (Object.keys(stageOverrides).length === 0) return
+    setStageOverrides((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const id of Object.keys(next)) {
+        const serverOpp = apiOpportunities.find((o) => o.id === id)
+        if (serverOpp && serverOpp.stage === next[id]) {
+          delete next[id]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [apiOpportunities])
+
   const pipelines = useMemo(
     () =>
       rawPipelines.map((p) => {
@@ -209,22 +227,18 @@ export default function Pipeline() {
   const moveStage = useMutation({
     mutationFn: ({ id, stage }: { id: string; stage: Stage }) =>
       pipelineApi.moveStage(id, FRONTEND_TO_API_STAGE[stage]),
-    onSuccess: (_, { id }) => {
-      setStageOverrides((prev) => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
+    onSuccess: () => {
+      // Override stays in place until the refetch confirms the new stage (see useEffect above).
       queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
     },
     onError: (_, { id }) => {
+      // Revert the optimistic override so the card snaps back to the original stage.
       setStageOverrides((prev) => {
         const next = { ...prev }
         delete next[id]
         return next
       })
-      queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId] })
       toast.error('Failed to move deal')
     },
   })

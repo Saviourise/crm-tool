@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { companiesApi } from '@/api/companies'
 import { mapApiCompanyToCompany } from './apiMappers'
 import { CompanyHeader } from './components/CompanyHeader'
@@ -10,6 +10,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 const COMPANIES_QUERY_KEY = ['companies']
 
 export default function Companies() {
+  const queryClient = useQueryClient()
   const [pageSize, setPageSize] = useState(10)
   const [cursor, setCursor] = useState<string | undefined>()
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
@@ -30,6 +31,18 @@ export default function Companies() {
         industry: industry === 'all' ? undefined : industry,
       }),
   })
+
+  const [listReloading, setListReloading] = useState(false)
+  const listBusy = isLoading || listReloading
+
+  const handleCompanyListReload = useCallback(async () => {
+    setListReloading(true)
+    try {
+      await queryClient.refetchQueries({ queryKey: COMPANIES_QUERY_KEY, exact: false })
+    } finally {
+      setListReloading(false)
+    }
+  }, [queryClient])
 
   const response = data?.data
   const rawResults = response?.results ?? []
@@ -85,11 +98,15 @@ export default function Companies() {
 
   return (
     <div className="space-y-6">
-      <CompanyHeader total={totalCount} isLoading={isLoading} />
-      <CompanyStats isLoading={isLoading} />
+      <CompanyHeader
+        total={totalCount}
+        isLoading={listBusy}
+        onCompanyListReload={handleCompanyListReload}
+      />
+      <CompanyStats isLoading={listBusy} />
       <CompaniesTable
         companies={companies}
-        isLoading={isLoading}
+        isLoading={listBusy}
         search={search}
         onSearchChange={handleSearchChange}
         status={status}

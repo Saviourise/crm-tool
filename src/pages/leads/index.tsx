@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { leadsApi } from '@/api/leads'
 import { mapApiLeadToLead } from './apiMappers'
@@ -11,6 +11,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 export const LEADS_QUERY_KEY = ['leads']
 
 export default function Leads() {
+  const queryClient = useQueryClient()
   const [pageSize, setPageSize] = useState(10)
   const [cursor, setCursor] = useState<string | undefined>()
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
@@ -31,6 +32,18 @@ export default function Leads() {
         source: source === 'all' ? undefined : source,
       }),
   })
+
+  const [listReloading, setListReloading] = useState(false)
+  const listBusy = isLoading || listReloading
+
+  const handleLeadListReload = useCallback(async () => {
+    setListReloading(true)
+    try {
+      await queryClient.refetchQueries({ queryKey: LEADS_QUERY_KEY, exact: false })
+    } finally {
+      setListReloading(false)
+    }
+  }, [queryClient])
 
   const response = data?.data
   const rawResults = response?.results ?? []
@@ -106,11 +119,16 @@ export default function Leads() {
 
   return (
     <div className="space-y-6">
-      <LeadsHeader total={totalCount} isLoading={isLoading} onExport={handleExport} />
-      <LeadsStats isLoading={isLoading} />
+      <LeadsHeader
+        total={totalCount}
+        isLoading={listBusy}
+        onExport={handleExport}
+        onLeadListReload={handleLeadListReload}
+      />
+      <LeadsStats isLoading={listBusy} />
       <LeadsTable
         leads={leads}
-        isLoading={isLoading}
+        isLoading={listBusy}
         search={search}
         onSearchChange={handleSearchChange}
         status={status}

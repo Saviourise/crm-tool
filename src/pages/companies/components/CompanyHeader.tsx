@@ -10,9 +10,10 @@ import { companiesApi } from '@/api/companies'
 interface CompanyHeaderProps {
   total: number
   isLoading?: boolean
+  onCompanyListReload?: () => void | Promise<void>
 }
 
-export function CompanyHeader({ total, isLoading }: CompanyHeaderProps) {
+export function CompanyHeader({ total, isLoading, onCompanyListReload }: CompanyHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
@@ -67,6 +68,7 @@ export function CompanyHeader({ total, isLoading }: CompanyHeaderProps) {
         )}
         {can('companies.create') && (
           <AddCompanyDialog
+            onListReload={onCompanyListReload}
             trigger={
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />

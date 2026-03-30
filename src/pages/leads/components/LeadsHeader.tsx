@@ -9,9 +9,10 @@ interface LeadsHeaderProps {
   total: number
   isLoading?: boolean
   onExport?: () => void | Promise<void>
+  onLeadListReload?: () => void | Promise<void>
 }
 
-export function LeadsHeader({ total, isLoading, onExport }: LeadsHeaderProps) {
+export function LeadsHeader({ total, isLoading, onExport, onLeadListReload }: LeadsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
@@ -62,6 +63,7 @@ export function LeadsHeader({ total, isLoading, onExport }: LeadsHeaderProps) {
         )}
         {can('leads.create') && (
           <CreateLeadDialog
+            onListReload={onLeadListReload}
             trigger={
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />

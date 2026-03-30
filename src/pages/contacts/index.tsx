@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { contactsApi } from '@/api/contacts'
 import { mapApiContactToContact } from './apiMappers'
 import { ContactsHeader } from './components/ContactsHeader'
@@ -10,6 +10,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 const CONTACTS_QUERY_KEY = ['contacts']
 
 export default function Contacts() {
+  const queryClient = useQueryClient()
   const [pageSize, setPageSize] = useState(10)
   const [cursor, setCursor] = useState<string | undefined>()
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
@@ -28,6 +29,18 @@ export default function Contacts() {
         status: status === 'all' ? undefined : status,
       }),
   })
+
+  const [listReloading, setListReloading] = useState(false)
+  const listBusy = isLoading || listReloading
+
+  const handleContactListReload = useCallback(async () => {
+    setListReloading(true)
+    try {
+      await queryClient.refetchQueries({ queryKey: CONTACTS_QUERY_KEY, exact: false })
+    } finally {
+      setListReloading(false)
+    }
+  }, [queryClient])
 
   const response = data?.data
   const rawResults = response?.results ?? []
@@ -77,11 +90,15 @@ export default function Contacts() {
 
   return (
     <div className="space-y-6">
-      <ContactsHeader total={totalCount} isLoading={isLoading} />
-      <ContactStats isLoading={isLoading} />
+      <ContactsHeader
+        total={totalCount}
+        isLoading={listBusy}
+        onContactListReload={handleContactListReload}
+      />
+      <ContactStats isLoading={listBusy} />
       <ContactsTable
         contacts={contacts}
-        isLoading={isLoading}
+        isLoading={listBusy}
         search={search}
         onSearchChange={handleSearchChange}
         status={status}

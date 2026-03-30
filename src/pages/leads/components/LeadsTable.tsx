@@ -45,6 +45,7 @@ import { companiesApi } from '@/api/companies'
 import { SOURCE_UI_TO_API } from '../apiMappers'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 import { LEADS_QUERY_KEY } from '../index'
+import { patchLeadsListCaches } from '@/lib/listQueryCache'
 
 const statusStyles: Record<LeadStatus, string> = {
   new: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
@@ -104,12 +105,15 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
   const updateLead = useMutation({
     mutationFn: (data: Parameters<typeof leadsApi.update>[1]) =>
       leadsApi.update(lead.id, data),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const api = res.data
+      patchLeadsListCaches(queryClient, lead.id, api)
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['leads', lead.id] })
+      queryClient.invalidateQueries({ queryKey: ['leads', 'stats'] })
       queryClient.invalidateQueries({ queryKey: ['companies'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
-      toast.success('Lead updated', { description: `${lead.firstName} ${lead.lastName} has been updated.` })
+      toast.success('Lead updated', { description: `${api.first_name} ${api.last_name} has been updated.` })
       onOpenChange(false)
     },
     onError: () => {

@@ -26,9 +26,11 @@ import { INDUSTRY_OPTIONS, STATUS_OPTIONS } from '@/pages/companies/data'
 
 interface AddCompanyDialogProps {
   trigger?: React.ReactNode
+  /** After a successful create: modal is already closed; use for list refetch + loading on list pages. */
+  onListReload?: () => void | Promise<void>
 }
 
-export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
+export function AddCompanyDialog({ trigger, onListReload }: AddCompanyDialogProps) {
   const [open, setOpen] = useState(false)
   const [industry, setIndustry] = useState<string>('')
   const [status, setStatus] = useState<string>('prospect')
@@ -37,18 +39,22 @@ export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
 
   const createCompany = useMutation({
     mutationFn: (data: Parameters<typeof companiesApi.create>[0]) => companiesApi.create(data),
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       toast.success('Company added', {
         description: `${variables.name} has been added to your CRM.`,
       })
-      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
-      queryClient.invalidateQueries({ queryKey: ['activity'] })
-      queryClient.invalidateQueries({ queryKey: ['companies'] })
-      queryClient.invalidateQueries({ queryKey: ['companies', 'stats'] })
       formRef.current?.reset()
       setIndustry('')
       setStatus('prospect')
       setOpen(false)
+      if (onListReload) {
+        await onListReload()
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['companies'], exact: false })
+        queryClient.invalidateQueries({ queryKey: ['companies', 'stats'] })
+      }
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['activity'] })
     },
     onError: () => {
       toast.error('Failed to add company', { description: 'Please try again.' })

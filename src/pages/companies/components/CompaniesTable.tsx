@@ -40,6 +40,7 @@ import { getStatusClass, getIndustryLabel, formatRevenue } from '../utils'
 import { useAuth } from '@/auth/context'
 import { companiesApi } from '@/api/companies'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
+import { patchCompaniesListCaches } from '@/lib/listQueryCache'
 
 const COMPANIES_QUERY_KEY = ['companies']
 
@@ -133,12 +134,14 @@ function EditCompanyDialog({ company, open, onOpenChange }: {
   const updateCompany = useMutation({
     mutationFn: (data: { name?: string; industry?: string; website?: string; status?: string; employees?: number; annual_revenue?: number; phone?: string; address?: string }) =>
       companiesApi.update(company.id, data),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const api = res.data
+      patchCompaniesListCaches(queryClient, company.id, api)
       queryClient.invalidateQueries({ queryKey: COMPANIES_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['companies', 'stats'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
-      toast.success('Company updated', { description: `${company.name} has been updated.` })
+      toast.success('Company updated', { description: `${api.name} has been updated.` })
       onOpenChange(false)
     },
     onError: () => {

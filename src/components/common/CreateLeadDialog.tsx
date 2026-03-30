@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -29,6 +29,8 @@ interface CreateLeadDialogProps {
   trigger?: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  /** After a successful create: modal is already closed; use for list refetch + loading on list pages. */
+  onListReload?: () => void | Promise<void>
 }
 
 const SOURCE_MAP: Record<string, string> = {
@@ -41,11 +43,12 @@ const SOURCE_MAP: Record<string, string> = {
   other: 'other',
 }
 
-export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }: CreateLeadDialogProps) {
+export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange, onListReload }: CreateLeadDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [source, setSource] = useState('website')
   const [status, setStatus] = useState('new')
   const [companyId, setCompanyId] = useState('')
+  const formRef = useRef<HTMLFormElement>(null)
   const queryClient = useQueryClient()
 
   const isControlled = controlledOpen !== undefined
@@ -66,17 +69,25 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
 
   const createLead = useMutation({
     mutationFn: (data: Parameters<typeof leadsApi.create>[0]) => leadsApi.create(data),
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       toast.success('Lead created', {
         description: `${variables.first_name} ${variables.last_name} has been added to your pipeline.`,
       })
+      formRef.current?.reset()
+      setSource('website')
+      setStatus('new')
+      setCompanyId('')
+      setOpen(false)
+      if (onListReload) {
+        await onListReload()
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['leads'], exact: false })
+        queryClient.invalidateQueries({ queryKey: ['leads', 'stats'] })
+      }
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.leadAnalytics })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
-      queryClient.invalidateQueries({ queryKey: ['leads'] })
       queryClient.invalidateQueries({ queryKey: ['companies'] })
-      setCompanyId('')
-      setOpen(false)
     },
     onError: () => {
       toast.error('Failed to create lead', { description: 'Please try again.' })
@@ -102,16 +113,13 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange }
       source: SOURCE_MAP[source] ?? 'website',
       status,
     })
-    form.reset()
-    setSource('website')
-    setStatus('new')
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[500px]">
-        <form onSubmit={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create New Lead</DialogTitle>
             <DialogDescription>

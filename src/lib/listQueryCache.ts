@@ -20,7 +20,7 @@ function patchListItem<T extends { id: string }>(
   if (!old || typeof old !== 'object' || !('data' in old)) return old
   const cached = old as CachedListResponse<T>
   const body = cached.data
-  if (!body?.results) return old
+  if (!Array.isArray(body?.results)) return old
   const idx = body.results.findIndex((r) => r.id === id)
   if (idx === -1) return old
   const results = [...body.results]

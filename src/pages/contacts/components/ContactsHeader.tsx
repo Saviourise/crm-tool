@@ -10,9 +10,10 @@ import { contactsApi } from '@/api/contacts'
 interface ContactsHeaderProps {
   total: number
   isLoading?: boolean
+  onContactListReload?: () => void | Promise<void>
 }
 
-export function ContactsHeader({ total, isLoading }: ContactsHeaderProps) {
+export function ContactsHeader({ total, isLoading, onContactListReload }: ContactsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
@@ -71,6 +72,7 @@ export function ContactsHeader({ total, isLoading }: ContactsHeaderProps) {
         )}
         {can('contacts.create') && (
           <AddContactDialog
+            onListReload={onContactListReload}
             trigger={
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
