@@ -131,12 +131,12 @@ export default function Pipeline() {
   })
 
   // API may return plain array or paginated { results: [] }
-  const rawPipelines = (() => {
+  const rawPipelines = useMemo(() => {
     const d = pipelinesRes?.data
     if (!d) return []
     if (Array.isArray(d)) return d
     return (d as unknown as { results: typeof d }).results ?? []
-  })()
+  }, [pipelinesRes])
 
   // Set default active pipeline when pipelines load
   useEffect(() => {
@@ -272,7 +272,7 @@ export default function Pipeline() {
 
   const isLoading = pipelinesLoading || (!!activePipelineId && dealsLoading)
   // Show loading overlay on board/list for initial fetch and after modal mutations (not drag-and-drop)
-  const isDragging = Object.keys(stageOverrides).length > 0
+  const isDragging = useMemo(() => Object.keys(stageOverrides).length > 0, [stageOverrides])
   const showDealsLoading = !!activePipelineId && (dealsLoading || (dealsFetching && !isDragging))
 
   return (

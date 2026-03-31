@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Check, ChevronDown, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,10 @@ function formatValue(value: number): string {
 export function PipelineSelector({ pipelines, activePipelineId, onSelect, onNewPipeline }: PipelineSelectorProps) {
   const { hasPlan } = useAuth()
   const [open, setOpen] = useState(false)
-  const activePipeline = pipelines.find((p) => p.id === activePipelineId) ?? pipelines[0]
+  const activePipeline = useMemo(
+    () => pipelines.find((p) => p.id === activePipelineId) ?? pipelines[0],
+    [pipelines, activePipelineId]
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

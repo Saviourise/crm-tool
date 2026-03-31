@@ -541,7 +541,7 @@ export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpp
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
-  const visibleStages = config.stages.filter((s) => s.visible)
+  const visibleStages = useMemo(() => config.stages.filter((s) => s.visible), [config.stages])
   const opportunitiesByStage = useMemo(() => {
     const grouped = PIPELINE_STAGES.reduce((acc, stage) => {
       acc[stage] = []

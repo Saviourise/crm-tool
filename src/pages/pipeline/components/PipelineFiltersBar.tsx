@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format, parseISO } from 'date-fns'
 import { Filter, X, ChevronDown, Bookmark, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,6 +53,17 @@ function fromDate(d: Date | undefined): string {
   return d ? format(d, 'yyyy-MM-dd') : ''
 }
 
+function areFiltersEqual(a: PipelineFilters, b: PipelineFilters): boolean {
+  return (
+    a.assignedTo === b.assignedTo &&
+    a.minValue === b.minValue &&
+    a.maxValue === b.maxValue &&
+    a.closeDateFrom === b.closeDateFrom &&
+    a.closeDateTo === b.closeDateTo &&
+    a.minProbability === b.minProbability
+  )
+}
+
 export function PipelineFiltersBar({
   filters,
   onFiltersChange,
@@ -73,8 +84,8 @@ export function PipelineFiltersBar({
     setPending(filters)
   }, [filters])
 
-  const appliedCount = countActiveFilters(filters)
-  const isDirty = JSON.stringify(pending) !== JSON.stringify(filters)
+  const appliedCount = useMemo(() => countActiveFilters(filters), [filters])
+  const isDirty = useMemo(() => !areFiltersEqual(pending, filters), [pending, filters])
 
   const handleApply = () => onFiltersChange(pending)
 
