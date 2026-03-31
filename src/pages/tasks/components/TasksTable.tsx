@@ -166,7 +166,7 @@ function DeleteTaskDialog({
           <Button
             variant="destructive"
             onClick={() => {
-              toast.error('Task deleted', { description: `"${task.title}" has been removed.` })
+              toast.success('Task deleted', { description: `"${task.title}" has been removed.` })
               onOpenChange(false)
             }}
           >

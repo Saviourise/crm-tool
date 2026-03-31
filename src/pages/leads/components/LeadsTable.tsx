@@ -140,7 +140,7 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
       source: SOURCE_UI_TO_API[source as LeadSource] ?? source,
       score: parseInt((form.elements.namedItem('edit-score') as HTMLInputElement).value) || undefined,
       value: (form.elements.namedItem('edit-value') as HTMLInputElement).value || undefined,
-      assigned_to: assignedToId || null,
+      assigned_to: assignedToId,
     })
   }
 
@@ -328,7 +328,7 @@ function DeleteLeadDialog({ lead, open, onOpenChange }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
-      toast.error('Lead deleted', { description: `${lead.firstName} ${lead.lastName} has been removed.` })
+      toast.success('Lead deleted', { description: `${lead.firstName} ${lead.lastName} has been removed.` })
       onOpenChange(false)
     },
     onError: () => {
@@ -535,134 +535,134 @@ function buildColumns(
   onSelectRow: (id: string, checked: boolean) => void,
 ): ColumnDef<Lead, unknown>[] {
   return [
-  {
-    id: 'select',
-    size: 40,
-    enableSorting: false,
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getRowModel().rows.length > 0 &&
-          table.getRowModel().rows.every((r) => selectedIds.has(r.original.id))
-        }
-        onCheckedChange={(v) => onSelectAll(!!v)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={selectedIds.has(row.original.id)}
-        onCheckedChange={(v) => onSelectRow(row.original.id, !!v)}
-        aria-label="Select row"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
-  },
-  {
-    id: 'name',
-    accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.email} ${row.company ?? ''}`,
-    header: 'Lead',
-    size: 240,
-    cell: ({ row }) => {
-      const lead = row.original
-      const initials = `${lead.firstName[0]}${lead.lastName[0]}`
-      return (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <Link
-              to={ROUTES.LEAD_DETAIL(lead.id)}
-              className="font-medium text-sm hover:text-primary hover:underline"
-            >
-              {lead.firstName} {lead.lastName}
-            </Link>
-            <Link
-              to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
-              className="text-xs text-muted-foreground hover:text-primary truncate max-w-[150px] block"
-            >
-              {lead.email}
-            </Link>
-          </div>
-        </div>
-      )
+    {
+      id: 'select',
+      size: 40,
+      enableSorting: false,
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getRowModel().rows.length > 0 &&
+            table.getRowModel().rows.every((r) => selectedIds.has(r.original.id))
+          }
+          onCheckedChange={(v) => onSelectAll(!!v)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedIds.has(row.original.id)}
+          onCheckedChange={(v) => onSelectRow(row.original.id, !!v)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
     },
-  },
-  {
-    id: 'company',
-    accessorFn: (row) => `${row.company ?? ''} ${row.position ?? ''}`.trim(),
-    header: 'Company',
-    cell: ({ row }) => (
-      <div>
-        <p className="text-sm font-medium">{row.original.company ?? '—'}</p>
-        {row.original.position && (
-          <p className="text-xs text-muted-foreground mt-0.5">{row.original.position}</p>
-        )}
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => (
-      <Badge
-        variant="outline"
-        className={cn('capitalize text-xs font-medium', statusStyles[row.original.status])}
-      >
-        {row.original.status}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'source',
-    header: 'Source',
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="text-xs">
-        {sourceLabels[row.original.source]}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'score',
-    header: 'Score',
-    cell: ({ row }) => <ScoreIndicator score={row.original.score} />,
-  },
-  {
-    accessorKey: 'value',
-    header: 'Est. Value',
-    cell: ({ row }) => (
-      <p className="text-sm font-medium tabular-nums">
-        {row.original.value ? currencyFormat.format(row.original.value) : '—'}
-      </p>
-    ),
-  },
-  {
-    id: 'assignedTo',
-    accessorFn: (row) => row.assignedTo ?? '',
-    header: 'Assigned To',
-    cell: ({ row }) => (
-      <p className="text-sm text-muted-foreground">{row.original.assignedTo ?? 'Unassigned'}</p>
-    ),
-  },
-  {
-    id: 'lastActivity',
-    accessorFn: (row) => row.lastActivity ?? '',
-    header: 'Last Activity',
-    enableSorting: false,
-    cell: ({ row }) => (
-      <p className="text-sm text-muted-foreground">{row.original.lastActivity ?? '—'}</p>
-    ),
-  },
-  {
-    id: 'actions',
-    header: '',
-    size: 100,
-    enableSorting: false,
-    cell: ({ row }) => <LeadRowActions lead={row.original} />,
-  },
+    {
+      id: 'name',
+      accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.email} ${row.company ?? ''}`,
+      header: 'Lead',
+      size: 240,
+      cell: ({ row }) => {
+        const lead = row.original
+        const initials = `${lead.firstName[0]}${lead.lastName[0]}`
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <Link
+                to={ROUTES.LEAD_DETAIL(lead.id)}
+                className="font-medium text-sm hover:text-primary hover:underline"
+              >
+                {lead.firstName} {lead.lastName}
+              </Link>
+              <Link
+                to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
+                className="text-xs text-muted-foreground hover:text-primary truncate max-w-[150px] block"
+              >
+                {lead.email}
+              </Link>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'company',
+      accessorFn: (row) => `${row.company ?? ''} ${row.position ?? ''}`.trim(),
+      header: 'Company',
+      cell: ({ row }) => (
+        <div>
+          <p className="text-sm font-medium">{row.original.company ?? '—'}</p>
+          {row.original.position && (
+            <p className="text-xs text-muted-foreground mt-0.5">{row.original.position}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className={cn('capitalize text-xs font-medium', statusStyles[row.original.status])}
+        >
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'source',
+      header: 'Source',
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="text-xs">
+          {sourceLabels[row.original.source]}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'score',
+      header: 'Score',
+      cell: ({ row }) => <ScoreIndicator score={row.original.score} />,
+    },
+    {
+      accessorKey: 'value',
+      header: 'Est. Value',
+      cell: ({ row }) => (
+        <p className="text-sm font-medium tabular-nums">
+          {row.original.value ? currencyFormat.format(row.original.value) : '—'}
+        </p>
+      ),
+    },
+    {
+      id: 'assignedTo',
+      accessorFn: (row) => row.assignedTo ?? '',
+      header: 'Assigned To',
+      cell: ({ row }) => (
+        <p className="text-sm text-muted-foreground">{row.original.assignedTo ?? 'Unassigned'}</p>
+      ),
+    },
+    {
+      id: 'lastActivity',
+      accessorFn: (row) => row.lastActivity ?? '',
+      header: 'Last Activity',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <p className="text-sm text-muted-foreground">{row.original.lastActivity ?? '—'}</p>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      size: 100,
+      enableSorting: false,
+      cell: ({ row }) => <LeadRowActions lead={row.original} />,
+    },
   ]
 }
 
@@ -760,59 +760,59 @@ export function LeadsTable({
         </>
       )}
       <DataTable
-      columns={columns}
-      data={leads}
-      isLoading={isLoading}
-      searchPlaceholder="Search by name, email, company..."
-      toolbar={() => (
-        <>
-          <Select
-            value={status}
-            onValueChange={onStatusChange}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {LEAD_STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={source}
-            onValueChange={onSourceChange}
-          >
-            <SelectTrigger className="w-[145px]">
-              <SelectValue placeholder="All Sources" />
-            </SelectTrigger>
-            <SelectContent>
-              {LEAD_SOURCE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={assignedTo} onValueChange={onAssignedToChange}>
-            <SelectTrigger className="w-[155px]">
-              <SelectValue placeholder="All Assignees" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Assignees</SelectItem>
-              {workspaceUsers.map((u) => (
-                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
-      )}
-      emptyMessage="No leads found"
-      emptyDescription="Try adjusting your search or filters"
-      serverSide={{
-        ...serverSide,
-        searchValue: search,
-        onSearchChange,
-      }}
-    />
+        columns={columns}
+        data={leads}
+        isLoading={isLoading}
+        searchPlaceholder="Search by name, email, company..."
+        toolbar={() => (
+          <>
+            <Select
+              value={status}
+              onValueChange={onStatusChange}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={source}
+              onValueChange={onSourceChange}
+            >
+              <SelectTrigger className="w-[145px]">
+                <SelectValue placeholder="All Sources" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_SOURCE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={assignedTo} onValueChange={onAssignedToChange}>
+              <SelectTrigger className="w-[155px]">
+                <SelectValue placeholder="All Assignees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Assignees</SelectItem>
+                {workspaceUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+        emptyMessage="No leads found"
+        emptyDescription="Try adjusting your search or filters"
+        serverSide={{
+          ...serverSide,
+          searchValue: search,
+          onSearchChange,
+        }}
+      />
     </div>
   )
 }

@@ -22,7 +22,7 @@ export default function Tasks() {
   const handleBulkAction = (ids: string[], action: 'complete' | 'todo' | 'delete') => {
     if (action === 'delete') {
       setTasks((prev) => prev.filter((t) => !ids.includes(t.id)))
-      toast.error(`${ids.length} task${ids.length !== 1 ? 's' : ''} deleted`)
+      toast.success(`${ids.length} task${ids.length !== 1 ? 's' : ''} deleted`)
       return
     }
     const newStatus = action === 'complete' ? 'completed' : 'todo'

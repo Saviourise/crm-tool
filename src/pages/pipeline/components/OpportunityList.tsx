@@ -55,7 +55,7 @@ function DeleteDealDialog({ opportunity, open, onOpenChange }: {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
       invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
-      toast.error('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
+      toast.success('Deal deleted', { description: `"${opportunity.name}" has been removed.` })
       onOpenChange(false)
     },
     onError: () => {
