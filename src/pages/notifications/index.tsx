@@ -4,23 +4,12 @@ import { formatDistanceToNow } from 'date-fns'
 import type { AppNotification } from '@/components/common/NotificationsBell'
 import { notificationsApi } from '@/api/notifications'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { NotificationsHeader } from './components/NotificationsHeader'
 import { NotificationsTable } from './components/NotificationsTable'
+import { parseNextCursor } from '@/lib/pagination'
 
 const NOTIFICATIONS_QUERY_KEY = ['notifications']
-
-function parseNextCursor(next: string | null | undefined): string | null {
-  if (!next) return null
-  try {
-    if (next.startsWith('http')) {
-      const u = new URL(next)
-      return u.searchParams.get('cursor') ?? next
-    }
-    return next
-  } catch {
-    return next
-  }
-}
 
 function mapNotifType(apiType: string): AppNotification['type'] {
   const t = apiType?.toLowerCase() ?? ''
@@ -32,9 +21,7 @@ function mapNotifType(apiType: string): AppNotification['type'] {
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient()
-  const [pageSize, setPageSize] = useState(10)
-  const [cursor, setCursor] = useState<string | undefined>()
-  const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
+  const { pageSize, cursor, pageIndex, hasPrev, resetPagination, goNext, goPrev, handlePageSizeChange } = useCursorPagination()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'read' | 'unread'>('all')
 
@@ -82,43 +69,19 @@ export default function NotificationsPage() {
   const unreadCount = response?.unread_count ?? notifications.filter((n) => !n.read).length
   const nextCursor = parseNextCursor(response?.next ?? null)
   const hasNext = !!nextCursor
-  const hasPrev = cursorStack.length > 0
-
-  const goNext = useCallback(() => {
-    if (nextCursor) {
-      setCursorStack((prev) => [...prev, cursor ?? null])
-      setCursor(nextCursor)
-    }
-  }, [nextCursor, cursor])
-
-  const goPrev = useCallback(() => {
-    if (cursorStack.length > 0) {
-      const prev = cursorStack[cursorStack.length - 1]
-      setCursorStack((prevStack) => prevStack.slice(0, -1))
-      setCursor(prev ?? undefined)
-    }
-  }, [cursorStack])
-
-  const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
   const handleStatusChange = useCallback((value: 'all' | 'read' | 'unread') => {
     setStatusFilter(value)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
-  const startRow = cursorStack.length * pageSize + 1
-  const endRow = cursorStack.length * pageSize + notifications.length
+  const startRow = pageIndex * pageSize + 1
+  const endRow = pageIndex * pageSize + notifications.length
   const paginationLabel =
     notifications.length === 0
       ? 'No results'
@@ -142,7 +105,7 @@ export default function NotificationsPage() {
           onPageSizeChange: handlePageSizeChange,
           hasNext,
           hasPrev,
-          onNext: goNext,
+          onNext: () => goNext(nextCursor),
           onPrev: goPrev,
           totalLabel: paginationLabel,
           searchValue: search,

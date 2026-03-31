@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Pencil, Eye, Trash2, X } from 'lucide-react'
+import { MoreHorizontal, Pencil, Eye, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable } from '@/components/common/DataTable'
+import { BulkSelectionBar } from '@/components/common/BulkSelectionBar'
+import { BulkDeleteConfirmDialog } from '@/components/common/BulkDeleteConfirmDialog'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/router/routes'
 import type { Company } from '../typings'
@@ -43,85 +45,6 @@ import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 import { patchCompaniesListCaches } from '@/lib/listQueryCache'
 
 const COMPANIES_QUERY_KEY = ['companies']
-
-// ─── Bulk Actions Bar (Delete only) ──────────────────────────────────────────
-
-function BulkActionsBar({
-  count,
-  onDeleteClick,
-  onClear,
-  isDeleting,
-}: {
-  count: number
-  onDeleteClick: () => void
-  onClear: () => void
-  isDeleting: boolean
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground animate-in slide-in-from-top-2 duration-200">
-      <span className="text-sm font-medium tabular-nums shrink-0">
-        {count} compan{count !== 1 ? 'ies' : 'y'} selected
-      </span>
-      <div className="h-4 w-px bg-primary-foreground/25" />
-      <Button
-        size="sm"
-        variant="ghost"
-        className="h-7 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-        onClick={onDeleteClick}
-        disabled={isDeleting}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-        {isDeleting ? 'Deleting…' : 'Delete'}
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-6 w-6 text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/15 shrink-0 ml-auto"
-        onClick={onClear}
-        disabled={isDeleting}
-      >
-        <X className="h-3.5 w-3.5" />
-      </Button>
-    </div>
-  )
-}
-
-function BulkDeleteConfirmDialog({
-  open,
-  onOpenChange,
-  count,
-  entityLabel,
-  onConfirm,
-  isDeleting,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  count: number
-  entityLabel: string
-  onConfirm: () => void
-  isDeleting: boolean
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
-        <DialogHeader>
-          <DialogTitle>Delete {count} {entityLabel}?</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete {count} {entityLabel}? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Deleting…' : 'Delete'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 function EditCompanyDialog({ company, open, onOpenChange }: {
   company: Company
@@ -532,12 +455,22 @@ export function CompaniesTable({
     <div className="space-y-2">
       {selectedIds.size > 0 && canDelete && (
         <>
-          <BulkActionsBar
+          <BulkSelectionBar
             count={selectedIds.size}
-            onDeleteClick={() => setDeleteConfirmOpen(true)}
+            label={`compan${selectedIds.size !== 1 ? 'ies' : 'y'}`}
             onClear={clearSelection}
-            isDeleting={bulkDelete.isPending}
-          />
+          >
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
+              onClick={() => setDeleteConfirmOpen(true)}
+              disabled={bulkDelete.isPending}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {bulkDelete.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </BulkSelectionBar>
           <BulkDeleteConfirmDialog
             open={deleteConfirmOpen}
             onOpenChange={setDeleteConfirmOpen}

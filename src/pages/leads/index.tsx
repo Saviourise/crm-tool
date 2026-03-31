@@ -7,14 +7,13 @@ import { LeadsHeader } from './components/LeadsHeader'
 import { LeadsStats } from './components/LeadsStats'
 import { LeadsTable } from './components/LeadsTable'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
 
 export const LEADS_QUERY_KEY = ['leads']
 
 export default function Leads() {
   const queryClient = useQueryClient()
-  const [pageSize, setPageSize] = useState(10)
-  const [cursor, setCursor] = useState<string | undefined>()
-  const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
+  const { pageSize, cursor, pageIndex, hasPrev, resetPagination, goNext, goPrev, handlePageSizeChange } = useCursorPagination()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string>('all')
   const [source, setSource] = useState<string>('all')
@@ -53,52 +52,26 @@ export default function Leads() {
   const totalCount = response?.count ?? leads.length
   const nextCursor = response?.next ?? null
   const hasNext = !!nextCursor
-  const hasPrev = cursorStack.length > 0
-
-  const goNext = useCallback(() => {
-    if (nextCursor) {
-      setCursorStack((prev) => [...prev, cursor ?? null])
-      setCursor(nextCursor)
-    }
-  }, [nextCursor, cursor])
-
-  const goPrev = useCallback(() => {
-    if (cursorStack.length > 0) {
-      const prev = cursorStack[cursorStack.length - 1]
-      setCursorStack((prevStack) => prevStack.slice(0, -1))
-      setCursor(prev ?? undefined)
-    }
-  }, [cursorStack])
-
-  const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
   const handleStatusChange = useCallback((value: string) => {
     setStatus(value)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
   const handleSourceChange = useCallback((value: string) => {
     setSource(value)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
   const handleAssignedToChange = useCallback((value: string) => {
     setAssignedTo(value)
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
   const handleExport = useCallback(async () => {
     try {
@@ -123,7 +96,7 @@ export default function Leads() {
   const paginationLabel =
     leads.length === 0
       ? 'No results'
-      : `${cursorStack.length * pageSize + 1}–${cursorStack.length * pageSize + leads.length} of ${totalCount}`
+      : `${pageIndex * pageSize + 1}–${pageIndex * pageSize + leads.length} of ${totalCount}`
 
   return (
     <div className="space-y-6">
@@ -150,7 +123,7 @@ export default function Leads() {
           onPageSizeChange: handlePageSizeChange,
           hasNext,
           hasPrev,
-          onNext: goNext,
+          onNext: () => goNext(nextCursor),
           onPrev: goPrev,
           totalLabel: paginationLabel,
         }}

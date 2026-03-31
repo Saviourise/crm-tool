@@ -5,26 +5,14 @@ import { dashboardApi, type ApiActivity } from '@/api/dashboard'
 import type { CursorPaginatedResponse } from '@/api/dashboard'
 import { usersApi } from '@/api/auth'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { ActivityHeader } from './components/ActivityHeader'
 import { ActivityTable, type ActivityRow } from './components/ActivityTable'
 import { mapActivityType, mapActivityTitle } from '../dashboard/utils'
 import type { ActivityDisplayType } from './components/ActivityTable'
+import { parseNextCursor } from '@/lib/pagination'
 
 const ACTIVITY_QUERY_KEY = ['activity', 'list']
-
-/** Extract cursor value from next URL — API returns full URL, backend expects cursor only */
-function parseNextCursor(next: string | null | undefined): string | null {
-  if (!next) return null
-  try {
-    if (next.startsWith('http')) {
-      const u = new URL(next)
-      return u.searchParams.get('cursor') ?? next
-    }
-    return next
-  } catch {
-    return next
-  }
-}
 
 /** Map UI entity type to API entity_type (API uses plural: leads, contacts, tasks, deals, companies) */
 const ENTITY_TYPE_TO_API: Record<ActivityDisplayType, string> = {
@@ -36,9 +24,7 @@ const ENTITY_TYPE_TO_API: Record<ActivityDisplayType, string> = {
 }
 
 export default function ActivityPage() {
-  const [pageSize, setPageSize] = useState(10)
-  const [cursor, setCursor] = useState<string | undefined>()
-  const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
+  const { pageSize, cursor, pageIndex, hasPrev, resetPagination, goNext, goPrev, handlePageSizeChange } = useCursorPagination()
   const [search, setSearch] = useState('')
   const [entityType, setEntityType] = useState<ActivityDisplayType | 'all'>('all')
   const [activityType, setActivityType] = useState<string>('all')
@@ -74,32 +60,6 @@ export default function ActivityPage() {
   const response = Array.isArray(rawData) ? null : (rawData as CursorPaginatedResponse<ApiActivity> | undefined)
   const nextCursor = parseNextCursor(response?.next ?? null)
   const hasNext = !!nextCursor
-  const hasPrev = cursorStack.length > 0
-
-  const goNext = useCallback(() => {
-    if (nextCursor) {
-      setCursorStack((prev) => [...prev, cursor ?? null])
-      setCursor(nextCursor)
-    }
-  }, [nextCursor, cursor])
-
-  const goPrev = useCallback(() => {
-    if (cursorStack.length > 0) {
-      const prev = cursorStack[cursorStack.length - 1]
-      setCursorStack((prevStack) => prevStack.slice(0, -1))
-      setCursor(prev ?? undefined)
-    }
-  }, [cursorStack])
-
-  const resetPagination = useCallback(() => {
-    setCursor(undefined)
-    setCursorStack([])
-  }, [])
-
-  const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size)
-    resetPagination()
-  }, [resetPagination])
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value)
@@ -137,8 +97,8 @@ export default function ActivityPage() {
     }
   })
 
-  const startRow = cursorStack.length * pageSize + 1
-  const endRow = cursorStack.length * pageSize + rows.length
+  const startRow = pageIndex * pageSize + 1
+  const endRow = pageIndex * pageSize + rows.length
   const paginationLabel =
     rows.length === 0 ? 'No results' : hasNext ? `${startRow}–${endRow}+` : `${startRow}–${endRow} of ${endRow}`
 
@@ -160,7 +120,7 @@ export default function ActivityPage() {
           onPageSizeChange: handlePageSizeChange,
           hasNext,
           hasPrev,
-          onNext: goNext,
+          onNext: () => goNext(nextCursor),
           onPrev: goPrev,
           totalLabel: paginationLabel,
           searchValue: search,
