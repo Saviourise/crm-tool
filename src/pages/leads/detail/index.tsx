@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { EntityActivityTimeline } from '@/components/common/EntityActivityTimeline'
 import { leadsApi } from '@/api/leads'
 import { mapApiLeadToLead } from '../apiMappers'
 import { LeadProfileCard } from './components/LeadProfileCard'
 import { LeadScoreBreakdown } from './components/LeadScoreBreakdown'
-import { ActivityTimeline } from './components/ActivityTimeline'
 import { AISuggestions } from './components/AISuggestions'
 import { cn } from '@/lib/utils'
 
@@ -93,7 +93,10 @@ export default function LeadDetail() {
       )}
 
       {activeTab === 'activity' && (
-        <ActivityTimeline leadId={lead.id} />
+        <EntityActivityTimeline
+          queryKey={['leads', lead.id]}
+          endpoint={`/api/leads/${lead.id}/activity/`}
+        />
       )}
 
       {activeTab === 'ai-insights' && (

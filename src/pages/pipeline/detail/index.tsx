@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { EntityActivityTimeline } from '@/components/common/EntityActivityTimeline'
 import { pipelineApi } from '@/api/pipeline'
 import { mapApiDealToOpportunity } from '../apiMappers'
 import { DealProfileCard } from './components/DealProfileCard'
 import { DealStageProgress } from './components/DealStageProgress'
-import { DealActivityTimeline } from './components/DealActivityTimeline'
 import { DealContactsCard } from './components/DealContactsCard'
 import { cn } from '@/lib/utils'
 
@@ -93,7 +93,10 @@ export default function DealDetail() {
       )}
 
       {activeTab === 'activity' && (
-        <DealActivityTimeline dealId={opportunity.id} />
+        <EntityActivityTimeline
+          queryKey={['pipeline', 'deals', opportunity.id]}
+          endpoint={`/api/pipeline/deals/${opportunity.id}/activity/`}
+        />
       )}
 
       {activeTab === 'contacts' && (

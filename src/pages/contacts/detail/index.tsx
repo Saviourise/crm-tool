@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, ExternalLink, MessageSquare } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { EntityActivityTimeline } from '@/components/common/EntityActivityTimeline'
 import { contactsApi } from '@/api/contacts'
 import { mapApiContactToContact } from '../apiMappers'
 import { ContactProfileCard } from './components/ContactProfileCard'
-import { ActivityTimeline } from './components/ActivityTimeline'
 import { RelatedDeals } from './components/RelatedDeals'
 import { RelatedTasks } from './components/RelatedTasks'
 import { ContactMessages } from './components/ContactMessages'
@@ -99,7 +99,10 @@ export default function ContactDetail() {
       )}
 
       {activeTab === 'activity' && (
-        <ActivityTimeline contactId={contact.id} />
+        <EntityActivityTimeline
+          queryKey={['contacts', contact.id]}
+          endpoint={`/api/contacts/${contact.id}/activity/`}
+        />
       )}
 
       {activeTab === 'tasks' && (

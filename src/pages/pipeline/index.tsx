@@ -27,7 +27,7 @@ import {
   FRONTEND_TO_API_STAGE,
 } from './apiMappers'
 import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
-import type { PipelineView, Stage, BoardConfig, PipelineFilters, SavedView, Opportunity } from './typings'
+import type { PipelineView, Stage, BoardConfig, PipelineFilters, SavedView } from './typings'
 
 export const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
 export const PIPELINE_PIPELINES_QUERY_KEY = ['pipeline', 'pipelines']
