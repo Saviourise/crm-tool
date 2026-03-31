@@ -385,11 +385,16 @@ function DealCardContent({
               <span />
             )}
             {cardFields.assignee && opportunity.assignedTo !== '—' && (
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
-                  {assigneeInitials}
-                </AvatarFallback>
-              </Avatar>
+              <div className="flex items-center gap-1.5">
+                <Avatar className="h-5 w-5">
+                  <AvatarFallback className="text-[9px] font-semibold bg-primary/10 text-primary">
+                    {assigneeInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                  {opportunity.assignedTo}
+                </span>
+              </div>
             )}
           </div>
         )}

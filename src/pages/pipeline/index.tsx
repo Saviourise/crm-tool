@@ -100,22 +100,10 @@ function CreatePipelineDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   )
 }
 
-// ─── Client-side filter helper ────────────────────────────────────────────────
-
-function applyFilters(opps: Opportunity[], filters: PipelineFilters): Opportunity[] {
-  return opps.filter((opp) => {
-    if (filters.minValue && opp.value < Number(filters.minValue)) return false
-    if (filters.maxValue && opp.value > Number(filters.maxValue)) return false
-    if (filters.assignees.length > 0 && !filters.assignees.includes(opp.assignedToId ?? '')) return false
-    if (filters.minProbability > 0 && opp.probability < filters.minProbability) return false
-    return true
-  })
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const EMPTY_FILTERS: PipelineFilters = {
-  assignees: [],
+  assignedTo: '',
   minValue: '',
   maxValue: '',
   closeDateFrom: '',
@@ -159,8 +147,17 @@ export default function Pipeline() {
   }, [rawPipelines, activePipelineId])
 
   const { data: dealsRes, isLoading: dealsLoading, isFetching: dealsFetching } = useQuery({
-    queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId],
-    queryFn: () => pipelineApi.listDeals({ pipeline: activePipelineId, limit: 200 }),
+    queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId, filters],
+    queryFn: () => pipelineApi.listDeals({
+      pipeline: activePipelineId,
+      limit: 200,
+      assigned_to: filters.assignedTo || undefined,
+      min_value: filters.minValue || undefined,
+      max_value: filters.maxValue || undefined,
+      close_date_from: filters.closeDateFrom || undefined,
+      close_date_to: filters.closeDateTo || undefined,
+      min_probability: filters.minProbability > 0 ? filters.minProbability : undefined,
+    }),
     enabled: !!activePipelineId,
   })
 
@@ -217,7 +214,7 @@ export default function Pipeline() {
     return arr.map(mapApiSavedViewToSavedView)
   }, [savedViewsRes])
 
-  const filteredOpportunities = applyFilters(opportunities, filters)
+  const filteredOpportunities = opportunities
 
   // ─── Mutations ────────────────────────────────────────────────────────────
 

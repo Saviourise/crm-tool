@@ -63,7 +63,7 @@ export interface Pipeline {
 }
 
 export interface PipelineFilters {
-  assignees: string[]
+  assignedTo: string
   minValue: string
   maxValue: string
   closeDateFrom: string

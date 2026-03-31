@@ -81,7 +81,7 @@ export function mapApiPipelineToPipeline(api: ApiPipeline, dealCount = 0): Pipel
 export function mapApiSavedViewToSavedView(api: ApiSavedView): SavedView {
   const f = (api.filters ?? {}) as Partial<Record<string, unknown>>
   const filters: PipelineFilters = {
-    assignees: Array.isArray(f.assignees) ? (f.assignees as string[]) : [],
+    assignedTo: f.assignedTo != null ? String(f.assignedTo) : '',
     minValue: f.minValue != null ? String(f.minValue) : '',
     maxValue: f.maxValue != null ? String(f.maxValue) : '',
     closeDateFrom: f.closeDateFrom != null ? String(f.closeDateFrom) : '',

@@ -50,6 +50,11 @@ export interface DealListParams {
   company?: string
   contact?: string
   assigned_to?: string
+  min_value?: string
+  max_value?: string
+  close_date_from?: string
+  close_date_to?: string
+  min_probability?: number
   search?: string
   ordering?: string
   limit?: number
@@ -133,6 +138,11 @@ export const pipelineApi = {
     if (params?.company) search.set('company', params.company)
     if (params?.contact) search.set('contact', params.contact)
     if (params?.assigned_to) search.set('assigned_to', params.assigned_to)
+    if (params?.min_value) search.set('min_value', params.min_value)
+    if (params?.max_value) search.set('max_value', params.max_value)
+    if (params?.close_date_from) search.set('close_date_from', params.close_date_from)
+    if (params?.close_date_to) search.set('close_date_to', params.close_date_to)
+    if (params?.min_probability != null) search.set('min_probability', String(params.min_probability))
     if (params?.search) search.set('search', params.search)
     if (params?.ordering) search.set('ordering', params.ordering)
     if (params?.limit) search.set('limit', String(params.limit))
