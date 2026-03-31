@@ -58,6 +58,7 @@ export default function ActivityPage() {
     return Array.isArray(rawData) ? rawData : (rawData as CursorPaginatedResponse<ApiActivity>).results ?? []
   })()
   const response = Array.isArray(rawData) ? null : (rawData as CursorPaginatedResponse<ApiActivity> | undefined)
+  const totalCount = response?.count ?? activities.length
   const nextCursor = parseNextCursor(response?.next ?? null)
   const hasNext = !!nextCursor
 
@@ -100,11 +101,11 @@ export default function ActivityPage() {
   const startRow = pageIndex * pageSize + 1
   const endRow = pageIndex * pageSize + rows.length
   const paginationLabel =
-    rows.length === 0 ? 'No results' : hasNext ? `${startRow}–${endRow}+` : `${startRow}–${endRow} of ${endRow}`
+    rows.length === 0 ? 'No results' : hasNext ? `${startRow}–${endRow}+` : `${startRow}–${endRow} of ${totalCount}`
 
   return (
     <div className="space-y-6">
-      <ActivityHeader total={rows.length} />
+      <ActivityHeader total={totalCount} />
       <ActivityTable
         activities={rows}
         isLoading={isLoading}

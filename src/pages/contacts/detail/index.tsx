@@ -100,7 +100,7 @@ export default function ContactDetail() {
 
       {activeTab === 'activity' && (
         <EntityActivityTimeline
-          queryKey={['contacts', contact.id]}
+          queryKey={['contacts', contact.id, 'activity']}
           endpoint={`/api/contacts/${contact.id}/activity/`}
         />
       )}

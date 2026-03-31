@@ -53,8 +53,7 @@ import { useAuth } from '@/auth/context'
 import { pipelineApi } from '@/api/pipeline'
 import { FRONTEND_TO_API_STAGE } from '../apiMappers'
 import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
-
-const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
+import { PIPELINE_DEALS_QUERY_KEY } from '../queryKeys'
 
 // ─── Edit Deal Dialog ─────────────────────────────────────────────────────────
 

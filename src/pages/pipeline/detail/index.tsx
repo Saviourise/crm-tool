@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EntityActivityTimeline } from '@/components/common/EntityActivityTimeline'
 import { pipelineApi } from '@/api/pipeline'
+import { pipelineQueryKeys } from '../queryKeys'
 import { mapApiDealToOpportunity } from '../apiMappers'
 import { DealProfileCard } from './components/DealProfileCard'
 import { DealStageProgress } from './components/DealStageProgress'
@@ -25,7 +26,7 @@ export default function DealDetail() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
   const { data: dealRes, isLoading, isError } = useQuery({
-    queryKey: ['pipeline', 'deals', id, 'detail'],
+    queryKey: pipelineQueryKeys.dealDetail(id ?? ''),
     queryFn: () => pipelineApi.getDeal(id!),
     enabled: !!id,
   })
@@ -94,7 +95,7 @@ export default function DealDetail() {
 
       {activeTab === 'activity' && (
         <EntityActivityTimeline
-          queryKey={['pipeline', 'deals', opportunity.id]}
+          queryKey={pipelineQueryKeys.dealActivity(opportunity.id)}
           endpoint={`/api/pipeline/deals/${opportunity.id}/activity/`}
         />
       )}

@@ -39,8 +39,7 @@ import type { Opportunity, Stage } from '../typings'
 import { ROUTES } from '@/router/routes'
 import { pipelineApi } from '@/api/pipeline'
 import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
-
-const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
+import { PIPELINE_DEALS_QUERY_KEY } from '../queryKeys'
 
 function DeleteDealDialog({ opportunity, open, onOpenChange }: {
   opportunity: Opportunity

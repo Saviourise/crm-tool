@@ -20,6 +20,7 @@ import { PipelineSelector } from './components/PipelineSelector'
 import { PipelineFiltersBar } from './components/PipelineFiltersBar'
 import { DEFAULT_BOARD_CONFIG } from './data'
 import { pipelineApi } from '@/api/pipeline'
+import { PIPELINE_DEALS_QUERY_KEY, PIPELINE_PIPELINES_QUERY_KEY, PIPELINE_SAVED_VIEWS_QUERY_KEY } from './queryKeys'
 import {
   mapApiDealToOpportunity,
   mapApiPipelineToPipeline,
@@ -28,10 +29,6 @@ import {
 } from './apiMappers'
 import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import type { PipelineView, Stage, BoardConfig, PipelineFilters, SavedView } from './typings'
-
-export const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
-export const PIPELINE_PIPELINES_QUERY_KEY = ['pipeline', 'pipelines']
-export const PIPELINE_SAVED_VIEWS_QUERY_KEY = ['pipeline', 'saved-views']
 
 // ─── Create Pipeline Dialog ────────────────────────────────────────────────────
 

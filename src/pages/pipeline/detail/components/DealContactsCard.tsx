@@ -18,7 +18,7 @@ import {
 import { pipelineApi } from '@/api/pipeline'
 import { contactsApi } from '@/api/contacts'
 import { ROUTES } from '@/router/routes'
-import { PIPELINE_DEALS_QUERY_KEY } from '../../index'
+import { PIPELINE_DEALS_QUERY_KEY, pipelineQueryKeys } from '../../queryKeys'
 
 interface DealContactsCardProps {
   dealId: string
@@ -47,9 +47,9 @@ function AddContactDialog({ dealId, open, onOpenChange }: { dealId: string; open
     mutationFn: (contactId: string) =>
       pipelineApi.updateDeal(dealId, { contact: contactId } as Parameters<typeof pipelineApi.updateDeal>[1]),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pipeline', 'deals', dealId, 'contacts'] })
+      queryClient.invalidateQueries({ queryKey: pipelineQueryKeys.dealContacts(dealId) })
       queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, dealId] })
-      queryClient.invalidateQueries({ queryKey: ['pipeline', 'deals', dealId, 'detail'] })
+      queryClient.invalidateQueries({ queryKey: pipelineQueryKeys.dealDetail(dealId) })
       toast.success('Contact linked to deal')
       handleClose()
     },
@@ -140,7 +140,7 @@ export function DealContactsCard({ dealId }: DealContactsCardProps) {
   const [addOpen, setAddOpen] = useState(false)
 
   const { data: contactsRes, isLoading } = useQuery({
-    queryKey: ['pipeline', 'deals', dealId, 'contacts'],
+    queryKey: pipelineQueryKeys.dealContacts(dealId),
     queryFn: () => pipelineApi.dealContacts(dealId),
     enabled: !!dealId,
   })
@@ -151,8 +151,8 @@ export function DealContactsCard({ dealId }: DealContactsCardProps) {
     mutationFn: () =>
       pipelineApi.updateDeal(dealId, { contact: null } as Parameters<typeof pipelineApi.updateDeal>[1]),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pipeline', 'deals', dealId, 'contacts'] })
-      queryClient.invalidateQueries({ queryKey: ['pipeline', 'deals', dealId, 'detail'] })
+      queryClient.invalidateQueries({ queryKey: pipelineQueryKeys.dealContacts(dealId) })
+      queryClient.invalidateQueries({ queryKey: pipelineQueryKeys.dealDetail(dealId) })
       toast.success('Contact unlinked')
     },
     onError: () => {

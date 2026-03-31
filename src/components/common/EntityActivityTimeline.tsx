@@ -52,7 +52,7 @@ interface EntityActivityTimelineProps {
 
 export function EntityActivityTimeline({ queryKey, endpoint, title }: EntityActivityTimelineProps) {
   const { data, isLoading } = useQuery({
-    queryKey: [...queryKey, 'activity'],
+    queryKey,
     queryFn: () => api.get<{ results: ApiActivityEntry[] }>(endpoint),
     enabled: Boolean(endpoint),
   })

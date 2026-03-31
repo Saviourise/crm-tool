@@ -94,7 +94,7 @@ export default function LeadDetail() {
 
       {activeTab === 'activity' && (
         <EntityActivityTimeline
-          queryKey={['leads', lead.id]}
+          queryKey={['leads', lead.id, 'activity']}
           endpoint={`/api/leads/${lead.id}/activity/`}
         />
       )}

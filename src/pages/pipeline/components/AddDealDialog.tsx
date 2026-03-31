@@ -28,8 +28,7 @@ import { invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
 import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 import type { Stage } from '../typings'
-
-const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
+import { PIPELINE_DEALS_QUERY_KEY } from '../queryKeys'
 
 interface AddDealDialogProps {
   trigger?: React.ReactNode
