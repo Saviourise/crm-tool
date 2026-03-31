@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -542,6 +542,18 @@ export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpp
   )
 
   const visibleStages = config.stages.filter((s) => s.visible)
+  const opportunitiesByStage = useMemo(() => {
+    const grouped = PIPELINE_STAGES.reduce((acc, stage) => {
+      acc[stage] = []
+      return acc
+    }, {} as Record<Stage, Opportunity[]>)
+
+    for (const opportunity of opportunities) {
+      grouped[opportunity.stage].push(opportunity)
+    }
+
+    return grouped
+  }, [opportunities])
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveOpp(
@@ -592,7 +604,7 @@ export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpp
           <KanbanColumn
             key={settings.stage}
             settings={settings}
-            opportunities={opportunities.filter((o) => o.stage === settings.stage)}
+            opportunities={opportunitiesByStage[settings.stage] ?? []}
             cardFields={config.cardFields}
             columnWidth={config.columnWidth}
             canCreate={canCreate}
