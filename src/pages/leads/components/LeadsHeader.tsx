@@ -46,7 +46,7 @@ export function LeadsHeader({ total, isLoading, onExport, onLeadListReload }: Le
             Import
           </Button>
         )}
-        {(can('leads.create') || can('leads.edit')) && (
+        {can('leads.export') && (
           <Button
             variant="outline"
             size="sm"

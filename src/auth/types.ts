@@ -38,8 +38,8 @@ export interface AuthState {
 export type Permission =
   | 'dashboard.view'
   | 'contacts.view' | 'contacts.create' | 'contacts.edit' | 'contacts.delete' | 'contacts.import' | 'contacts.export'
-  | 'companies.view' | 'companies.create' | 'companies.edit' | 'companies.delete'
-  | 'leads.view' | 'leads.create' | 'leads.edit' | 'leads.delete' | 'leads.import' | 'leads.convert'
+  | 'companies.view' | 'companies.create' | 'companies.edit' | 'companies.delete' | 'companies.import' | 'companies.export'
+  | 'leads.view' | 'leads.create' | 'leads.edit' | 'leads.delete' | 'leads.import' | 'leads.export' | 'leads.convert'
   | 'pipeline.view' | 'pipeline.create' | 'pipeline.edit' | 'pipeline.delete'
   | 'tasks.view' | 'tasks.create' | 'tasks.edit' | 'tasks.delete'
   | 'calendar.view' | 'calendar.create' | 'calendar.edit' | 'calendar.delete'

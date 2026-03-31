@@ -45,13 +45,13 @@ export function CompanyHeader({ total, isLoading, onCompanyListReload }: Company
         </p>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        {can('companies.create') && hasPlan('csv-import') && (
+        {can('companies.import') && hasPlan('csv-import') && (
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
             Import
           </Button>
         )}
-        {can('companies.view') && (
+        {can('companies.export') && (
           <Button
             variant="outline"
             size="sm"
