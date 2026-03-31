@@ -18,11 +18,12 @@ export default function Leads() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string>('all')
   const [source, setSource] = useState<string>('all')
+  const [assignedTo, setAssignedTo] = useState<string>('all')
 
   const debouncedSearch = useDebouncedValue(search, 300)
 
   const { data, isLoading } = useQuery({
-    queryKey: [...LEADS_QUERY_KEY, pageSize, cursor, debouncedSearch, status, source],
+    queryKey: [...LEADS_QUERY_KEY, pageSize, cursor, debouncedSearch, status, source, assignedTo],
     queryFn: () =>
       leadsApi.list({
         limit: pageSize,
@@ -30,6 +31,7 @@ export default function Leads() {
         search: debouncedSearch.trim() || undefined,
         status: status === 'all' ? undefined : status,
         source: source === 'all' ? undefined : source,
+        assigned_to: assignedTo === 'all' ? undefined : assignedTo,
       }),
   })
 
@@ -92,6 +94,12 @@ export default function Leads() {
     setCursorStack([])
   }, [])
 
+  const handleAssignedToChange = useCallback((value: string) => {
+    setAssignedTo(value)
+    setCursor(undefined)
+    setCursorStack([])
+  }, [])
+
   const handleExport = useCallback(async () => {
     try {
       const res = await leadsApi.export({
@@ -135,6 +143,8 @@ export default function Leads() {
         onStatusChange={handleStatusChange}
         source={source}
         onSourceChange={handleSourceChange}
+        assignedTo={assignedTo}
+        onAssignedToChange={handleAssignedToChange}
         serverSide={{
           pageSize,
           onPageSizeChange: handlePageSizeChange,

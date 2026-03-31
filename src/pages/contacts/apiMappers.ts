@@ -19,6 +19,9 @@ export function mapApiContactToContact(api: ApiContact): Contact {
     ? formatDistanceToNow(new Date(api.last_contacted), { addSuffix: true })
     : undefined
 
+  const assignedTo = api.assigned_to?.name ?? undefined
+  const assignedToId = api.assigned_to?.id ?? undefined
+
   return {
     id: api.id,
     firstName: api.first_name,
@@ -31,6 +34,8 @@ export function mapApiContactToContact(api: ApiContact): Contact {
     status: (api.status as Contact['status']) || 'active',
     tags: api.tags ?? [],
     avatar: api.avatar_url ?? undefined,
+    assignedTo,
+    assignedToId,
     linkedin: api.linkedin ?? undefined,
     twitter: api.twitter ?? undefined,
     lastContacted,

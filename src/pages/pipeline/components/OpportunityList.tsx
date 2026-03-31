@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
+import { Loader2, MoreHorizontal, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -235,10 +235,17 @@ const columns: ColumnDef<Opportunity, unknown>[] = [
 interface OpportunityListProps {
   opportunities: Opportunity[]
   activePipelineId?: string
+  isLoading?: boolean
 }
 
-export function OpportunityList({ opportunities }: OpportunityListProps) {
+export function OpportunityList({ opportunities, isLoading }: OpportunityListProps) {
   return (
+    <div className="relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-xl">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
     <DataTable
       columns={columns}
       data={opportunities}
@@ -267,5 +274,6 @@ export function OpportunityList({ opportunities }: OpportunityListProps) {
       emptyMessage="No deals found"
       emptyDescription="Try adjusting your search or filters"
     />
+    </div>
   )
 }

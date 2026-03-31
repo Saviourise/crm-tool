@@ -66,13 +66,13 @@ export function mapApiDealToOpportunity(api: ApiDeal): Opportunity {
   }
 }
 
-export function mapApiPipelineToPipeline(api: ApiPipeline, dealCount = 0, totalValue = 0): Pipeline {
+export function mapApiPipelineToPipeline(api: ApiPipeline, dealCount = 0): Pipeline {
   return {
     id: api.id,
     name: api.name,
     description: api.description,
     dealCount,
-    totalValue,
+    totalValue: parseFloat(api.total_value ?? '0') || 0,
     isDefault: api.is_default,
     createdAt: api.created_at,
   }

@@ -30,6 +30,7 @@ export interface ApiPipeline {
   name: string
   description: string
   is_default: boolean
+  total_value?: string
   created_at: string
 }
 
@@ -63,6 +64,7 @@ export interface CreateDealRequest {
   probability?: number
   expected_close_date?: string
   notes?: string
+  assigned_to?: string
 }
 
 export interface UpdateDealRequest {

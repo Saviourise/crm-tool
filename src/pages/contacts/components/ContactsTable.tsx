@@ -44,6 +44,7 @@ import { contactsApi } from '@/api/contacts'
 import { companiesApi } from '@/api/companies'
 import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 import { patchContactsListCaches } from '@/lib/listQueryCache'
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 
 const CONTACTS_QUERY_KEY = ['contacts']
 
@@ -61,12 +62,14 @@ function EditContactDialog({ contact, open, onOpenChange }: {
   const queryClient = useQueryClient()
   const [companyId, setCompanyId] = useState<string>(contact.companyId ?? '')
   const [status, setStatus] = useState<string>(contact.status)
+  const [assignedToId, setAssignedToId] = useState<string>(contact.assignedToId ?? '')
 
   const { data: companiesData, isLoading: companiesLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: () => companiesApi.list({ limit: 200 }),
     enabled: open,
   })
+  const { users, isLoading: usersLoading } = useWorkspaceUsers()
 
   const companies = companiesData?.data?.results ?? []
 
@@ -74,6 +77,7 @@ function EditContactDialog({ contact, open, onOpenChange }: {
     if (open) {
       setCompanyId(contact.companyId ?? '')
       setStatus(contact.status)
+      setAssignedToId(contact.assignedToId ?? '')
     }
   }, [open, contact.companyId, contact.status])
 
@@ -107,6 +111,7 @@ function EditContactDialog({ contact, open, onOpenChange }: {
       position: (form.elements.namedItem('edit-position') as HTMLInputElement).value || undefined,
       phone: (form.elements.namedItem('edit-phone') as HTMLInputElement).value || undefined,
       status,
+      assigned_to: assignedToId || null,
     }
     updateContact.mutate(data)
   }
@@ -174,6 +179,26 @@ function EditContactDialog({ contact, open, onOpenChange }: {
                 <SelectContent>
                   {STATUS_OPTIONS.filter((o) => o.value !== 'all').map((o) => (
                     <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-assignee">Assignee</Label>
+              <Select value={assignedToId || 'none'} onValueChange={(v) => setAssignedToId(v === 'none' ? '' : v)} disabled={usersLoading}>
+                <SelectTrigger id="edit-assignee" className="w-full">
+                  {usersLoading ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />Loading...
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Unassigned" />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -513,6 +538,14 @@ function buildColumns(
       ),
     },
     {
+      id: 'assignedTo',
+      accessorFn: (row) => row.assignedTo ?? '',
+      header: 'Assigned To',
+      cell: ({ row }) => (
+        <p className="text-sm text-muted-foreground">{row.original.assignedTo ?? 'Unassigned'}</p>
+      ),
+    },
+    {
       id: 'lastContacted',
       accessorFn: (row) => row.lastContacted ?? '',
       header: 'Last Contacted',
@@ -537,6 +570,8 @@ interface ContactsTableProps {
   onSearchChange?: (value: string) => void
   status?: string
   onStatusChange?: (value: string) => void
+  assignedTo?: string
+  onAssignedToChange?: (value: string) => void
   serverSide?: {
     pageSize: number
     onPageSizeChange: (size: number) => void
@@ -555,12 +590,15 @@ export function ContactsTable({
   onSearchChange,
   status = 'all',
   onStatusChange,
+  assignedTo = 'all',
+  onAssignedToChange,
   serverSide,
 }: ContactsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const queryClient = useQueryClient()
   const { can } = useAuth()
   const canDelete = can('contacts.delete')
+  const { users: workspaceUsers } = useWorkspaceUsers()
 
   const bulkDelete = useMutation({
     mutationFn: (ids: string[]) => contactsApi.bulkDelete(ids),
@@ -639,18 +677,31 @@ export function ContactsTable({
           : undefined
       }
       toolbar={() => (
-        <Select value={status} onValueChange={onStatusChange ?? (() => {})}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <>
+          <Select value={status} onValueChange={onStatusChange ?? (() => {})}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={assignedTo} onValueChange={onAssignedToChange ?? (() => {})}>
+            <SelectTrigger className="w-[155px]">
+              <SelectValue placeholder="All Assignees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignees</SelectItem>
+              {workspaceUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
       )}
       emptyMessage="No contacts found"
       emptyDescription="Try adjusting your search or filters"

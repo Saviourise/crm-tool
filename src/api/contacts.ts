@@ -14,6 +14,7 @@ export interface ApiContact {
   avatar_url?: string | null
   linkedin?: string | null
   twitter?: string | null
+  assigned_to?: { id: string; name: string } | null
   last_contacted?: string | null
   created_at: string
   updated_at?: string
@@ -39,6 +40,7 @@ export interface ContactListParams {
   search?: string
   tag?: string
   company_id?: string
+  assigned_to?: string
   limit?: number
   cursor?: string
   ordering?: string
@@ -67,6 +69,7 @@ export interface UpdateContactRequest {
   status?: string
   tags?: string[]
   linkedin?: string
+  assigned_to?: string | null
   custom_fields?: Record<string, unknown>
 }
 
@@ -117,6 +120,7 @@ export const contactsApi = {
     if (params?.search) search.set('search', params.search)
     if (params?.tag) search.set('tag', params.tag)
     if (params?.company_id) search.set('company_id', params.company_id)
+    if (params?.assigned_to) search.set('assigned_to', params.assigned_to)
     if (params?.limit) search.set('limit', String(params.limit))
     if (params?.cursor) search.set('cursor', params.cursor)
     if (params?.ordering) search.set('ordering', params.ordering)

@@ -46,6 +46,7 @@ import { SOURCE_UI_TO_API } from '../apiMappers'
 import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { LEADS_QUERY_KEY } from '../index'
 import { patchLeadsListCaches } from '@/lib/listQueryCache'
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 
 const statusStyles: Record<LeadStatus, string> = {
   new: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
@@ -89,18 +90,23 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
   const [status, setStatus] = useState<string>(lead.status)
   const [source, setSource] = useState<string>(lead.source)
   const [companyId, setCompanyId] = useState<string>(lead.companyId ?? '')
+  const [assignedToId, setAssignedToId] = useState<string>(lead.assignedToId ?? '')
 
   const { data: companiesData, isLoading: companiesLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: () => companiesApi.list({ limit: 200 }),
     enabled: open,
   })
+  const { users, isLoading: usersLoading } = useWorkspaceUsers()
 
   const companies = companiesData?.data?.results ?? []
 
   useEffect(() => {
-    if (open) setCompanyId(lead.companyId ?? '')
-  }, [open, lead.companyId])
+    if (open) {
+      setCompanyId(lead.companyId ?? '')
+      setAssignedToId(lead.assignedToId ?? '')
+    }
+  }, [open, lead.companyId, lead.assignedToId])
 
   const updateLead = useMutation({
     mutationFn: (data: Parameters<typeof leadsApi.update>[1]) =>
@@ -134,6 +140,7 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
       source: SOURCE_UI_TO_API[source as LeadSource] ?? source,
       score: parseInt((form.elements.namedItem('edit-score') as HTMLInputElement).value) || undefined,
       value: (form.elements.namedItem('edit-value') as HTMLInputElement).value || undefined,
+      assigned_to: assignedToId || null,
     })
   }
 
@@ -226,6 +233,26 @@ function EditLeadDialog({ lead, open, onOpenChange }: {
                 <Label htmlFor="edit-value">Est. Value ($)</Label>
                 <Input id="edit-value" name="edit-value" type="number" min={0} defaultValue={lead.value ?? ''} />
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-lead-assignee">Assignee</Label>
+              <Select value={assignedToId || 'none'} onValueChange={(v) => setAssignedToId(v === 'none' ? '' : v)} disabled={usersLoading}>
+                <SelectTrigger id="edit-lead-assignee" className="w-full">
+                  {usersLoading ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />Loading...
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Unassigned" />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -648,6 +675,8 @@ interface LeadsTableProps {
   onStatusChange: (value: string) => void
   source: string
   onSourceChange: (value: string) => void
+  assignedTo: string
+  onAssignedToChange: (value: string) => void
   serverSide: {
     pageSize: number
     onPageSizeChange: (size: number) => void
@@ -668,6 +697,8 @@ export function LeadsTable({
   onStatusChange,
   source,
   onSourceChange,
+  assignedTo,
+  onAssignedToChange,
   serverSide,
 }: LeadsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -675,6 +706,7 @@ export function LeadsTable({
   const queryClient = useQueryClient()
   const { can } = useAuth()
   const canDelete = can('leads.delete')
+  const { users: workspaceUsers } = useWorkspaceUsers()
 
   const bulkDelete = useMutation({
     mutationFn: (ids: string[]) => leadsApi.bulkDelete(ids),
@@ -757,6 +789,17 @@ export function LeadsTable({
             <SelectContent>
               {LEAD_SOURCE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={assignedTo} onValueChange={onAssignedToChange}>
+            <SelectTrigger className="w-[155px]">
+              <SelectValue placeholder="All Assignees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignees</SelectItem>
+              {workspaceUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

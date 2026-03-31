@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
-import { GripVertical, MoreHorizontal, Plus, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
+import { GripVertical, Loader2, MoreHorizontal, Plus, Pencil, CheckSquare, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/select'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { LogActivityDialog } from '@/components/common/LogActivityDialog'
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 import { cn } from '@/lib/utils'
 import { currencyFormat } from '../utils'
 import { PIPELINE_STAGES, STAGE_CONFIG, STAGE_COLORS } from '../data'
@@ -68,6 +69,20 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
   const [probability, setProbability] = useState(String(opportunity.probability))
   const [stage, setStage] = useState<Stage>(opportunity.stage)
   const [notes, setNotes] = useState(opportunity.notes ?? '')
+  const [assignedToId, setAssignedToId] = useState(opportunity.assignedToId ?? '')
+
+  const { users, isLoading: usersLoading } = useWorkspaceUsers()
+
+  useEffect(() => {
+    if (open) {
+      setName(opportunity.name)
+      setValue(String(opportunity.value))
+      setProbability(String(opportunity.probability))
+      setStage(opportunity.stage)
+      setNotes(opportunity.notes ?? '')
+      setAssignedToId(opportunity.assignedToId ?? '')
+    }
+  }, [open, opportunity])
 
   const updateDeal = useMutation({
     mutationFn: () =>
@@ -77,6 +92,7 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
         probability: probability ? Number(probability) : undefined,
         stage: FRONTEND_TO_API_STAGE[stage],
         notes: notes.trim() || undefined,
+        assigned_to: assignedToId || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
@@ -158,6 +174,26 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Optional notes..."
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-assignee">Assignee</Label>
+              <Select value={assignedToId || 'none'} onValueChange={(v) => setAssignedToId(v === 'none' ? '' : v)} disabled={usersLoading}>
+                <SelectTrigger id="edit-assignee">
+                  {usersLoading ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />Loading...
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Unassigned" />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -488,9 +524,10 @@ interface KanbanBoardProps {
   config: BoardConfig
   activePipelineId?: string
   onMoveOpportunity: (id: string, newStage: Stage) => void
+  isLoading?: boolean
 }
 
-export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpportunity }: KanbanBoardProps) {
+export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpportunity, isLoading }: KanbanBoardProps) {
   const [activeOpp, setActiveOpp] = useState<Opportunity | null>(null)
   const { can } = useAuth()
   const canCreate = can('pipeline.create')
@@ -532,6 +569,12 @@ export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpp
   const activeColorConfig = STAGE_COLORS[activeStageSettings?.color ?? 'blue']
 
   return (
+    <div className="relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-xl">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
@@ -566,5 +609,6 @@ export function KanbanBoard({ opportunities, config, activePipelineId, onMoveOpp
         )}
       </DragOverlay>
     </DndContext>
+    </div>
   )
 }

@@ -106,7 +106,7 @@ function applyFilters(opps: Opportunity[], filters: PipelineFilters): Opportunit
   return opps.filter((opp) => {
     if (filters.minValue && opp.value < Number(filters.minValue)) return false
     if (filters.maxValue && opp.value > Number(filters.maxValue)) return false
-    if (filters.assignees.length > 0 && !filters.assignees.includes(opp.assignedTo)) return false
+    if (filters.assignees.length > 0 && !filters.assignees.includes(opp.assignedToId ?? '')) return false
     if (filters.minProbability > 0 && opp.probability < filters.minProbability) return false
     return true
   })
@@ -158,13 +158,13 @@ export default function Pipeline() {
     }
   }, [rawPipelines, activePipelineId])
 
-  const { data: dealsRes, isLoading: dealsLoading } = useQuery({
+  const { data: dealsRes, isLoading: dealsLoading, isFetching: dealsFetching } = useQuery({
     queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId],
     queryFn: () => pipelineApi.listDeals({ pipeline: activePipelineId, limit: 200 }),
     enabled: !!activePipelineId,
   })
 
-  const { data: savedViewsRes } = useQuery({
+  const { data: savedViewsRes, isLoading: savedViewsLoading } = useQuery({
     queryKey: PIPELINE_SAVED_VIEWS_QUERY_KEY,
     queryFn: () => pipelineApi.listSavedViews(),
   })
@@ -205,10 +205,7 @@ export default function Pipeline() {
     () =>
       rawPipelines.map((p) => {
         const dealCount = p.id === activePipelineId ? opportunities.length : 0
-        const totalValue = p.id === activePipelineId
-          ? opportunities.reduce((sum, o) => sum + o.value, 0)
-          : 0
-        return mapApiPipelineToPipeline(p, dealCount, totalValue)
+        return mapApiPipelineToPipeline(p, dealCount)
       }),
     [rawPipelines, opportunities, activePipelineId]
   )
@@ -277,6 +274,9 @@ export default function Pipeline() {
   }
 
   const isLoading = pipelinesLoading || (!!activePipelineId && dealsLoading)
+  // Show loading overlay on board/list for initial fetch and after modal mutations (not drag-and-drop)
+  const isDragging = Object.keys(stageOverrides).length > 0
+  const showDealsLoading = !!activePipelineId && (dealsLoading || (dealsFetching && !isDragging))
 
   return (
     <div className="space-y-4">
@@ -304,6 +304,7 @@ export default function Pipeline() {
         filters={filters}
         onFiltersChange={setFilters}
         savedViews={savedViews}
+        savedViewsLoading={savedViewsLoading}
         onSaveView={handleSaveView}
         onLoadView={handleLoadView}
       />
@@ -315,12 +316,14 @@ export default function Pipeline() {
             config={boardConfig}
             activePipelineId={activePipelineId}
             onMoveOpportunity={handleMoveOpportunity}
+            isLoading={showDealsLoading}
           />
         </div>
       ) : (
         <OpportunityList
           opportunities={filteredOpportunities}
           activePipelineId={activePipelineId}
+          isLoading={showDealsLoading}
         />
       )}
 

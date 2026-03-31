@@ -1,17 +1,17 @@
 import { useState } from 'react'
-import { Filter, X, ChevronDown, Bookmark, Plus, Check } from 'lucide-react'
+import { Filter, X, ChevronDown, Bookmark, Plus, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 import type { PipelineFilters, SavedView } from '../typings'
-
-const TEAM_MEMBERS = ['Sarah K.', 'James R.', 'Alex M.', 'Priya T.']
 
 interface PipelineFiltersBarProps {
   filters: PipelineFilters
   onFiltersChange: (f: PipelineFilters) => void
   savedViews: SavedView[]
+  savedViewsLoading?: boolean
   onSaveView: (name: string) => void
   onLoadView: (view: SavedView) => void
 }
@@ -31,9 +31,11 @@ export function PipelineFiltersBar({
   filters,
   onFiltersChange,
   savedViews,
+  savedViewsLoading,
   onSaveView,
   onLoadView,
 }: PipelineFiltersBarProps) {
+  const { users } = useWorkspaceUsers()
   const [open, setOpen] = useState(false)
   const [assigneeOpen, setAssigneeOpen] = useState(false)
   const [viewsOpen, setViewsOpen] = useState(false)
@@ -101,26 +103,30 @@ export function PipelineFiltersBar({
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
             {assigneeOpen && (
-              <div className="absolute top-full left-0 mt-1 w-44 bg-popover border rounded-md shadow-md z-20 p-1">
-                {TEAM_MEMBERS.map((member) => {
-                  const checked = filters.assignees.includes(member)
-                  return (
-                    <button
-                      key={member}
-                      type="button"
-                      onClick={() => toggleAssignee(member)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors"
-                    >
-                      <div className={cn(
-                        'h-4 w-4 rounded border flex items-center justify-center shrink-0',
-                        checked ? 'bg-primary border-primary' : 'border-border'
-                      )}>
-                        {checked && <Check className="h-3 w-3 text-primary-foreground" />}
-                      </div>
-                      {member}
-                    </button>
-                  )
-                })}
+              <div className="absolute top-full left-0 mt-1 w-48 bg-popover border rounded-md shadow-md z-20 p-1">
+                {users.length === 0 ? (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">No users found</p>
+                ) : (
+                  users.map((user) => {
+                    const checked = filters.assignees.includes(user.id)
+                    return (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => toggleAssignee(user.id)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors"
+                      >
+                        <div className={cn(
+                          'h-4 w-4 rounded border flex items-center justify-center shrink-0',
+                          checked ? 'bg-primary border-primary' : 'border-border'
+                        )}>
+                          {checked && <Check className="h-3 w-3 text-primary-foreground" />}
+                        </div>
+                        {user.name}
+                      </button>
+                    )
+                  })
+                )}
               </div>
             )}
           </div>
@@ -188,12 +194,17 @@ export function PipelineFiltersBar({
           variant="outline"
           size="sm"
           className="gap-1.5 h-9"
+          disabled={savedViewsLoading}
           onClick={() => {
             setViewsOpen(!viewsOpen)
             setAssigneeOpen(false)
           }}
         >
-          <Bookmark className="h-3.5 w-3.5" />
+          {savedViewsLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Bookmark className="h-3.5 w-3.5" />
+          )}
           Saved Views
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>

@@ -12,6 +12,8 @@ export interface Contact {
   status: ContactStatus
   tags: string[]
   avatar?: string
+  assignedTo?: string
+  assignedToId?: string
   linkedin?: string
   twitter?: string
   lastContacted?: string

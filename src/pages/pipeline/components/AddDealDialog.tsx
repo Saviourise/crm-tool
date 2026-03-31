@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -25,6 +26,7 @@ import { pipelineApi } from '@/api/pipeline'
 import { FRONTEND_TO_API_STAGE } from '../apiMappers'
 import { invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 import type { Stage } from '../typings'
 
 const PIPELINE_DEALS_QUERY_KEY = ['pipeline', 'deals']
@@ -51,8 +53,10 @@ export function AddDealDialog({
   const [value, setValue] = useState('')
   const [probability, setProbability] = useState('')
   const [notes, setNotes] = useState('')
+  const [assignedToId, setAssignedToId] = useState('')
 
   const queryClient = useQueryClient()
+  const { users, isLoading: usersLoading } = useWorkspaceUsers()
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
@@ -70,6 +74,7 @@ export function AddDealDialog({
           ? closeDate.toISOString().split('T')[0]
           : undefined,
         notes: notes.trim() || undefined,
+        assigned_to: assignedToId || undefined,
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
@@ -90,6 +95,7 @@ export function AddDealDialog({
     setNotes('')
     setCloseDate(undefined)
     setStage((defaultStage as Stage) || 'prospecting')
+    setAssignedToId('')
   }
 
   const handleOpenChange = (next: boolean) => {
@@ -184,6 +190,26 @@ export function AddDealDialog({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="assignee">Assignee</Label>
+              <Select value={assignedToId || 'none'} onValueChange={(v) => setAssignedToId(v === 'none' ? '' : v)} disabled={usersLoading}>
+                <SelectTrigger id="assignee">
+                  {usersLoading ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />Loading...
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Unassigned" />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

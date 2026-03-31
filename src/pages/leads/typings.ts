@@ -15,6 +15,7 @@ export interface Lead {
   score: number
   value?: number
   assignedTo?: string
+  assignedToId?: string
   notes?: string
   lastActivity?: string
   createdAt: string

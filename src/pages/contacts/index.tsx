@@ -16,17 +16,19 @@ export default function Contacts() {
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([])
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string>('all')
+  const [assignedTo, setAssignedTo] = useState<string>('all')
 
   const debouncedSearch = useDebouncedValue(search, 300)
 
   const { data, isLoading } = useQuery({
-    queryKey: [...CONTACTS_QUERY_KEY, pageSize, cursor, debouncedSearch, status],
+    queryKey: [...CONTACTS_QUERY_KEY, pageSize, cursor, debouncedSearch, status, assignedTo],
     queryFn: () =>
       contactsApi.list({
         limit: pageSize,
         cursor,
         search: debouncedSearch.trim() || undefined,
         status: status === 'all' ? undefined : status,
+        assigned_to: assignedTo === 'all' ? undefined : assignedTo,
       }),
   })
 
@@ -83,6 +85,12 @@ export default function Contacts() {
     setCursorStack([])
   }, [])
 
+  const handleAssignedToChange = useCallback((value: string) => {
+    setAssignedTo(value)
+    setCursor(undefined)
+    setCursorStack([])
+  }, [])
+
   const paginationLabel =
     contacts.length === 0
       ? 'No results'
@@ -103,6 +111,8 @@ export default function Contacts() {
         onSearchChange={handleSearchChange}
         status={status}
         onStatusChange={handleStatusChange}
+        assignedTo={assignedTo}
+        onAssignedToChange={handleAssignedToChange}
         serverSide={{
           pageSize,
           onPageSizeChange: handlePageSizeChange,

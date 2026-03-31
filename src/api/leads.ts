@@ -12,7 +12,7 @@ export interface ApiLead {
   source: string
   score: number
   value?: string | null
-  assigned_to?: string | null
+  assigned_to?: { id: string; name: string } | null
   notes?: string | null
   last_activity?: string | null
   created_by?: string | null
