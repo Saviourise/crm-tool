@@ -55,6 +55,15 @@ export interface RevenueForecastResponse {
   forecast: RevenueForecastItem[]
 }
 
+export interface TasksStatsResponse {
+  all: number
+  to_do: number
+  in_progress: number
+  completed: number
+  cancelled: number
+  overdue: number
+}
+
 /** Activity from GET /api/activity/ — API returns array or { results } */
 export interface ApiActivity {
   id: string
@@ -76,6 +85,7 @@ export interface CursorPaginatedResponse<T> {
   results: T[]
   next: string | null
   previous: string | null
+  count?: number
 }
 
 /** Contact list item (minimal for count) */
@@ -143,4 +153,7 @@ export const dashboardApi = {
     const qs = search.toString()
     return api.get<CursorPaginatedResponse<ApiTask>>(`/api/tasks/${qs ? `?${qs}` : ''}`)
   },
+
+  tasksStats: () =>
+    api.get<TasksStatsResponse>('/api/tasks/stats/'),
 }

@@ -15,6 +15,7 @@ import { AddContactDialog } from '@/components/common/AddContactDialog'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { ROUTES } from '@/router/routes'
 import { dashboardApi, getClosedWonValue } from '@/api/dashboard'
+import { contactsApi } from '@/api/contacts'
 import { dashboardQueryKeys, DASHBOARD_PERIOD } from './queryKeys'
 import type { Metric } from './typings'
 import { mapActivityType, mapActivityTitle } from './utils'
@@ -63,14 +64,14 @@ export default function Dashboard() {
     queryFn: () => dashboardApi.activity({ limit: 10 }),
   })
 
-  const { data: contactsData, isLoading: contactsLoading, isFetching: contactsFetching } = useQuery({
+  const { data: contactsStatsData, isLoading: contactsLoading, isFetching: contactsFetching } = useQuery({
     queryKey: dashboardQueryKeys.contactsCount,
-    queryFn: () => dashboardApi.contacts({ page_size: 1000 }),
+    queryFn: () => contactsApi.stats(),
   })
 
-  const { data: tasksData, isLoading: tasksLoading, isFetching: tasksFetching } = useQuery({
+  const { data: tasksStatsData, isLoading: tasksLoading, isFetching: tasksFetching } = useQuery({
     queryKey: dashboardQueryKeys.tasksDue,
-    queryFn: () => dashboardApi.tasks({ status: 'pending', page_size: 1000 }),
+    queryFn: () => dashboardApi.tasksStats(),
   })
 
   const sales = salesData?.data
@@ -81,8 +82,8 @@ export default function Dashboard() {
     if (!d) return []
     return Array.isArray(d) ? d : (d.results ?? [])
   })()
-  const contactsCount = contactsData?.data?.results?.length ?? 0
-  const tasksDueCount = tasksData?.data?.results?.length ?? 0
+  const contactsCount = contactsStatsData?.data?.active ?? 0
+  const tasksDueCount = tasksStatsData?.data?.overdue ?? 0
 
   const openDeals = sales
     ? sales.total_deals - sales.won_deals - sales.lost_deals
