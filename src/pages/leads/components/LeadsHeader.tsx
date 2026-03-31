@@ -9,23 +9,13 @@ interface LeadsHeaderProps {
   total: number
   isLoading?: boolean
   onExport?: () => void | Promise<void>
+  isExporting?: boolean
   onLeadListReload?: () => void | Promise<void>
 }
 
-export function LeadsHeader({ total, isLoading, onExport, onLeadListReload }: LeadsHeaderProps) {
+export function LeadsHeader({ total, isLoading, onExport, isExporting = false, onLeadListReload }: LeadsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
-
-  async function handleExportClick() {
-    if (!onExport) return
-    try {
-      setExporting(true)
-      await onExport()
-    } finally {
-      setExporting(false)
-    }
-  }
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -50,15 +40,15 @@ export function LeadsHeader({ total, isLoading, onExport, onLeadListReload }: Le
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportClick}
-            disabled={exporting}
+            onClick={() => { void onExport?.() }}
+            disabled={isExporting || !onExport}
           >
-            {exporting ? (
+            {isExporting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}
-            {exporting ? 'Exporting…' : 'Export'}
+            {isExporting ? 'Exporting…' : 'Export'}
           </Button>
         )}
         {can('leads.create') && (

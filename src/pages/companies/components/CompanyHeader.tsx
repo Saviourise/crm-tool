@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Upload, Download, Plus, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { AddCompanyDialog } from '@/components/common/AddCompanyDialog'
 import { CSVImportDialog } from '@/components/common/CSVImportDialog'
 import { useAuth } from '@/auth/context'
 import { companiesApi } from '@/api/companies'
+import { useCsvExport } from '@/hooks/useCsvExport'
 
 interface CompanyHeaderProps {
   total: number
@@ -15,26 +15,15 @@ interface CompanyHeaderProps {
 
 export function CompanyHeader({ total, isLoading, onCompanyListReload }: CompanyHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
-
-  async function handleExport() {
-    try {
-      setExporting(true)
-      const { data } = await companiesApi.export()
-      const url = URL.createObjectURL(data)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `companies-export-${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('Companies exported', { description: 'Your companies have been exported as CSV.' })
-    } catch {
-      toast.error('Export failed', { description: 'Failed to export companies.' })
-    } finally {
-      setExporting(false)
-    }
-  }
+  const { exportCsv, isExporting } = useCsvExport({
+    request: () => companiesApi.export(),
+    filename: () => `companies-export-${new Date().toISOString().slice(0, 10)}.csv`,
+    successTitle: 'Companies exported',
+    successDescription: 'Your companies have been exported as CSV.',
+    errorTitle: 'Export failed',
+    errorDescription: 'Failed to export companies.',
+  })
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -55,15 +44,15 @@ export function CompanyHeader({ total, isLoading, onCompanyListReload }: Company
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExport}
-            disabled={exporting}
+            onClick={exportCsv}
+            disabled={isExporting}
           >
-            {exporting ? (
+            {isExporting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}
-            {exporting ? 'Exporting…' : 'Export'}
+            {isExporting ? 'Exporting…' : 'Export'}
           </Button>
         )}
         {can('companies.create') && (

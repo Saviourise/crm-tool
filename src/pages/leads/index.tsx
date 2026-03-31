@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { leadsApi } from '@/api/leads'
 import { mapApiLeadToLead } from './apiMappers'
 import { LeadsHeader } from './components/LeadsHeader'
@@ -8,6 +7,7 @@ import { LeadsStats } from './components/LeadsStats'
 import { LeadsTable } from './components/LeadsTable'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
+import { useCsvExport } from '@/hooks/useCsvExport'
 
 export const LEADS_QUERY_KEY = ['leads']
 
@@ -73,25 +73,18 @@ export default function Leads() {
     resetPagination()
   }, [resetPagination])
 
-  const handleExport = useCallback(async () => {
-    try {
-      const res = await leadsApi.export({
-        status: status === 'all' ? undefined : status,
-        source: source === 'all' ? undefined : source,
-        search: debouncedSearch.trim() || undefined,
-      })
-      const blob = res.data as unknown as Blob
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'leads.csv'
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('Leads exported', { description: 'Your leads have been exported as CSV.' })
-    } catch {
-      toast.error('Export failed', { description: 'Please try again.' })
-    }
-  }, [status, source, debouncedSearch])
+  const { exportCsv: handleExport, isExporting } = useCsvExport({
+    request: () => leadsApi.export({
+      status: status === 'all' ? undefined : status,
+      source: source === 'all' ? undefined : source,
+      search: debouncedSearch.trim() || undefined,
+    }),
+    filename: 'leads.csv',
+    successTitle: 'Leads exported',
+    successDescription: 'Your leads have been exported as CSV.',
+    errorTitle: 'Export failed',
+    errorDescription: 'Please try again.',
+  })
 
   const paginationLabel =
     leads.length === 0
@@ -104,6 +97,7 @@ export default function Leads() {
         total={totalCount}
         isLoading={listBusy}
         onExport={handleExport}
+        isExporting={isExporting}
         onLeadListReload={handleLeadListReload}
       />
       <LeadsStats isLoading={listBusy} />

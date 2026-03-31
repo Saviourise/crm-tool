@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Upload, Download, Plus, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { AddContactDialog } from '@/components/common/AddContactDialog'
 import { CSVImportDialog } from '@/components/common/CSVImportDialog'
 import { useAuth } from '@/auth/context'
 import { contactsApi } from '@/api/contacts'
+import { useCsvExport } from '@/hooks/useCsvExport'
 
 interface ContactsHeaderProps {
   total: number
@@ -15,26 +15,15 @@ interface ContactsHeaderProps {
 
 export function ContactsHeader({ total, isLoading, onContactListReload }: ContactsHeaderProps) {
   const [importOpen, setImportOpen] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const { can, hasPlan } = useAuth()
-
-  async function handleExport() {
-    try {
-      setExporting(true)
-      const { data } = await contactsApi.export()
-      const url = URL.createObjectURL(data)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `contacts-export-${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('Contacts exported', { description: 'Your contacts have been exported as CSV.' })
-    } catch {
-      toast.error('Export failed', { description: 'Failed to export contacts.' })
-    } finally {
-      setExporting(false)
-    }
-  }
+  const { exportCsv, isExporting } = useCsvExport({
+    request: () => contactsApi.export(),
+    filename: () => `contacts-export-${new Date().toISOString().slice(0, 10)}.csv`,
+    successTitle: 'Contacts exported',
+    successDescription: 'Your contacts have been exported as CSV.',
+    errorTitle: 'Export failed',
+    errorDescription: 'Failed to export contacts.',
+  })
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -59,15 +48,15 @@ export function ContactsHeader({ total, isLoading, onContactListReload }: Contac
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExport}
-            disabled={exporting}
+            onClick={exportCsv}
+            disabled={isExporting}
           >
-            {exporting ? (
+            {isExporting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}
-            {exporting ? 'Exporting…' : 'Export'}
+            {isExporting ? 'Exporting…' : 'Export'}
           </Button>
         )}
         {can('contacts.create') && (
