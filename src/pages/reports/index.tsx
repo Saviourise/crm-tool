@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useCsvExport } from '@/hooks/useCsvExport'
 import { SalesPerformance } from './components/SalesPerformance'
 import { LeadAnalytics } from './components/LeadAnalytics'
 import { RevenueForecast } from './components/RevenueForecast'
@@ -94,20 +95,22 @@ function buildCSVForTab(activeTab: ReportTab): string {
   return rows.join('\n')
 }
 
-function exportCSV(activeTab: ReportTab) {
+function buildCSVBlob(activeTab: ReportTab): Blob {
   const csv = buildCSVForTab(activeTab)
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${activeTab}-report.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  return new Blob([csv], { type: 'text/csv' })
 }
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState<ReportTab>('sales')
   const { can } = useAuth()
+  const { exportCsv, isExporting } = useCsvExport({
+    request: () => buildCSVBlob(activeTab),
+    filename: () => `${activeTab}-report.csv`,
+    successTitle: 'Report exported',
+    successDescription: 'Your CSV report has been downloaded.',
+    errorTitle: 'Export failed',
+    errorDescription: 'Unable to export report CSV.',
+  })
 
   return (
     <RequireFeature feature="reports">
@@ -134,9 +137,9 @@ export default function Reports() {
                 <FileText className="h-4 w-4 mr-2" />
                 Export PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportCSV(activeTab)}>
+              <DropdownMenuItem onClick={() => { void exportCsv() }} disabled={isExporting}>
                 <Table2 className="h-4 w-4 mr-2" />
-                Export CSV
+                {isExporting ? 'Exporting CSV…' : 'Export CSV'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -6,12 +6,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { useCsvExport } from '@/hooks/useCsvExport'
 import { MOCK_AUDIT_LOG } from '../data'
 import type { AuditEntry, AuditAction } from '../typings'
 
 // ─── CSV Export ────────────────────────────────────────────────────────────────
 
-function exportCSV(entries: AuditEntry[]) {
+function buildAuditCsvBlob(entries: AuditEntry[]): Blob {
   const headers = ['Timestamp', 'User', 'Action', 'Entity Type', 'Entity Name', 'IP', 'Details']
   const rows = entries.map((e) => [
     e.timestamp, e.user, e.action, e.entityType, e.entityName, e.ip, e.details,
@@ -19,13 +20,7 @@ function exportCSV(entries: AuditEntry[]) {
   const csv = [headers, ...rows]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
     .join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = 'audit-log.csv'
-  a.click()
-  URL.revokeObjectURL(url)
+  return new Blob([csv], { type: 'text/csv' })
 }
 
 // ─── Action badge ──────────────────────────────────────────────────────────────
@@ -107,6 +102,14 @@ export function AuditLogSection() {
   const pageEntries = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
   const startIdx    = (safePage - 1) * PAGE_SIZE + 1
   const endIdx      = Math.min(safePage * PAGE_SIZE, filtered.length)
+  const { exportCsv, isExporting } = useCsvExport({
+    request: () => buildAuditCsvBlob(filtered),
+    filename: 'audit-log.csv',
+    successTitle: 'Audit log exported',
+    successDescription: 'Your audit log CSV has been downloaded.',
+    errorTitle: 'Export failed',
+    errorDescription: 'Unable to export audit log.',
+  })
 
   return (
     <div className="space-y-6">
@@ -117,10 +120,11 @@ export function AuditLogSection() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => exportCSV(filtered)}
+              onClick={() => { void exportCsv() }}
+              disabled={isExporting}
             >
               <Download className="h-4 w-4 mr-1.5" />
-              Export Log
+              {isExporting ? 'Exporting…' : 'Export Log'}
             </Button>
           </div>
         </CardHeader>

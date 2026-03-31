@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
+type ExportRequestResult = Blob | { data: Blob }
+
 interface UseCsvExportOptions {
-  request: () => Promise<{ data: Blob }>
+  request: () => Promise<ExportRequestResult> | ExportRequestResult
   filename: string | (() => string)
   successTitle: string
   successDescription: string
@@ -19,6 +21,10 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function resolveBlob(result: ExportRequestResult): Blob {
+  return result instanceof Blob ? result : result.data
+}
+
 export function useCsvExport({
   request,
   filename,
@@ -32,7 +38,8 @@ export function useCsvExport({
   const exportCsv = useCallback(async () => {
     try {
       setIsExporting(true)
-      const { data } = await request()
+      const response = await request()
+      const data = resolveBlob(response)
       const name = typeof filename === 'function' ? filename() : filename
       downloadBlob(data, name)
       toast.success(successTitle, { description: successDescription })
