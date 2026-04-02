@@ -17,6 +17,7 @@ const statusStyles: Record<LeadStatus, string> = {
   qualified: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
   unqualified: 'bg-muted text-muted-foreground border-border',
   converted: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800',
+  lost: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800',
 }
 
 const statusLabels: Record<LeadStatus, string> = {
@@ -25,6 +26,7 @@ const statusLabels: Record<LeadStatus, string> = {
   qualified: 'Qualified',
   unqualified: 'Unqualified',
   converted: 'Converted',
+  lost: 'Lost',
 }
 
 const sourceLabels: Record<string, string> = {
@@ -42,15 +44,15 @@ function ScoreCircle({ score }: { score: number }) {
     score >= 70
       ? 'border-emerald-500'
       : score >= 40
-      ? 'border-amber-500'
-      : 'border-red-500'
+        ? 'border-amber-500'
+        : 'border-red-500'
 
   const textColor =
     score >= 70
       ? 'text-emerald-600 dark:text-emerald-400'
       : score >= 40
-      ? 'text-amber-600 dark:text-amber-400'
-      : 'text-red-600 dark:text-red-400'
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-red-600 dark:text-red-400'
 
   return (
     <div

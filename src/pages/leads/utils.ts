@@ -8,8 +8,9 @@ export const getLeadStatusColor = (status: LeadStatus): string => {
     qualified: 'green',
     unqualified: 'red',
     converted: 'green',
+    lost: 'red',
   }
-  return colors[status]
+  return colors[status as keyof typeof colors]
 }
 
 export const calculateLeadScore = (lead: Lead): number => {

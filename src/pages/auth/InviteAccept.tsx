@@ -74,7 +74,7 @@ export default function InviteAccept() {
     if (!validate()) return
     setLoading(true)
     setErrors({})
-    const result = await acceptInvite(token, fullName.trim(), password)
+    const result = await acceptInvite(token ?? '', fullName.trim(), password)
     setLoading(false)
     if (result.success) {
       toast.success('Invitation accepted!')

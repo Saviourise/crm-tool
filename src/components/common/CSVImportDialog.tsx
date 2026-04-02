@@ -299,8 +299,8 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
     if (file) {
       const apiModule =
         entity === 'contacts' ? contactsApi
-        : entity === 'companies' ? companiesApi
-        : leadsApi
+          : entity === 'companies' ? companiesApi
+            : leadsApi
       const entityLabel = entity
       progressCleanup = runProgressBar(95)
       try {
@@ -309,7 +309,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
         progressCleanup?.()
         const syncImported = 'imported' in data ? (data as { imported: number }).imported
           : 'created' in data ? data.created
-          : null
+            : null
         if (syncImported !== null) {
           const rawErrors = (data as { errors?: Array<{ row?: number; reason?: string }> }).errors ?? []
           const skipped = (data as { skipped?: number }).skipped ?? 0
@@ -328,7 +328,7 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
           toast.success('Import complete', {
             description: `${syncImported} ${entityLabel} imported successfully.`,
           })
-        } else if (data?.task_id) {
+        } else if ('task_id' in data && data.task_id) {
           progressCleanup = runProgressBar(99)
           await pollImportStatus(data.task_id, entity)
           progressCleanup?.()
@@ -350,7 +350,6 @@ export function CSVImportDialog({ open, onOpenChange, entity }: CSVImportDialogP
     }
   }
 
-  const totalRows = csvRows.length
   const importedRows = importResult?.imported ?? 0
   const skippedRows = importResult?.skipped ?? 0
 

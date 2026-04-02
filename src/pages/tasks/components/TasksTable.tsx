@@ -60,7 +60,7 @@ import type { Task, TaskPriority, TaskStatus } from '../typings'
 import { PRIORITY_CONFIG, STATUS_CONFIG, CATEGORY_ICONS, isOverdue } from '../utils'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '../data'
 import { TASKS_QUERY_KEY, TASKS_STATS_QUERY_KEY } from '../queryKeys'
-import { FRONTEND_TO_API_STATUS, FRONTEND_TO_API_CATEGORY } from '../apiMappers'
+import { FRONTEND_TO_API_STATUS } from '../apiMappers'
 
 // ─── Cache invalidation hook ──────────────────────────────────────────────────
 
@@ -105,10 +105,10 @@ function EditTaskDialog({
         description: description.trim() || undefined,
         priority,
         status: FRONTEND_TO_API_STATUS[status],
-        due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
+        due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined,
         assigned_to: assignedToId === 'unassigned' ? null : assignedToId,
-        related_type: relatedTo?.type ?? null,
-        related_id: relatedTo?.id ?? null,
+        related_type: relatedTo?.type,
+        related_id: relatedTo?.id,
       }),
     onSuccess: (res) => {
       patchTasksListCaches(queryClient, task.id, res.data)
@@ -210,7 +210,7 @@ function EditTaskDialog({
                   ) : (
                     <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   )}
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide mr-1 capitalize">
+                  <span className="text-xs text-muted-foreground font-medium tracking-wide mr-1 capitalize">
                     {relatedTo.type}
                   </span>
                   <span className="font-medium truncate flex-1">{relatedTo.name}</span>
@@ -452,8 +452,8 @@ function buildColumns(
                       task.relatedTo.type === 'contact'
                         ? ROUTES.CONTACT_DETAIL(task.relatedTo.id)
                         : task.relatedTo.type === 'lead'
-                        ? ROUTES.LEAD_DETAIL(task.relatedTo.id)
-                        : ROUTES.DEAL_DETAIL(task.relatedTo.id)
+                          ? ROUTES.LEAD_DETAIL(task.relatedTo.id)
+                          : ROUTES.DEAL_DETAIL(task.relatedTo.id)
                     }
                     className="hover:text-foreground hover:underline"
                     onClick={(e) => e.stopPropagation()}
@@ -627,7 +627,7 @@ export function TasksTable({
           tasksApi.update(id, { status: FRONTEND_TO_API_STATUS[newStatus] })
         )
       ),
-    onSuccess: (_, newStatus) => {
+    onSuccess: () => {
       toast.success(`${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''} updated`)
       invalidate()
       clearSelection()
