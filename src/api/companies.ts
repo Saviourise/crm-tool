@@ -119,7 +119,7 @@ export const companiesApi = {
     ),
 
   deals: (id: string) =>
-    api.get<{ results: Array<{ id: string; name: string; stage: string; value: number; expected_close_date?: string }> }>(
+    api.get<Array<{ id: string; name: string; stage: string; value: string | number; expected_close_date?: string }>>(
       `/api/companies/${id}/deals/`
     ),
 }

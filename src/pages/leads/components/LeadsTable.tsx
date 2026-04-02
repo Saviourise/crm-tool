@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Mail, Phone, Trash2, Pencil, CheckSquare, Clock, ArrowRightLeft, UserCheck, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -44,6 +45,7 @@ import { ROUTES } from '@/router/routes'
 import { useAuth } from '@/auth/context'
 import { leadsApi } from '@/api/leads'
 import { companiesApi } from '@/api/companies'
+import { pipelineApi } from '@/api/pipeline'
 import { SOURCE_UI_TO_API } from '../apiMappers'
 import { dashboardQueryKeys, invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { LEADS_QUERY_KEY } from '../index'
@@ -276,9 +278,28 @@ function ConvertLeadDialog({ lead, open, onOpenChange }: {
   onOpenChange: (open: boolean) => void
 }) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [createDeal, setCreateDeal] = useState(false)
+  const [dealName, setDealName] = useState(`${lead.firstName} ${lead.lastName} — Deal`)
+  const [dealValue, setDealValue] = useState('')
+  const [pipelineId, setPipelineId] = useState('')
+
+  const { data: pipelinesData } = useQuery({
+    queryKey: ['pipelines'],
+    queryFn: () => pipelineApi.listPipelines(),
+    enabled: open && createDeal,
+    staleTime: 5 * 60 * 1000,
+  })
+  const pipelines = pipelinesData?.data ?? []
 
   const convertLead = useMutation({
-    mutationFn: () => leadsApi.convert(lead.id),
+    mutationFn: () =>
+      leadsApi.convert(lead.id, {
+        create_deal: createDeal,
+        deal_name: createDeal && dealName.trim() ? dealName.trim() : undefined,
+        deal_value: createDeal && dealValue ? dealValue : undefined,
+        pipeline_id: createDeal && pipelineId ? pipelineId : undefined,
+      }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
@@ -288,6 +309,9 @@ function ConvertLeadDialog({ lead, open, onOpenChange }: {
         description: `${lead.firstName} ${lead.lastName} has been added to Contacts.${res.data.deal_id ? ' Deal created.' : ''}`,
       })
       onOpenChange(false)
+      if (res.data.deal_id) {
+        navigate(ROUTES.DEAL_DETAIL(res.data.deal_id))
+      }
     },
     onError: () => {
       toast.error('Failed to convert lead', { description: 'Please try again.' })
@@ -296,15 +320,65 @@ function ConvertLeadDialog({ lead, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle>Convert to Contact</DialogTitle>
           <DialogDescription>
             This will create a contact record for <strong>{lead.firstName} {lead.lastName}</strong> and mark this lead as converted.
           </DialogDescription>
         </DialogHeader>
+        <div className="py-3 space-y-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <Checkbox
+              checked={createDeal}
+              onCheckedChange={(v) => setCreateDeal(!!v)}
+            />
+            <span className="text-sm font-medium">Also create a deal</span>
+          </label>
+          {createDeal && (
+            <div className="space-y-3 pl-7">
+              <div className="grid gap-1.5">
+                <Label htmlFor="deal-name">Deal Name</Label>
+                <Input
+                  id="deal-name"
+                  value={dealName}
+                  onChange={(e) => setDealName(e.target.value)}
+                  placeholder="Deal name"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="deal-value">Deal Value</Label>
+                <Input
+                  id="deal-value"
+                  type="number"
+                  min="0"
+                  value={dealValue}
+                  onChange={(e) => setDealValue(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              {pipelines.length > 0 && (
+                <div className="grid gap-1.5">
+                  <Label>Pipeline</Label>
+                  <Select value={pipelineId} onValueChange={setPipelineId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select pipeline (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pipelines.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={convertLead.isPending}>
+            Cancel
+          </Button>
           <Button onClick={() => convertLead.mutate()} disabled={convertLead.isPending}>
             {convertLead.isPending
               ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -438,7 +512,13 @@ function LeadRowActions({ lead }: { lead: Lead }) {
       <EditLeadDialog lead={lead} open={editOpen} onOpenChange={setEditOpen} />
       <ConvertLeadDialog lead={lead} open={convertOpen} onOpenChange={setConvertOpen} />
       <DeleteLeadDialog lead={lead} open={deleteOpen} onOpenChange={setDeleteOpen} />
-      <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+      <NewTaskDialog
+        open={taskOpen}
+        onOpenChange={setTaskOpen}
+        relatedType="lead"
+        relatedId={lead.id}
+        relatedName={`${lead.firstName} ${lead.lastName}`}
+      />
       <LogActivityDialog
         open={logOpen}
         onOpenChange={setLogOpen}

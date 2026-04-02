@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns'
 import { Phone, Mail, Users, RefreshCw, Monitor, FileText, Tag } from 'lucide-react'
 import type { TaskPriority, TaskStatus, TaskCategory } from './typings'
 
@@ -53,9 +54,13 @@ export const CATEGORY_ICONS: Record<TaskCategory, React.ElementType> = {
   other: Tag,
 }
 
-// Returns true if due date string is in the past and task is not done
+// Returns true if due date (ISO string YYYY-MM-DD) is in the past and task is not done
 export function isOverdue(dueDate?: string, status?: string): boolean {
   if (!dueDate || status === 'completed' || status === 'cancelled') return false
-  const parsed = new Date(dueDate)
-  return !isNaN(parsed.getTime()) && parsed < new Date()
+  try {
+    const parsed = parseISO(dueDate)
+    return !isNaN(parsed.getTime()) && parsed < new Date()
+  } catch {
+    return false
+  }
 }

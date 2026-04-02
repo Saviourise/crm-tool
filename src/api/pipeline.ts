@@ -70,6 +70,8 @@ export interface CreateDealRequest {
   expected_close_date?: string
   notes?: string
   assigned_to?: string
+  company?: string
+  contact?: string
 }
 
 export interface UpdateDealRequest {

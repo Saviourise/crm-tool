@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/common/DatePicker'
 import { pipelineApi } from '@/api/pipeline'
+import { companiesApi } from '@/api/companies'
+import { contactsApi } from '@/api/contacts'
 import { FRONTEND_TO_API_STAGE } from '../apiMappers'
 import { invalidateDashboardPipelineMetrics } from '@/pages/dashboard/queryKeys'
 import { PIPELINE_STAGES, STAGE_CONFIG } from '../data'
@@ -53,6 +55,8 @@ export function AddDealDialog({
   const [probability, setProbability] = useState('')
   const [notes, setNotes] = useState('')
   const [assignedToId, setAssignedToId] = useState('')
+  const [companyId, setCompanyId] = useState('')
+  const [contactId, setContactId] = useState('')
 
   const queryClient = useQueryClient()
   const { users, isLoading: usersLoading } = useWorkspaceUsers()
@@ -60,6 +64,25 @@ export function AddDealDialog({
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen
+
+  const { data: companiesData } = useQuery({
+    queryKey: ['companies-list-picker'],
+    queryFn: () => companiesApi.list({ limit: 200 }),
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  })
+  const companies = companiesData?.data?.results ?? []
+
+  const { data: contactsData } = useQuery({
+    queryKey: ['contacts-list-picker'],
+    queryFn: () => contactsApi.list({ limit: 200 }),
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  })
+  const contacts = (contactsData?.data?.results ?? []).map((c) => ({
+    id: c.id,
+    name: `${c.first_name} ${c.last_name}`,
+  }))
 
   const createDeal = useMutation({
     mutationFn: () =>
@@ -74,6 +97,8 @@ export function AddDealDialog({
           : undefined,
         notes: notes.trim() || undefined,
         assigned_to: assignedToId || undefined,
+        company: companyId || undefined,
+        contact: contactId || undefined,
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
@@ -95,6 +120,8 @@ export function AddDealDialog({
     setCloseDate(undefined)
     setStage((defaultStage as Stage) || 'prospecting')
     setAssignedToId('')
+    setCompanyId('')
+    setContactId('')
   }
 
   const handleOpenChange = (next: boolean) => {
@@ -189,6 +216,36 @@ export function AddDealDialog({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Company</Label>
+                <Select value={companyId || 'none'} onValueChange={(v) => setCompanyId(v === 'none' ? '' : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Contact</Label>
+                <Select value={contactId || 'none'} onValueChange={(v) => setContactId(v === 'none' ? '' : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="assignee">Assignee</Label>

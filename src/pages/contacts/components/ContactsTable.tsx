@@ -341,7 +341,13 @@ function ContactRowActions({ contact }: { contact: Contact }) {
 
       <EditContactDialog contact={contact} open={editOpen} onOpenChange={setEditOpen} />
       <DeleteConfirmDialog contact={contact} open={deleteOpen} onOpenChange={setDeleteOpen} />
-      <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+      <NewTaskDialog
+        open={taskOpen}
+        onOpenChange={setTaskOpen}
+        relatedType="contact"
+        relatedId={contact.id}
+        relatedName={`${contact.firstName} ${contact.lastName}`}
+      />
       <LogActivityDialog
         open={logOpen}
         onOpenChange={setLogOpen}

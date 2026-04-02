@@ -125,7 +125,13 @@ function OpportunityRowActions({ opportunity }: { opportunity: Opportunity }) {
       </div>
 
       <DeleteDealDialog opportunity={opportunity} open={deleteOpen} onOpenChange={setDeleteOpen} />
-      <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+      <NewTaskDialog
+        open={taskOpen}
+        onOpenChange={setTaskOpen}
+        relatedType="deal"
+        relatedId={opportunity.id}
+        relatedName={opportunity.name}
+      />
       <LogActivityDialog open={logOpen} onOpenChange={setLogOpen} entityName={opportunity.name} dealId={opportunity.id} />
     </>
   )

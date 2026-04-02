@@ -1,7 +1,9 @@
 import { User, Calendar, Building2, TrendingUp, Clock } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { ROUTES } from '@/router/routes'
 import { STAGE_CONFIG } from '../../data'
 import type { Opportunity } from '../../typings'
 
@@ -57,11 +59,23 @@ export function DealProfileCard({ opportunity }: DealProfileCardProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-border">
             <div className="flex items-center gap-2.5 text-sm">
               <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span>{opportunity.company}</span>
+              {opportunity.companyId ? (
+                <Link to={ROUTES.COMPANY_DETAIL(opportunity.companyId)} className="hover:text-primary hover:underline">
+                  {opportunity.company}
+                </Link>
+              ) : (
+                <span>{opportunity.company}</span>
+              )}
             </div>
             <div className="flex items-center gap-2.5 text-sm">
               <User className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span>Contact: <span className="font-medium">{opportunity.contact}</span></span>
+              <span>Contact: {opportunity.contactId ? (
+                <Link to={ROUTES.CONTACT_DETAIL(opportunity.contactId)} className="font-medium hover:text-primary hover:underline">
+                  {opportunity.contact}
+                </Link>
+              ) : (
+                <span className="font-medium">{opportunity.contact}</span>
+              )}</span>
             </div>
             <div className="flex items-center gap-2.5 text-sm">
               <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />

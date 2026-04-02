@@ -1,5 +1,6 @@
 import { Mail, Phone, User, Calendar, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { ROUTES } from '@/router/routes'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -99,7 +100,11 @@ export function LeadProfileCard({ lead }: LeadProfileCardProps) {
                 <p className="text-muted-foreground text-sm mb-3">
                   {lead.position}
                   {lead.position && lead.company ? ' at ' : ''}
-                  {lead.company}
+                  {lead.companyId ? (
+                    <Link to={ROUTES.COMPANY_DETAIL(lead.companyId)} className="hover:text-foreground hover:underline">
+                      {lead.company}
+                    </Link>
+                  ) : lead.company}
                 </p>
               )}
             </div>

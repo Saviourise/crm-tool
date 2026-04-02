@@ -1,11 +1,16 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { contactsApi } from '@/api/contacts'
+import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 
 interface RelatedTasksProps {
   contactId: string
+  contactName?: string
 }
 
 const priorityStyles: Record<string, string> = {
@@ -42,7 +47,9 @@ function formatDueDate(iso?: string): string {
   }
 }
 
-export function RelatedTasks({ contactId }: RelatedTasksProps) {
+export function RelatedTasks({ contactId, contactName }: RelatedTasksProps) {
+  const [newTaskOpen, setNewTaskOpen] = useState(false)
+
   const { data, isLoading } = useQuery({
     queryKey: ['contacts', contactId, 'tasks'],
     queryFn: () => contactsApi.tasks(contactId),
@@ -52,9 +59,21 @@ export function RelatedTasks({ contactId }: RelatedTasksProps) {
   const tasks = data?.data?.results ?? []
 
   return (
+    <>
     <Card>
       <CardContent className="pt-6">
-        <h3 className="font-semibold text-sm mb-4">Related Tasks</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-sm">Related Tasks</h3>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs gap-1"
+            onClick={() => setNewTaskOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Task
+          </Button>
+        </div>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
@@ -91,5 +110,13 @@ export function RelatedTasks({ contactId }: RelatedTasksProps) {
         )}
       </CardContent>
     </Card>
+    <NewTaskDialog
+      open={newTaskOpen}
+      onOpenChange={setNewTaskOpen}
+      relatedType="contact"
+      relatedId={contactId}
+      relatedName={contactName}
+    />
+    </>
   )
 }

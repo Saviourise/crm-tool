@@ -93,7 +93,7 @@ export default function ContactDetail() {
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <RelatedDeals contactId={contact.id} />
-            <RelatedTasks contactId={contact.id} />
+            <RelatedTasks contactId={contact.id} contactName={`${contact.firstName} ${contact.lastName}`} />
           </div>
         </div>
       )}
@@ -106,7 +106,7 @@ export default function ContactDetail() {
       )}
 
       {activeTab === 'tasks' && (
-        <RelatedTasks contactId={contact.id} />
+        <RelatedTasks contactId={contact.id} contactName={`${contact.firstName} ${contact.lastName}`} />
       )}
 
       {activeTab === 'deals' && (

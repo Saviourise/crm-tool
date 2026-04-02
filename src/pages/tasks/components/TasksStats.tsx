@@ -1,23 +1,24 @@
+import { useQuery } from '@tanstack/react-query'
 import { CheckSquare, Circle, Clock, AlertTriangle, Ban } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { isOverdue } from '../utils'
-import type { Task } from '../typings'
+import { tasksApi } from '@/api/tasks'
+import { TASKS_STATS_QUERY_KEY } from '../queryKeys'
 
-export function TasksStats({ tasks }: { tasks: Task[] }) {
-  const todo = tasks.filter((t) => t.status === 'todo').length
-  const inProgress = tasks.filter((t) => t.status === 'in-progress').length
-  const completed = tasks.filter((t) => t.status === 'completed').length
-  const overdue = tasks.filter((t) => isOverdue(t.dueDate, t.status)).length
-  const cancelled = tasks.filter((t) => t.status === 'cancelled').length
-  const completionRate = tasks.length > 0
-    ? Math.round((completed / tasks.length) * 100)
-    : 0
+export function TasksStats() {
+  const { data } = useQuery({
+    queryKey: TASKS_STATS_QUERY_KEY,
+    queryFn: () => tasksApi.stats(),
+  })
+
+  const s = data?.data
+  const all = s?.all ?? 0
+  const completionRate = all > 0 ? Math.round(((s?.completed ?? 0) / all) * 100) : 0
 
   const stats = [
     {
       label: 'To Do',
-      value: String(todo),
+      value: s?.to_do ?? 0,
       icon: Circle,
       bg: 'bg-muted',
       text: 'text-muted-foreground',
@@ -25,7 +26,7 @@ export function TasksStats({ tasks }: { tasks: Task[] }) {
     },
     {
       label: 'In Progress',
-      value: String(inProgress),
+      value: s?.in_progress ?? 0,
       icon: Clock,
       bg: 'bg-[oklch(var(--metric-blue))]',
       text: 'text-primary',
@@ -33,7 +34,7 @@ export function TasksStats({ tasks }: { tasks: Task[] }) {
     },
     {
       label: 'Completed',
-      value: String(completed),
+      value: s?.completed ?? 0,
       sub: `${completionRate}% rate`,
       icon: CheckSquare,
       bg: 'bg-[oklch(var(--metric-green))]',
@@ -42,7 +43,7 @@ export function TasksStats({ tasks }: { tasks: Task[] }) {
     },
     {
       label: 'Overdue',
-      value: String(overdue),
+      value: s?.overdue ?? 0,
       icon: AlertTriangle,
       bg: 'bg-[oklch(var(--metric-red))]',
       text: 'text-destructive',
@@ -50,7 +51,7 @@ export function TasksStats({ tasks }: { tasks: Task[] }) {
     },
     {
       label: 'Cancelled',
-      value: String(cancelled),
+      value: s?.cancelled ?? 0,
       icon: Ban,
       bg: 'bg-muted',
       text: 'text-muted-foreground',

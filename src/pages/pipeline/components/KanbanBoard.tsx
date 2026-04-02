@@ -403,7 +403,13 @@ function DealCardContent({
         <>
           <EditDealDialog opportunity={opportunity} open={editOpen} onOpenChange={setEditOpen} />
           <DeleteDealDialog opportunity={opportunity} open={deleteOpen} onOpenChange={setDeleteOpen} />
-          <NewTaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
+          <NewTaskDialog
+            open={taskOpen}
+            onOpenChange={setTaskOpen}
+            relatedType="deal"
+            relatedId={opportunity.id}
+            relatedName={opportunity.name}
+          />
           <LogActivityDialog open={logOpen} onOpenChange={setLogOpen} entityName={opportunity.name} dealId={opportunity.id} />
         </>
       )}

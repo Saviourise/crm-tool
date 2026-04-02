@@ -175,4 +175,9 @@ export const leadsApi = {
 
   bulkDelete: (ids: string[]) =>
     api.post<{ deleted: number }>('/api/leads/bulk-delete/', { ids }),
+
+  tasks: (id: string) =>
+    api.get<{ results: Array<{ id: string; title: string; priority: string; status: string; due_date?: string | null }> }>(
+      `/api/leads/${id}/tasks/`
+    ),
 }

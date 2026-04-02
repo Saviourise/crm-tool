@@ -9,8 +9,10 @@ export interface Task {
   priority: TaskPriority
   status: TaskStatus
   category: TaskCategory
+  /** ISO date string (YYYY-MM-DD) — format for display in the column cell */
   dueDate?: string
   assignedTo: string
+  assignedToId?: string
   relatedTo?: {
     type: 'contact' | 'lead' | 'deal'
     id: string

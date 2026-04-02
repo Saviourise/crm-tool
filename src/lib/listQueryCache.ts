@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { ApiContact } from '@/api/contacts'
 import type { ApiCompany } from '@/api/companies'
 import type { ApiLead } from '@/api/leads'
+import type { ApiTask } from '@/api/tasks'
 
 type ListBody<T> = {
   results?: T[]
@@ -42,6 +43,12 @@ export function patchCompaniesListCaches(queryClient: QueryClient, id: string, a
 
 export function patchLeadsListCaches(queryClient: QueryClient, id: string, api: ApiLead) {
   queryClient.setQueriesData({ queryKey: ['leads'], exact: false }, (old) =>
+    patchListItem(old, id, api)
+  )
+}
+
+export function patchTasksListCaches(queryClient: QueryClient, id: string, api: ApiTask) {
+  queryClient.setQueriesData({ queryKey: ['tasks'], exact: false }, (old) =>
     patchListItem(old, id, api)
   )
 }

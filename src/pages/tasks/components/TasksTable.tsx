@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { format, parseISO } from 'date-fns'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   MoreHorizontal,
@@ -11,6 +14,7 @@ import {
   Briefcase,
   Target,
   User,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -42,13 +46,32 @@ import {
 } from '@/components/ui/select'
 import { DataTable } from '@/components/common/DataTable'
 import { BulkSelectionBar } from '@/components/common/BulkSelectionBar'
+import { BulkDeleteConfirmDialog } from '@/components/common/BulkDeleteConfirmDialog'
 import { DatePicker } from '@/components/common/DatePicker'
 import { LogActivityDialog } from '@/components/common/LogActivityDialog'
 import { cn } from '@/lib/utils'
+import { tasksApi } from '@/api/tasks'
+import { patchTasksListCaches } from '@/lib/listQueryCache'
+import { ROUTES } from '@/router/routes'
+import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
+import { useAuth } from '@/auth/context'
+import { dashboardQueryKeys } from '@/pages/dashboard/queryKeys'
 import type { Task, TaskPriority, TaskStatus } from '../typings'
 import { PRIORITY_CONFIG, STATUS_CONFIG, CATEGORY_ICONS, isOverdue } from '../utils'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '../data'
-import { useAuth } from '@/auth/context'
+import { TASKS_QUERY_KEY, TASKS_STATS_QUERY_KEY } from '../queryKeys'
+import { FRONTEND_TO_API_STATUS, FRONTEND_TO_API_CATEGORY } from '../apiMappers'
+
+// ─── Cache invalidation hook ──────────────────────────────────────────────────
+
+function useTaskInvalidation() {
+  const qc = useQueryClient()
+  return useCallback(() => {
+    qc.invalidateQueries({ queryKey: TASKS_QUERY_KEY, exact: false })
+    qc.invalidateQueries({ queryKey: TASKS_STATS_QUERY_KEY })
+    qc.invalidateQueries({ queryKey: dashboardQueryKeys.tasksDue })
+  }, [qc])
+}
 
 // ─── Edit Task Dialog ─────────────────────────────────────────────────────────
 
@@ -61,14 +84,44 @@ function EditTaskDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const queryClient = useQueryClient()
+  const invalidate = useTaskInvalidation()
+  const { users } = useWorkspaceUsers()
+
+  const [title, setTitle] = useState(task.title)
+  const [description, setDescription] = useState(task.description ?? '')
+  const [priority, setPriority] = useState<TaskPriority>(task.priority)
+  const [status, setStatus] = useState<TaskStatus>(task.status)
   const [dueDate, setDueDate] = useState<Date | undefined>(
-    task.dueDate ? new Date(task.dueDate) : undefined
+    task.dueDate ? parseISO(task.dueDate) : undefined
   )
+  const [assignedToId, setAssignedToId] = useState<string>(task.assignedToId ?? 'unassigned')
+  const [relatedTo, setRelatedTo] = useState(task.relatedTo ?? null)
+
+  const { mutate: update, isPending } = useMutation({
+    mutationFn: () =>
+      tasksApi.update(task.id, {
+        title,
+        description: description.trim() || undefined,
+        priority,
+        status: FRONTEND_TO_API_STATUS[status],
+        due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
+        assigned_to: assignedToId === 'unassigned' ? null : assignedToId,
+        related_type: relatedTo?.type ?? null,
+        related_id: relatedTo?.id ?? null,
+      }),
+    onSuccess: (res) => {
+      patchTasksListCaches(queryClient, task.id, res.data)
+      toast.success('Task updated', { description: `"${title}" has been updated.` })
+      invalidate()
+      onOpenChange(false)
+    },
+    onError: () => toast.error('Failed to update task'),
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    toast.success('Task updated', { description: `"${task.title}" has been updated.` })
-    onOpenChange(false)
+    update()
   }
 
   return (
@@ -82,17 +135,27 @@ function EditTaskDialog({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="edit-title">Title *</Label>
-              <Input id="edit-title" defaultValue={task.title} required />
+              <Input
+                id="edit-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-desc">Description</Label>
-              <Input id="edit-desc" defaultValue={task.description ?? ''} placeholder="Optional details" />
+              <Input
+                id="edit-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional details"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-priority">Priority</Label>
-                <Select defaultValue={task.priority}>
-                  <SelectTrigger id="edit-priority">
+                <Label>Priority</Label>
+                <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -103,9 +166,9 @@ function EditTaskDialog({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select defaultValue={task.status}>
-                  <SelectTrigger id="edit-status">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -119,21 +182,57 @@ function EditTaskDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Due Date</Label>
-                <DatePicker
-                  value={dueDate}
-                  onChange={setDueDate}
-                  placeholder="Pick a date"
-                />
+                <DatePicker value={dueDate} onChange={setDueDate} placeholder="Pick a date" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-assigned">Assigned To</Label>
-                <Input id="edit-assigned" defaultValue={task.assignedTo} />
+                <Label>Assigned To</Label>
+                <Select value={assignedToId} onValueChange={setAssignedToId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            {relatedTo && (
+              <div className="grid gap-2">
+                <Label>Related To</Label>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/40 text-sm">
+                  {relatedTo.type === 'deal' ? (
+                    <Briefcase className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ) : relatedTo.type === 'lead' ? (
+                    <Target className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide mr-1 capitalize">
+                    {relatedTo.type}
+                  </span>
+                  <span className="font-medium truncate flex-1">{relatedTo.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setRelatedTo(null)}
+                    className="text-muted-foreground hover:text-foreground shrink-0"
+                    title="Remove link"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending || !title.trim()}>
+              {isPending ? 'Saving…' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -152,6 +251,18 @@ function DeleteTaskDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const invalidate = useTaskInvalidation()
+
+  const { mutate: del, isPending } = useMutation({
+    mutationFn: () => tasksApi.delete(task.id),
+    onSuccess: () => {
+      toast.success('Task deleted', { description: `"${task.title}" has been removed.` })
+      invalidate()
+      onOpenChange(false)
+    },
+    onError: () => toast.error('Failed to delete task'),
+  })
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
@@ -162,15 +273,11 @@ function DeleteTaskDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              toast.success('Task deleted', { description: `"${task.title}" has been removed.` })
-              onOpenChange(false)
-            }}
-          >
-            Delete Task
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={() => del()} disabled={isPending}>
+            {isPending ? 'Deleting…' : 'Delete Task'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -180,23 +287,32 @@ function DeleteTaskDialog({
 
 // ─── Row Actions ──────────────────────────────────────────────────────────────
 
-function TaskRowActions({
-  task,
-  onToggleComplete,
-}: {
-  task: Task
-  onToggleComplete: (id: string) => void
-}) {
+function TaskRowActions({ task }: { task: Task }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
   const { can } = useAuth()
+  const queryClient = useQueryClient()
+  const invalidate = useTaskInvalidation()
 
   const canEdit = can('tasks.edit')
   const canDelete = can('tasks.delete')
   const hasWriteAccess = canEdit || canDelete
 
   const isDone = task.status === 'completed'
+
+  const { mutate: toggleComplete, isPending: isToggling } = useMutation({
+    mutationFn: () =>
+      tasksApi.update(task.id, {
+        status: isDone ? FRONTEND_TO_API_STATUS['todo'] : FRONTEND_TO_API_STATUS['completed'],
+      }),
+    onSuccess: (res) => {
+      patchTasksListCaches(queryClient, task.id, res.data)
+      toast.success(isDone ? 'Task reopened' : 'Task completed')
+      invalidate()
+    },
+    onError: () => toast.error('Failed to update task'),
+  })
 
   return (
     <>
@@ -206,8 +322,9 @@ function TaskRowActions({
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            title={isDone ? 'Mark as to do' : 'Mark as complete'}
-            onClick={() => onToggleComplete(task.id)}
+            title={isDone ? 'Reopen task' : 'Mark as complete'}
+            onClick={() => toggleComplete()}
+            disabled={isToggling}
           >
             {isDone ? (
               <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
@@ -230,7 +347,7 @@ function TaskRowActions({
                     <Pencil className="h-4 w-4 mr-2" />
                     Edit Task
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onToggleComplete(task.id)}>
+                  <DropdownMenuItem onClick={() => toggleComplete()} disabled={isToggling}>
                     {isDone ? (
                       <>
                         <RotateCcw className="h-4 w-4 mr-2" />
@@ -276,7 +393,6 @@ function TaskRowActions({
 // ─── Column definitions ───────────────────────────────────────────────────────
 
 function buildColumns(
-  onToggleComplete: (id: string) => void,
   selectedIds: Set<string>,
   onSelectAll: (checked: boolean) => void,
   onSelectRow: (id: string, checked: boolean) => void,
@@ -307,7 +423,7 @@ function buildColumns(
     },
     {
       id: 'title',
-      accessorFn: (row) => `${row.title} ${row.description ?? ''} ${row.relatedTo?.name ?? ''}`,
+      accessorFn: (row) => row.title,
       header: 'Task',
       size: 380,
       cell: ({ row }) => {
@@ -331,7 +447,19 @@ function buildColumns(
               {task.relatedTo && RelatedIcon && (
                 <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
                   <RelatedIcon className="h-3 w-3 shrink-0" />
-                  {task.relatedTo.name}
+                  <Link
+                    to={
+                      task.relatedTo.type === 'contact'
+                        ? ROUTES.CONTACT_DETAIL(task.relatedTo.id)
+                        : task.relatedTo.type === 'lead'
+                        ? ROUTES.LEAD_DETAIL(task.relatedTo.id)
+                        : ROUTES.DEAL_DETAIL(task.relatedTo.id)
+                    }
+                    className="hover:text-foreground hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {task.relatedTo.name}
+                  </Link>
                 </p>
               )}
               {overdue && (
@@ -348,8 +476,8 @@ function buildColumns(
     {
       accessorKey: 'priority',
       header: 'Priority',
-      filterFn: 'equals',
       size: 110,
+      enableSorting: false,
       cell: ({ row }) => {
         const cfg = PRIORITY_CONFIG[row.original.priority]
         return (
@@ -363,8 +491,8 @@ function buildColumns(
     {
       accessorKey: 'status',
       header: 'Status',
-      filterFn: 'equals',
       size: 120,
+      enableSorting: false,
       cell: ({ row }) => {
         const cfg = STATUS_CONFIG[row.original.status]
         const done = row.original.status === 'completed'
@@ -393,9 +521,11 @@ function buildColumns(
         const { dueDate, status } = row.original
         const overdue = isOverdue(dueDate, status)
         if (!dueDate) return <span className="text-sm text-muted-foreground">—</span>
+        let formatted = dueDate
+        try { formatted = format(parseISO(dueDate), 'MMM d, yyyy') } catch { /* non-ISO fallback */ }
         return (
           <span className={cn('text-sm tabular-nums', overdue ? 'text-destructive font-medium' : 'text-muted-foreground')}>
-            {dueDate}
+            {formatted}
           </span>
         )
       },
@@ -406,7 +536,7 @@ function buildColumns(
       header: 'Assigned To',
       size: 120,
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{row.original.assignedTo}</span>
+        <span className="text-sm text-muted-foreground">{row.original.assignedTo || '—'}</span>
       ),
     },
     {
@@ -414,26 +544,54 @@ function buildColumns(
       header: '',
       size: 80,
       enableSorting: false,
-      cell: ({ row }) => (
-        <TaskRowActions task={row.original} onToggleComplete={onToggleComplete} />
-      ),
+      cell: ({ row }) => <TaskRowActions task={row.original} />,
     },
   ]
 }
 
 // ─── Main TasksTable ──────────────────────────────────────────────────────────
 
+interface TasksTableProps {
+  tasks: Task[]
+  isLoading: boolean
+  search: string
+  onSearchChange: (v: string) => void
+  status: string
+  onStatusChange: (v: string) => void
+  priority: string
+  onPriorityChange: (v: string) => void
+  assignedTo: string
+  onAssignedToChange: (v: string) => void
+  serverSide: {
+    pageSize: number
+    onPageSizeChange: (size: number) => void
+    hasNext: boolean
+    hasPrev: boolean
+    onNext: () => void
+    onPrev: () => void
+    totalLabel: string
+  }
+}
+
 export function TasksTable({
   tasks,
-  onToggleComplete,
-  onBulkAction,
-}: {
-  tasks: Task[]
-  onToggleComplete: (id: string) => void
-  onBulkAction: (ids: string[], action: 'complete' | 'todo' | 'delete') => void
-}) {
+  isLoading,
+  search,
+  onSearchChange,
+  status,
+  onStatusChange,
+  priority,
+  onPriorityChange,
+  assignedTo,
+  onAssignedToChange,
+  serverSide,
+}: TasksTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const { can } = useAuth()
+  const { users } = useWorkspaceUsers()
+  const invalidate = useTaskInvalidation()
+
   const canEdit = can('tasks.edit')
   const canDelete = can('tasks.delete')
 
@@ -451,19 +609,42 @@ export function TasksTable({
 
   const clearSelection = () => setSelectedIds(new Set())
 
-  const handleBulk = (action: 'complete' | 'todo' | 'delete') => {
-    onBulkAction(Array.from(selectedIds), action)
-    clearSelection()
-  }
+  const { mutate: bulkDelete, isPending: isBulkDeleting } = useMutation({
+    mutationFn: () => tasksApi.bulkDelete(Array.from(selectedIds)),
+    onSuccess: () => {
+      toast.success(`${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''} deleted`)
+      invalidate()
+      clearSelection()
+      setBulkDeleteOpen(false)
+    },
+    onError: () => toast.error('Failed to delete tasks'),
+  })
 
-  const columns = buildColumns(onToggleComplete, selectedIds, handleSelectAll, handleSelectRow)
+  const { mutate: bulkUpdateStatus, isPending: isBulkUpdating } = useMutation({
+    mutationFn: (newStatus: TaskStatus) =>
+      Promise.allSettled(
+        Array.from(selectedIds).map((id) =>
+          tasksApi.update(id, { status: FRONTEND_TO_API_STATUS[newStatus] })
+        )
+      ),
+    onSuccess: (_, newStatus) => {
+      toast.success(`${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''} updated`)
+      invalidate()
+      clearSelection()
+    },
+    onError: () => toast.error('Failed to update tasks'),
+  })
+
+  const columns = buildColumns(selectedIds, handleSelectAll, handleSelectRow)
+
+  const selectedCount = selectedIds.size
 
   return (
     <div className="space-y-2">
-      {selectedIds.size > 0 && (canEdit || canDelete) && (
+      {selectedCount > 0 && (canEdit || canDelete) && (
         <BulkSelectionBar
-          count={selectedIds.size}
-          label={`task${selectedIds.size !== 1 ? 's' : ''}`}
+          count={selectedCount}
+          label={`task${selectedCount !== 1 ? 's' : ''}`}
           onClear={clearSelection}
         >
           <div className="flex items-center gap-1.5 flex-1">
@@ -473,7 +654,8 @@ export function TasksTable({
                   size="sm"
                   variant="ghost"
                   className="h-7 text-xs text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-                  onClick={() => handleBulk('complete')}
+                  onClick={() => bulkUpdateStatus('completed')}
+                  disabled={isBulkUpdating}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Mark Complete
@@ -482,7 +664,8 @@ export function TasksTable({
                   size="sm"
                   variant="ghost"
                   className="h-7 text-xs text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-                  onClick={() => handleBulk('todo')}
+                  onClick={() => bulkUpdateStatus('todo')}
+                  disabled={isBulkUpdating}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Reopen
@@ -494,7 +677,8 @@ export function TasksTable({
                 size="sm"
                 variant="ghost"
                 className="h-7 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15 gap-1.5"
-                onClick={() => handleBulk('delete')}
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={isBulkDeleting}
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
@@ -507,16 +691,16 @@ export function TasksTable({
       <DataTable
         columns={columns}
         data={tasks}
+        isLoading={isLoading}
         searchPlaceholder="Search tasks..."
-        toolbar={(table) => (
+        serverSide={{
+          ...serverSide,
+          searchValue: search,
+          onSearchChange,
+        }}
+        toolbar={() => (
           <>
-            <Select
-              value={(table.getColumn('status')?.getFilterValue() as TaskStatus | undefined) ?? 'all'}
-              onValueChange={(val) => {
-                table.getColumn('status')?.setFilterValue(val === 'all' ? undefined : val)
-                table.setPageIndex(0)
-              }}
-            >
+            <Select value={status} onValueChange={onStatusChange}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -527,13 +711,7 @@ export function TasksTable({
               </SelectContent>
             </Select>
 
-            <Select
-              value={(table.getColumn('priority')?.getFilterValue() as TaskPriority | undefined) ?? 'all'}
-              onValueChange={(val) => {
-                table.getColumn('priority')?.setFilterValue(val === 'all' ? undefined : val)
-                table.setPageIndex(0)
-              }}
-            >
+            <Select value={priority} onValueChange={onPriorityChange}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="All Priorities" />
               </SelectTrigger>
@@ -543,10 +721,31 @@ export function TasksTable({
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={assignedTo} onValueChange={onAssignedToChange}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Assignees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Assignees</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </>
         )}
         emptyMessage="No tasks found"
         emptyDescription="Try adjusting your search or filters, or create a new task."
+      />
+
+      <BulkDeleteConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        count={selectedCount}
+        entityLabel={`task${selectedCount !== 1 ? 's' : ''}`}
+        onConfirm={() => bulkDelete()}
+        isDeleting={isBulkDeleting}
       />
     </div>
   )

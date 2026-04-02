@@ -17,7 +17,7 @@ export function CompanyDeals({ companyId }: CompanyDealsProps) {
     queryFn: () => companiesApi.deals(companyId),
   })
 
-  const deals = data?.data?.results ?? []
+  const deals = Array.isArray(data?.data) ? data.data : []
 
   if (isLoading) {
     return (
@@ -66,7 +66,7 @@ export function CompanyDeals({ companyId }: CompanyDealsProps) {
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />
-                  {deal.value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+                  {Number(deal.value).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
                 </span>
                 {deal.expected_close_date && (
                   <span className="flex items-center gap-1">

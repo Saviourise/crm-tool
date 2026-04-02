@@ -1,13 +1,15 @@
-import { Plus } from 'lucide-react'
+import { Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NewTaskDialog } from '@/components/common/NewTaskDialog'
 import { useAuth } from '@/auth/context'
 
 interface TasksHeaderProps {
   total: number
+  isLoading?: boolean
+  onReload?: () => void
 }
 
-export function TasksHeader({ total }: TasksHeaderProps) {
+export function TasksHeader({ total, isLoading, onReload }: TasksHeaderProps) {
   const { can } = useAuth()
 
   return (
@@ -19,16 +21,23 @@ export function TasksHeader({ total }: TasksHeaderProps) {
         </p>
       </div>
 
-      {can('tasks.create') && (
-        <NewTaskDialog
-          trigger={
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Task
-            </Button>
-          }
-        />
-      )}
+      <div className="flex items-center gap-2">
+        {onReload && (
+          <Button variant="outline" size="sm" onClick={onReload} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
+        {can('tasks.create') && (
+          <NewTaskDialog
+            trigger={
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Task
+              </Button>
+            }
+          />
+        )}
+      </div>
     </div>
   )
 }

@@ -8,14 +8,16 @@ import { leadsApi } from '@/api/leads'
 import { mapApiLeadToLead } from '../apiMappers'
 import { LeadProfileCard } from './components/LeadProfileCard'
 import { LeadScoreBreakdown } from './components/LeadScoreBreakdown'
+import { LeadRelatedTasks } from './components/LeadRelatedTasks'
 import { AISuggestions } from './components/AISuggestions'
 import { cn } from '@/lib/utils'
 
-type Tab = 'overview' | 'activity' | 'ai-insights'
+type Tab = 'overview' | 'activity' | 'tasks' | 'ai-insights'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'activity', label: 'Activity' },
+  { id: 'tasks', label: 'Tasks' },
   { id: 'ai-insights', label: 'AI Insights' },
 ]
 
@@ -96,6 +98,13 @@ export default function LeadDetail() {
         <EntityActivityTimeline
           queryKey={['leads', lead.id, 'activity']}
           endpoint={`/api/leads/${lead.id}/activity/`}
+        />
+      )}
+
+      {activeTab === 'tasks' && (
+        <LeadRelatedTasks
+          leadId={lead.id}
+          leadName={`${lead.firstName} ${lead.lastName}`}
         />
       )}
 
