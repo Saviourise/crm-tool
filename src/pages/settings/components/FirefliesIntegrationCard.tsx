@@ -96,9 +96,9 @@ function MeetingRow({ meeting }: { meeting: MeetingImport }) {
             )}
         </div>
       )}
-      {meeting.status === 'failed' && meeting.error_message && (
+      {meeting.status === 'failed' && (
         <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-          {meeting.error_message}
+          Failed to import meeting
         </p>
       )}
     </div>
