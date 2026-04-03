@@ -24,6 +24,7 @@ export interface FirefliesIntegration {
   enabled: boolean
   webhook_url: string
   secret?: string
+  api_key?: string
   created_at: string
 }
 
@@ -32,6 +33,10 @@ export interface FirefliesEnableResponse {
   secret: string
   enabled: boolean
   created_at: string
+}
+
+export interface FirefliesEnablePayload {
+  api_key: string
 }
 
 export type MeetingImportStatus = 'processing' | 'completed' | 'failed'
@@ -75,8 +80,8 @@ export const integrationsApi = {
   getFireflies: () =>
     api.get<FirefliesIntegration>('/api/integrations/fireflies/'),
 
-  enableFireflies: () =>
-    api.post<FirefliesEnableResponse>('/api/integrations/fireflies/'),
+  enableFireflies: (payload: FirefliesEnablePayload) =>
+    api.post<FirefliesEnableResponse>('/api/integrations/fireflies/', payload),
 
   disableFireflies: () =>
     api.delete('/api/integrations/fireflies/'),

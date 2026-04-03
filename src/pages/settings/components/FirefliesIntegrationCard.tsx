@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDistanceToNow } from 'date-fns'
 import {
   Video, Copy, Check, ChevronDown, ChevronUp,
   CheckCircle2, Clock, XCircle, Briefcase, Target, User, ListTodo,
@@ -8,6 +9,8 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { integrationsApi } from '@/api/integrations'
 import type { MeetingImport, MeetingImportStatus } from '@/api/integrations'
@@ -26,6 +29,12 @@ function getCursorFromUrl(url: string | null | undefined) {
   }
 }
 
+function maskApiKey(value: string) {
+  if (!value) return ''
+  if (value.length <= 4) return '••••'
+  return `••••••••${value.slice(-4)}`
+}
+
 const STATUS_CONFIG: Record<MeetingImportStatus, { label: string; className: string; Icon: React.ElementType }> = {
   processing: { label: 'Processing', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800', Icon: Clock },
   completed: { label: 'Completed', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800', Icon: CheckCircle2 },
@@ -37,16 +46,13 @@ function MeetingRow({ meeting }: { meeting: MeetingImport }) {
   const StatusIcon = status.Icon
 
   const date = (() => {
-    const dateSource = meeting.meeting_date || meeting.created_at
+    const dateSource = meeting.created_at
     if (!dateSource) return 'Date unavailable'
 
     try {
       const parsed = new Date(dateSource)
       if (Number.isNaN(parsed.getTime())) return 'Date unavailable'
-
-      return parsed.toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric',
-      })
+      return formatDistanceToNow(parsed, { addSuffix: true, includeSeconds: true })
     } catch {
       return 'Date unavailable'
     }
@@ -109,6 +115,8 @@ export function FirefliesIntegrationCard() {
   const queryClient = useQueryClient()
   const [copiedField, setCopiedField] = useState<'url' | 'secret' | null>(null)
   const [latestSecret, setLatestSecret] = useState('')
+  const [apiKey, setApiKey] = useState('')
+  const [isCardExpanded, setIsCardExpanded] = useState(true)
   const [showLog, setShowLog] = useState(false)
   const [meetingsCursor, setMeetingsCursor] = useState<string | undefined>(undefined)
 
@@ -135,19 +143,25 @@ export function FirefliesIntegrationCard() {
   const enabled = firefliesData?.data?.enabled ?? false
   const webhookUrl = firefliesData?.data?.webhook_url ?? ''
   const webhookSecret = firefliesData?.data?.secret ?? latestSecret
+  const savedApiKey = firefliesData?.data?.api_key ?? ''
+  const maskedSavedApiKey = maskApiKey(savedApiKey)
   const meetings = meetingsData?.data?.results ?? []
   const nextCursor = getCursorFromUrl(meetingsData?.data?.next)
   const previousCursor = getCursorFromUrl(meetingsData?.data?.previous)
+  const trimmedApiKey = apiKey.trim()
+  const isStep1Complete = Boolean(savedApiKey)
+  const isStep2Complete = enabled
 
   const { mutate: enable, isPending: isEnabling } = useMutation({
-    mutationFn: () => integrationsApi.enableFireflies(),
+    mutationFn: (key: string) => integrationsApi.enableFireflies({ api_key: key }),
     onSuccess: (response) => {
-      toast.success('Fireflies integration enabled')
+      toast.success(enabled ? 'Fireflies API key updated' : 'Fireflies integration enabled')
       const secret = response.data?.secret ?? ''
       if (secret) setLatestSecret(secret)
+      setApiKey('')
       queryClient.invalidateQueries({ queryKey: FIREFLIES_QUERY_KEY })
     },
-    onError: () => toast.error('Failed to enable Fireflies integration'),
+    onError: () => toast.error(enabled ? 'Failed to update Fireflies API key' : 'Failed to enable Fireflies integration'),
   })
 
   const { mutate: disable, isPending: isDisabling } = useMutation({
@@ -174,208 +188,276 @@ export function FirefliesIntegrationCard() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-start gap-4">
-          <div className={cn(
-            'h-10 w-10 rounded-lg flex items-center justify-center shrink-0',
-            enabled ? 'bg-primary/10' : 'bg-muted'
-          )}>
-            <Video className={cn('h-5 w-5', enabled ? 'text-primary' : 'text-muted-foreground')} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-base">Fireflies AI</CardTitle>
-              <Badge variant="secondary" className="text-xs">Meetings</Badge>
-              {enabled && (
-                <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Active
-                </Badge>
-              )}
-            </div>
-            <CardDescription className="mt-0.5">
-              Fireflies joins your meetings, captures transcripts, and automatically creates tasks, contacts, leads, and deals in your CRM after each meeting ends.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Enable / Disable */}
-        <div className="flex items-center gap-2">
-          {enabled ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30"
-              onClick={() => disable()}
-              disabled={isBusy || isLoadingStatus}
-            >
-              Disconnect
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => enable()}
-              disabled={isBusy || isLoadingStatus}
-            >
-              {isEnabling ? 'Connecting…' : 'Connect'}
-            </Button>
-          )}
-        </div>
-
-        {/* Webhook URL — shown when enabled */}
-        {enabled && webhookUrl && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Webhook URL</p>
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
-              <span className="flex-1 font-mono text-xs truncate text-muted-foreground">
-                {webhookUrl}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 shrink-0"
-                onClick={() => handleCopy(webhookUrl, 'url', 'Webhook URL')}
-                title="Copy to clipboard"
-              >
-                {copiedField === 'url' ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-600" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-            {webhookSecret && (
-              <>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Webhook Secret</p>
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
-                  <span className="flex-1 font-mono text-xs truncate text-muted-foreground">
-                    {webhookSecret}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 shrink-0"
-                    onClick={() => handleCopy(webhookSecret, 'secret', 'Webhook secret')}
-                    title="Copy to clipboard"
-                  >
-                    {copiedField === 'secret' ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-                </div>
-              </>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Paste this URL into your Fireflies dashboard under{' '}
-              <span className="font-medium text-foreground">Settings → Webhooks → Add Webhook</span>.
-              {webhookSecret && (
-                <>
-                  {' '}Use the <span className="font-medium text-foreground">Webhook Secret</span> above as the signing key/secret in Fireflies.
-                </>
-              )}
-              {' '}Select the <span className="font-medium text-foreground">Meeting Completed</span> trigger.
-            </p>
-          </div>
-        )}
-
-        {/* Setup steps — shown when not yet enabled */}
-        {!enabled && !isLoadingStatus && (
-          <ol className="space-y-1.5 text-xs text-muted-foreground list-none">
-            <li className="flex items-start gap-2">
-              <span className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
-              Click <span className="font-medium text-foreground mx-1">Connect</span> to generate your webhook URL and secret
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
-              Copy both values from this card, then open <span className="font-medium text-foreground mx-1">Fireflies → Settings → Webhooks</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
-              Paste the webhook URL and set the webhook secret/signing key
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">4</span>
-              Select the <span className="font-medium text-foreground mx-1">Meeting Completed</span> trigger, then save
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">5</span>
-              After each meeting, tasks, contacts, leads, and deals are created automatically
-            </li>
-          </ol>
-        )}
-
-        {/* Meeting log — shown when enabled */}
-        {enabled && (
-          <div className="border-t pt-3">
+      <Collapsible open={isCardExpanded} onOpenChange={setIsCardExpanded}>
+        <CardHeader>
+          <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => {
-                setShowLog((current) => {
-                  const next = !current
-                  if (next) setMeetingsCursor(undefined)
-                  return next
-                })
-              }}
+              className="w-full text-left"
             >
-              {showLog ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              Meeting Import Log
-              {meetingsData?.data?.count !== undefined && (
-                <span className="text-muted-foreground/60">({meetingsData.data.count})</span>
-              )}
-            </button>
-
-            {showLog && (
-              <div className="mt-3">
-                {isLoadingMeetings ? (
-                  <div className="flex justify-center py-6">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  'h-10 w-10 rounded-lg flex items-center justify-center shrink-0',
+                  enabled ? 'bg-primary/10' : 'bg-muted'
+                )}>
+                  <Video className={cn('h-5 w-5', enabled ? 'text-primary' : 'text-muted-foreground')} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CardTitle className="text-base">Fireflies AI</CardTitle>
+                    <Badge variant="secondary" className="text-xs">Meetings</Badge>
+                    {enabled && (
+                      <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Active
+                      </Badge>
+                    )}
                   </div>
-                ) : meetings.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">
-                    No meetings processed yet. Fireflies will send meeting notes here after your next call.
-                  </p>
-                ) : (
+                  <CardDescription className="mt-0.5">
+                    Fireflies joins your meetings, captures transcripts, and automatically creates tasks, contacts, leads, and deals in your CRM after each meeting ends.
+                  </CardDescription>
+                </div>
+                <div className="pt-0.5 text-muted-foreground">
+                  {isCardExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
+              </div>
+            </button>
+          </CollapsibleTrigger>
+        </CardHeader>
+
+        <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
+          <CardContent className="space-y-3">
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step 1: Add Fireflies API Key</p>
+                {isStep1Complete && (
+                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Completed
+                  </Badge>
+                )}
+              </div>
+              <Input
+                type="password"
+                name="fireflies_api_key_manual"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder={savedApiKey ? 'Enter a new API key to replace the saved key' : 'Paste your Fireflies API key'}
+                className="h-8 text-xs"
+                autoComplete="new-password"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+              />
+              {savedApiKey && (
+                <p className="text-xs text-muted-foreground">
+                  Saved API key: <span className="font-mono">{maskedSavedApiKey}</span>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Meeting summary will not work without Fireflies AI API Key.
+              </p>
+              <div className="rounded-md border bg-muted/30 p-2.5 text-xs text-muted-foreground space-y-1.5">
+                <p className="font-medium text-foreground">Acquiring a Token</p>
+                <p>1. Log in to your account at fireflies.ai</p>
+                <p>2. Navigate to the Integrations section</p>
+                <p>3. Click on Fireflies API</p>
+                <p>4. Copy and paste your API key in the input above</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step 2: Connect Integration</p>
+                {isStep2Complete && (
+                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Completed
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {enabled ? (
                   <>
-                    <div className="divide-y divide-border">
-                      {meetings.map((m) => (
-                        <MeetingRow key={m.id} meeting={m} />
-                      ))}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        disabled={!previousCursor || isFetchingMeetings}
-                        onClick={() => setMeetingsCursor(previousCursor)}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        disabled={!nextCursor || isFetchingMeetings}
-                        onClick={() => setMeetingsCursor(nextCursor)}
-                      >
-                        Next
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        if (!trimmedApiKey) {
+                          toast.error('Enter your Fireflies API key to update it')
+                          return
+                        }
+                        enable(trimmedApiKey)
+                      }}
+                      disabled={isBusy || isLoadingStatus}
+                    >
+                      {isEnabling ? 'Saving…' : 'Save API Key'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30"
+                      onClick={() => disable()}
+                      disabled={isBusy || isLoadingStatus}
+                    >
+                      Disconnect
+                    </Button>
                   </>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      if (!trimmedApiKey) {
+                        toast.error('Enter your Fireflies API key to continue')
+                        return
+                      }
+                      enable(trimmedApiKey)
+                    }}
+                    disabled={isBusy || isLoadingStatus}
+                  >
+                    {isEnabling ? 'Connecting…' : 'Connect'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Connect to generate your webhook URL and secret for Fireflies.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step 3: Configure Fireflies Webhook</p>
+              </div>
+              {enabled && webhookUrl ? (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Webhook URL</p>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
+                    <span className="flex-1 font-mono text-xs truncate text-muted-foreground">
+                      {webhookUrl}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 shrink-0"
+                      onClick={() => handleCopy(webhookUrl, 'url', 'Webhook URL')}
+                      title="Copy to clipboard"
+                    >
+                      {copiedField === 'url' ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  {webhookSecret && (
+                    <>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Webhook Secret</p>
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
+                        <span className="flex-1 font-mono text-xs truncate text-muted-foreground">
+                          {webhookSecret}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 shrink-0"
+                          onClick={() => handleCopy(webhookSecret, 'secret', 'Webhook secret')}
+                          title="Copy to clipboard"
+                        >
+                          {copiedField === 'secret' ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                  <ol className="space-y-1.5 text-xs text-muted-foreground list-none">
+                    <li>1. Go to <span className="font-medium text-foreground">Fireflies → Settings → Webhooks</span></li>
+                    <li>2. Add webhook and paste the <span className="font-medium text-foreground">Webhook URL</span></li>
+                    {webhookSecret && (
+                      <li>3. Paste the <span className="font-medium text-foreground">Webhook Secret</span> as signing key/secret</li>
+                    )}
+                    <li>{webhookSecret ? '4' : '3'}. Select the <span className="font-medium text-foreground">Meeting Completed</span> trigger and save</li>
+                  </ol>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Complete Step 2 first to generate your webhook URL and secret.
+                </p>
+              )}
+            </div>
+
+            {enabled && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => {
+                    setShowLog((current) => {
+                      const next = !current
+                      if (next) setMeetingsCursor(undefined)
+                      return next
+                    })
+                  }}
+                >
+                  {showLog ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  Step 4: Meeting Import Log
+                  {meetingsData?.data?.count !== undefined && (
+                    <span className="text-muted-foreground/60">({meetingsData.data.count})</span>
+                  )}
+                </button>
+
+                {showLog && (
+                  <div>
+                    {isLoadingMeetings ? (
+                      <div className="flex justify-center py-6">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                      </div>
+                    ) : meetings.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        No meetings processed yet. Fireflies will send meeting notes here after your next call.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="divide-y divide-border">
+                          {meetings.map((m) => (
+                            <MeetingRow key={m.id} meeting={m} />
+                          ))}
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={!previousCursor || isFetchingMeetings}
+                            onClick={() => setMeetingsCursor(previousCursor)}
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={!nextCursor || isFetchingMeetings}
+                            onClick={() => setMeetingsCursor(nextCursor)}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
-        )}
-      </CardContent>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   )
 }

@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { formatDistanceToNow } from 'date-fns'
 import { dashboardApi, type ApiActivity } from '@/api/dashboard'
 import type { CursorPaginatedResponse } from '@/api/dashboard'
 import { usersApi } from '@/api/auth'
@@ -92,8 +91,14 @@ export default function ActivityPage() {
       displayType: mapActivityType(a.entity_type),
       title: mapActivityTitle(a.type, a.entity_type),
       description,
-      timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true }),
       user: typeof a.actor === 'string' ? a.actor : a.actor?.name ?? '',
+      timestamp: new Date(a.logged_at ?? a.created_at ?? '').toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
       logged_at: a.logged_at,
     }
   })

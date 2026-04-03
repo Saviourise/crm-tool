@@ -189,7 +189,7 @@ export default function Dashboard() {
       displayType: mapActivityType(a.entity_type),
       title: mapActivityTitle(a.type, a.entity_type),
       description,
-      timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true }),
+      timestamp: formatDistanceToNow(new Date(a.logged_at), { addSuffix: true, includeSeconds: true }),
       user: typeof a.actor === 'string' ? a.actor : a.actor?.name ?? '',
       logged_at: a.logged_at,
     }
