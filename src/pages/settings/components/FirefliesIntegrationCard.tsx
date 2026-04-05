@@ -116,6 +116,7 @@ export function FirefliesIntegrationCard() {
   const [copiedField, setCopiedField] = useState<'url' | 'secret' | null>(null)
   const [latestSecret, setLatestSecret] = useState('')
   const [apiKey, setApiKey] = useState('')
+  const [showReplaceKey, setShowReplaceKey] = useState(false)
   const [isCardExpanded, setIsCardExpanded] = useState(true)
   const [showLog, setShowLog] = useState(false)
   const [meetingsCursor, setMeetingsCursor] = useState<string | undefined>(undefined)
@@ -159,6 +160,7 @@ export function FirefliesIntegrationCard() {
       const secret = response.data?.secret ?? ''
       if (secret) setLatestSecret(secret)
       setApiKey('')
+      setShowReplaceKey(false)
       queryClient.invalidateQueries({ queryKey: FIREFLIES_QUERY_KEY })
     },
     onError: () => toast.error(enabled ? 'Failed to update Fireflies API key' : 'Failed to enable Fireflies integration'),
@@ -237,33 +239,56 @@ export function FirefliesIntegrationCard() {
                   </Badge>
                 )}
               </div>
-              <Input
-                type="password"
-                name="fireflies_api_key_manual"
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder={savedApiKey ? 'Enter a new API key to replace the saved key' : 'Paste your Fireflies API key'}
-                className="h-8 text-xs"
-                autoComplete="new-password"
-                spellCheck={false}
-                autoCapitalize="off"
-                autoCorrect="off"
-              />
-              {savedApiKey && (
-                <p className="text-xs text-muted-foreground">
-                  Saved API key: <span className="font-mono">{maskedSavedApiKey}</span>
-                </p>
+
+              {isStep1Complete && !showReplaceKey ? (
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Saved API key: <span className="font-mono">{maskedSavedApiKey}</span>
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs shrink-0"
+                    onClick={() => setShowReplaceKey(true)}
+                  >
+                    Replace API Key
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    type="password"
+                    name="fireflies_api_key_manual"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                    placeholder="Paste your Fireflies API key"
+                    className="h-8 text-xs"
+                    autoComplete="new-password"
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Meeting summary will not work without a Fireflies API key.
+                  </p>
+                  <div className="rounded-md border bg-muted/30 p-2.5 text-xs text-muted-foreground space-y-1.5">
+                    <p className="font-medium text-foreground">Acquiring a Token</p>
+                    <p>1. Log in to your account at fireflies.ai</p>
+                    <p>2. Navigate to the Integrations section</p>
+                    <p>3. Click on Fireflies API</p>
+                    <p>4. Copy and paste your API key in the input above</p>
+                  </div>
+                  {isStep1Complete && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                      onClick={() => { setApiKey(''); setShowReplaceKey(false) }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </>
               )}
-              <p className="text-xs text-muted-foreground">
-                Meeting summary will not work without Fireflies AI API Key.
-              </p>
-              <div className="rounded-md border bg-muted/30 p-2.5 text-xs text-muted-foreground space-y-1.5">
-                <p className="font-medium text-foreground">Acquiring a Token</p>
-                <p>1. Log in to your account at fireflies.ai</p>
-                <p>2. Navigate to the Integrations section</p>
-                <p>3. Click on Fireflies API</p>
-                <p>4. Copy and paste your API key in the input above</p>
-              </div>
             </div>
 
             <div className="rounded-lg border p-3 space-y-2">
