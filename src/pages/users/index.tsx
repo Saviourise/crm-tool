@@ -1,30 +1,21 @@
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { UserCog } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { UsersTab } from './components/UsersTab'
 import { RolesTab } from './components/RolesTab'
 import { PermissionsTab } from './components/PermissionsTab'
-import { MOCK_ROLES, PERMISSIONS } from './data'
-import type { Role, PermissionMatrix, AppModule } from './typings'
+import { PERMISSIONS } from './data'
+import { mapApiRoleToRole, buildPermissionMatrix, matrixColumnToPermissions } from './apiMappers'
+import { usersApi } from '@/api/users'
+import { WORKSPACE_USERS_QUERY_KEY } from '@/hooks/useWorkspaceUsers'
+import type { Role, PermissionMatrix } from './typings'
 import { useAuth } from '@/auth/context'
 
+export const ROLES_QUERY_KEY = ['roles', 'list'] as const
+
 type UserMgmtTab = 'users' | 'roles' | 'permissions'
-
-const CUSTOM_ROLE_COLORS = [
-  { color: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-400 dark:border-teal-800',           borderColor: 'border-l-teal-500' },
-  { color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800', borderColor: 'border-l-indigo-500' },
-  { color: 'bg-lime-50 text-lime-700 border-lime-200 dark:bg-lime-950/50 dark:text-lime-400 dark:border-lime-800',             borderColor: 'border-l-lime-500' },
-  { color: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-400 dark:border-sky-800',                   borderColor: 'border-l-sky-500' },
-]
-
-function clonePermissions(matrix: PermissionMatrix): PermissionMatrix {
-  return Object.fromEntries(
-    Object.entries(matrix).map(([mod, roles]) => [
-      mod,
-      Object.fromEntries(Object.entries(roles).map(([role, actions]) => [role, [...actions]])),
-    ])
-  ) as PermissionMatrix
-}
 
 const ALL_TABS: { id: UserMgmtTab; label: string }[] = [
   { id: 'users',       label: 'Users' },
@@ -34,58 +25,100 @@ const ALL_TABS: { id: UserMgmtTab; label: string }[] = [
 
 export default function UserManagement() {
   const { can } = useAuth()
+  const queryClient = useQueryClient()
   const canEditUsers = can('users.edit')
   const TABS = ALL_TABS.filter((t) => t.id === 'users' || canEditUsers)
 
   const [activeTab, setActiveTab] = useState<UserMgmtTab>('users')
-  const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
-  const [permissions, setPermissions] = useState<PermissionMatrix>(() => clonePermissions(PERMISSIONS))
+  const [localPermissions, setLocalPermissions] = useState<PermissionMatrix | null>(null)
+  const [isSavingPermissions, setIsSavingPermissions] = useState(false)
 
-  const handleCreateRole = (data: Pick<Role, 'name' | 'description'>) => {
-    const customCount = roles.filter((r) => !r.isSystem).length
-    const colorSet = CUSTOM_ROLE_COLORS[customCount % CUSTOM_ROLE_COLORS.length]
-    const newRole: Role = {
-      id: `custom-${Date.now()}`,
-      ...data,
-      isSystem: false,
-      color: colorSet.color,
-      borderColor: colorSet.borderColor,
-      userCount: 0,
+  // ─── Roles query ─────────────────────────────────────────────────────────────
+
+  const { data: rolesData, isLoading: isLoadingRoles } = useQuery({
+    queryKey: ROLES_QUERY_KEY,
+    queryFn:  () => usersApi.listRoles(),
+  })
+
+  const apiRoles = rolesData?.data ?? []
+
+  const roles: Role[] = (() => {
+    let customIdx = 0
+    return apiRoles.map((r) => {
+      const role = mapApiRoleToRole(r, customIdx)
+      if (!r.is_system) customIdx++
+      return role
+    })
+  })()
+
+  const serverPermissions = apiRoles.length > 0
+    ? buildPermissionMatrix(apiRoles)
+    : PERMISSIONS
+  const permissions = localPermissions ?? serverPermissions
+
+  // ─── Role mutations ───────────────────────────────────────────────────────────
+
+  const { mutate: createRoleMutation, isPending: isCreatingRole } = useMutation({
+    mutationFn: (data: Pick<Role, 'name' | 'description'>) =>
+      usersApi.createRole({ name: data.name, description: data.description, permissions: [] }),
+    onSuccess: (res) => {
+      toast.success(`Role "${res.data.name}" created`)
+      queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
+    },
+    onError: () => toast.error('Failed to create role'),
+  })
+
+  const { mutate: updateRoleMutation, isPending: isUpdatingRole } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Pick<Role, 'name' | 'description'> }) =>
+      usersApi.updateRole(id, { name: data.name, description: data.description }),
+    onSuccess: () => {
+      toast.success('Role updated')
+      queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
+    },
+    onError: () => toast.error('Failed to update role'),
+  })
+
+  const { mutate: deleteRoleMutation, isPending: isDeletingRole } = useMutation({
+    mutationFn: (id: string) => usersApi.deleteRole(id),
+    onSuccess: (_, id) => {
+      const role = roles.find((r) => r.id === id)
+      toast.success(`Role "${role?.name ?? ''}" deleted`)
+      queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
+    },
+    onError: () => toast.error('Failed to delete role'),
+  })
+
+  // ─── Permissions save ─────────────────────────────────────────────────────────
+
+  const handleSavePermissions = async (updated: PermissionMatrix) => {
+    setLocalPermissions(updated)
+    const customRoles = apiRoles.filter((r) => !r.is_system)
+    if (customRoles.length === 0) {
+      // System-role permissions cannot be updated via API — local only
+      toast.success('Permissions saved')
+      return
     }
-    setRoles((prev) => [...prev, newRole])
-    // Initialize empty permissions for the new role across all modules
-    setPermissions((prev) => {
-      const next = clonePermissions(prev)
-      ;(Object.keys(next) as AppModule[]).forEach((mod) => {
-        next[mod][newRole.id] = []
-      })
-      return next
-    })
-  }
-
-  const handleUpdateRole = (id: string, data: Pick<Role, 'name' | 'description'>) => {
-    setRoles((prev) => prev.map((r) => r.id === id ? { ...r, ...data } : r))
-  }
-
-  const handleDeleteRole = (role: Role) => {
-    setRoles((prev) => prev.filter((r) => r.id !== role.id))
-    // Remove the role's column from the permissions matrix
-    setPermissions((prev) => {
-      const next = clonePermissions(prev)
-      ;(Object.keys(next) as AppModule[]).forEach((mod) => {
-        delete next[mod][role.id]
-      })
-      return next
-    })
-  }
-
-  const handleSavePermissions = (updated: PermissionMatrix) => {
-    setPermissions(updated)
+    setIsSavingPermissions(true)
+    try {
+      await Promise.allSettled(
+        customRoles.map((r) =>
+          usersApi.updateRole(r.id, {
+            permissions: matrixColumnToPermissions(updated, r.id),
+          })
+        )
+      )
+      toast.success('Permissions saved')
+      queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: WORKSPACE_USERS_QUERY_KEY })
+    } catch {
+      toast.error('Some permissions could not be saved')
+    } finally {
+      setIsSavingPermissions(false)
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start gap-4">
         <div className="p-2.5 rounded-lg bg-primary/10 shrink-0">
           <UserCog className="h-5 w-5 text-primary" />
@@ -98,7 +131,6 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* Tab nav */}
       <div className="border-b overflow-x-auto">
         <div className="flex gap-1 min-w-max">
           {TABS.map((tab) => (
@@ -119,23 +151,27 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* Tab content */}
       {activeTab === 'users' && (
-        <UsersTab roles={roles} />
+        <UsersTab roles={roles} isLoadingRoles={isLoadingRoles} />
       )}
       {activeTab === 'roles' && canEditUsers && (
         <RolesTab
           roles={roles}
-          onCreate={handleCreateRole}
-          onUpdate={handleUpdateRole}
-          onDelete={handleDeleteRole}
+          isLoading={isLoadingRoles}
+          isCreating={isCreatingRole}
+          isUpdating={isUpdatingRole}
+          isDeleting={isDeletingRole}
+          onCreate={(data) => createRoleMutation(data)}
+          onUpdate={(id, data) => updateRoleMutation({ id, data })}
+          onDelete={(role) => deleteRoleMutation(role.id)}
         />
       )}
       {activeTab === 'permissions' && canEditUsers && (
         <PermissionsTab
           roles={roles}
           permissions={permissions}
-          defaultPermissions={PERMISSIONS}
+          defaultPermissions={serverPermissions}
+          isSaving={isSavingPermissions}
           onSave={handleSavePermissions}
         />
       )}

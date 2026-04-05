@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
-  MoreHorizontal, UserPlus, ShieldOff, RotateCcw, Trash2, Edit2, SendHorizontal,
+  MoreHorizontal, UserPlus, ShieldOff, RotateCcw, Trash2, Edit2, SendHorizontal, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -21,11 +22,15 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { DataTable } from '@/components/common/DataTable'
-import { MOCK_USERS } from '../data'
+import { usersApi } from '@/api/users'
+import { WORKSPACE_USERS_QUERY_KEY } from '@/hooks/useWorkspaceUsers'
+import { mapApiMemberToUser } from '../apiMappers'
 import { getRoleBadgeClass, getRoleName, getStatusConfig } from '../utils'
 import type { AppUser, Role, UserStatus } from '../typings'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/auth/context'
+
+const USERS_QUERY_KEY = ['users', 'list'] as const
 
 // ─── Invite Dialog ─────────────────────────────────────────────────────────────
 
@@ -34,18 +39,20 @@ function InviteUserDialog({
   onClose,
   onInvite,
   roles,
+  isLoadingRoles,
+  isInviting,
 }: {
   open: boolean
   onClose: () => void
-  onInvite: (name: string, email: string, roleId: string) => void
+  onInvite: (email: string, roleId: string) => void
   roles: Role[]
+  isLoadingRoles: boolean
+  isInviting: boolean
 }) {
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [roleId, setRoleId] = useState('')
 
   const handleClose = () => {
-    setName('')
     setEmail('')
     setRoleId('')
     onClose()
@@ -59,15 +66,6 @@ function InviteUserDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="invite-name">Full Name</Label>
-            <Input
-              id="invite-name"
-              placeholder="e.g. Jordan Smith"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
             <Label htmlFor="invite-email">Email Address</Label>
             <Input
               id="invite-email"
@@ -79,9 +77,9 @@ function InviteUserDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="invite-role">Role</Label>
-            <Select value={roleId} onValueChange={setRoleId}>
+            <Select value={roleId} onValueChange={setRoleId} disabled={isLoadingRoles}>
               <SelectTrigger id="invite-role">
-                <SelectValue placeholder="Select a role" />
+                <SelectValue placeholder={isLoadingRoles ? 'Loading roles...' : 'Select a role'} />
               </SelectTrigger>
               <SelectContent>
                 {roles.map((r) => (
@@ -92,17 +90,18 @@ function InviteUserDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose} disabled={isInviting}>Cancel</Button>
           <Button
             onClick={() => {
-              if (!name.trim() || !email.trim() || !roleId) return
-              onInvite(name.trim(), email.trim(), roleId)
-              handleClose()
+              if (!email.trim() || !roleId) return
+              onInvite(email.trim(), roleId)
             }}
-            disabled={!name.trim() || !email.trim() || !roleId}
+            disabled={!email.trim() || !roleId || isInviting}
           >
-            <SendHorizontal className="h-4 w-4 mr-1.5" />
-            Send Invite
+            {isInviting
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <><SendHorizontal className="h-4 w-4 mr-1.5" />Send Invite</>
+            }
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -117,20 +116,20 @@ function EditUserDialog({
   onClose,
   onSave,
   roles,
+  isLoadingRoles,
+  isSaving,
 }: {
   user: AppUser | null
   onClose: () => void
-  onSave: (id: string, roleId: string, status: UserStatus) => void
+  onSave: (id: string, roleId: string) => void
   roles: Role[]
+  isLoadingRoles: boolean
+  isSaving: boolean
 }) {
   const [roleId, setRoleId] = useState('')
-  const [status, setStatus] = useState<UserStatus>('active')
 
   useEffect(() => {
-    if (user) {
-      setRoleId(user.roleId)
-      setStatus(user.status)
-    }
+    if (user) setRoleId(user.roleId)
   }, [user?.id])
 
   if (!user) return null
@@ -156,7 +155,7 @@ function EditUserDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="edit-role">Role</Label>
-            <Select value={roleId} onValueChange={setRoleId}>
+            <Select value={roleId} onValueChange={setRoleId} disabled={isLoadingRoles}>
               <SelectTrigger id="edit-role">
                 <SelectValue />
               </SelectTrigger>
@@ -167,24 +166,14 @@ function EditUserDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as UserStatus)}>
-              <SelectTrigger id="edit-status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="invited">Invited</SelectItem>
-                <SelectItem value="deactivated">Deactivated</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => { onSave(user.id, roleId, status); onClose() }}>
-            Save Changes
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+          <Button
+            disabled={!roleId || isSaving}
+            onClick={() => onSave(user.id, roleId)}
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -202,6 +191,7 @@ function buildColumns(
   onToggleAll: () => void,
   onEdit: (user: AppUser) => void,
   onAction: (user: AppUser, action: 'deactivate' | 'reactivate' | 'resend' | 'remove') => void,
+  busyId: string | null,
   canEditUser: boolean,
   canInvite: boolean,
   canDeleteUser: boolean,
@@ -302,13 +292,17 @@ function buildColumns(
       header: '',
       cell: ({ row }) => {
         const u = row.original
+        const isBusy = busyId === u.id
         const hasAnyAction = canEditUser || canInvite || canDeleteUser
         if (!hasAnyAction) return null
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isBusy}>
+                {isBusy
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <MoreHorizontal className="h-4 w-4" />
+                }
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -365,14 +359,12 @@ function UserStats({ users }: { users: AppUser[] }) {
     invited:     users.filter((u) => u.status === 'invited').length,
     deactivated: users.filter((u) => u.status === 'deactivated').length,
   }
-
   const stats = [
     { label: 'Total Users',  value: counts.total,       border: 'border-l-blue-500' },
     { label: 'Active',       value: counts.active,      border: 'border-l-emerald-500' },
     { label: 'Invited',      value: counts.invited,     border: 'border-l-amber-500' },
     { label: 'Deactivated',  value: counts.deactivated, border: 'border-l-slate-400' },
   ]
-
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((s) => (
@@ -389,96 +381,151 @@ function UserStats({ users }: { users: AppUser[] }) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-rose-500', 'bg-violet-500', 'bg-emerald-500',
-  'bg-amber-500', 'bg-cyan-500', 'bg-orange-500', 'bg-pink-500',
-]
-
-export function UsersTab({ roles }: { roles: Role[] }) {
-  const [users, setUsers] = useState<AppUser[]>(MOCK_USERS)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [editUser, setEditUser] = useState<AppUser | null>(null)
+export function UsersTab({
+  roles,
+  isLoadingRoles,
+}: {
+  roles: Role[]
+  isLoadingRoles: boolean
+}) {
+  const queryClient = useQueryClient()
   const { can } = useAuth()
-  const canInvite = can('users.invite')
-  const canEditUser = can('users.edit')
+  const canInvite    = can('users.invite')
+  const canEditUser  = can('users.edit')
   const canDeleteUser = can('users.delete')
 
-  const handleToggle = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [inviteOpen, setInviteOpen]   = useState(false)
+  const [editUser, setEditUser]       = useState<AppUser | null>(null)
+  const [busyId, setBusyId]           = useState<string | null>(null)
+
+  // ─── Query ──────────────────────────────────────────────────────────────────
+
+  const { data: membersData, isLoading: isLoadingUsers } = useQuery({
+    queryKey: USERS_QUERY_KEY,
+    queryFn:  () => usersApi.list(),
+  })
+
+  const users: AppUser[] = (membersData?.data ?? []).map(mapApiMemberToUser)
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: WORKSPACE_USERS_QUERY_KEY })
   }
 
-  const handleToggleAll = () => {
-    setSelectedIds((prev) => prev.length === users.length ? [] : users.map((u) => u.id))
-  }
+  // ─── Invite ─────────────────────────────────────────────────────────────────
 
-  const handleInvite = (name: string, email: string, roleId: string) => {
-    const initials = name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
-    const newUser: AppUser = {
-      id: `u${Date.now()}`,
-      name,
-      initials,
-      avatarColor: AVATAR_COLORS[users.length % AVATAR_COLORS.length],
-      email,
-      roleId,
-      status: 'invited',
-      lastLogin: undefined,
-      joinedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    }
-    setUsers((prev) => [...prev, newUser])
-    toast.success(`Invite sent to ${email}`)
-  }
+  const { mutate: inviteMutation, isPending: isInviting } = useMutation({
+    mutationFn: ({ email, roleId }: { email: string; roleId: string }) =>
+      usersApi.invite({ email, role_id: roleId }),
+    onSuccess: (_, { email }) => {
+      toast.success(`Invite sent to ${email}`)
+      setInviteOpen(false)
+      invalidate()
+    },
+    onError: () => toast.error('Failed to send invite'),
+  })
 
-  const handleSave = (id: string, roleId: string, status: UserStatus) => {
-    setUsers((prev) => prev.map((u) => u.id === id ? { ...u, roleId, status } : u))
-    toast.success('User updated')
-  }
+  // ─── Update role ─────────────────────────────────────────────────────────────
+
+  const { mutate: updateMutation, isPending: isUpdating } = useMutation({
+    mutationFn: ({ id, roleId }: { id: string; roleId: string }) =>
+      usersApi.update(id, { role_id: roleId }),
+    onSuccess: () => {
+      toast.success('User updated')
+      setEditUser(null)
+      invalidate()
+    },
+    onError: () => toast.error('Failed to update user'),
+  })
+
+  // ─── Per-row actions ─────────────────────────────────────────────────────────
+
+  const { mutate: statusMutation } = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      usersApi.update(id, { status }),
+    onMutate:  ({ id }) => setBusyId(id),
+    onSuccess: (_, { status }) => {
+      toast.success(status === 'deactivated' ? 'User deactivated' : 'User reactivated')
+      invalidate()
+    },
+    onError:   () => toast.error('Failed to update user status'),
+    onSettled: () => setBusyId(null),
+  })
+
+  const { mutate: removeMutation } = useMutation({
+    mutationFn: (id: string) => usersApi.remove(id),
+    onMutate:   (id) => setBusyId(id),
+    onSuccess:  () => {
+      toast.success('User removed')
+      setSelectedIds((prev) => prev.filter((x) => x !== busyId))
+      invalidate()
+    },
+    onError:    () => toast.error('Failed to remove user'),
+    onSettled:  () => setBusyId(null),
+  })
+
+  const { mutate: resendMutation } = useMutation({
+    mutationFn: (id: string) => usersApi.resendInvite(id),
+    onMutate:   (id) => setBusyId(id),
+    onSuccess:  (_, id) => {
+      const user = users.find((u) => u.id === id)
+      toast.success(`Invite resent to ${user?.email ?? 'user'}`)
+    },
+    onError:    () => toast.error('Failed to resend invite'),
+    onSettled:  () => setBusyId(null),
+  })
 
   const handleAction = (
     user: AppUser,
     action: 'deactivate' | 'reactivate' | 'resend' | 'remove',
   ) => {
-    if (action === 'remove') {
-      setUsers((prev) => prev.filter((u) => u.id !== user.id))
-      setSelectedIds((prev) => prev.filter((id) => id !== user.id))
-      toast.error(`${user.name} removed`)
-      return
-    }
-    if (action === 'deactivate') {
-      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, status: 'deactivated' } : u))
-      toast.success(`${user.name} deactivated`)
-      return
-    }
-    if (action === 'reactivate') {
-      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, status: 'active' } : u))
-      toast.success(`${user.name} reactivated`)
-      return
-    }
-    if (action === 'resend') {
-      toast.success(`Invite resent to ${user.email}`)
-    }
+    if (action === 'deactivate') { statusMutation({ id: user.id, status: 'deactivated' }); return }
+    if (action === 'reactivate') { statusMutation({ id: user.id, status: 'active' }); return }
+    if (action === 'remove')     { removeMutation(user.id); return }
+    if (action === 'resend')     { resendMutation(user.id) }
   }
 
-  const handleBulkDeactivate = () => {
-    setUsers((prev) =>
-      prev.map((u) => selectedIds.includes(u.id) ? { ...u, status: 'deactivated' as UserStatus } : u)
+  // ─── Bulk actions ────────────────────────────────────────────────────────────
+
+  const [isBulkBusy, setIsBulkBusy] = useState(false)
+
+  const handleBulkDeactivate = async () => {
+    setIsBulkBusy(true)
+    await Promise.allSettled(
+      selectedIds.map((id) => usersApi.update(id, { status: 'deactivated' }))
     )
     toast.success(`${selectedIds.length} user${selectedIds.length !== 1 ? 's' : ''} deactivated`)
     setSelectedIds([])
+    setIsBulkBusy(false)
+    invalidate()
   }
 
-  const handleBulkRemove = () => {
-    setUsers((prev) => prev.filter((u) => !selectedIds.includes(u.id)))
-    toast.error(`${selectedIds.length} user${selectedIds.length !== 1 ? 's' : ''} removed`)
+  const handleBulkRemove = async () => {
+    setIsBulkBusy(true)
+    await Promise.allSettled(selectedIds.map((id) => usersApi.remove(id)))
+    toast.success(`${selectedIds.length} user${selectedIds.length !== 1 ? 's' : ''} removed`)
     setSelectedIds([])
+    setIsBulkBusy(false)
+    invalidate()
   }
+
+  // ─── Table ────────────────────────────────────────────────────────────────────
+
+  const handleToggle    = (id: string) =>
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+  const handleToggleAll = () =>
+    setSelectedIds((prev) => prev.length === users.length ? [] : users.map((u) => u.id))
 
   const columns = useMemo(
-    () => buildColumns(users, roles, selectedIds, handleToggle, handleToggleAll, setEditUser, handleAction, canEditUser, canInvite, canDeleteUser),
+    () => buildColumns(
+      users, roles, selectedIds,
+      handleToggle, handleToggleAll,
+      setEditUser, handleAction,
+      busyId, canEditUser, canInvite, canDeleteUser,
+    ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, roles, selectedIds, canEditUser, canInvite, canDeleteUser],
+    [users, roles, selectedIds, busyId, canEditUser, canInvite, canDeleteUser],
   )
 
   return (
@@ -488,6 +535,7 @@ export function UsersTab({ roles }: { roles: Role[] }) {
       <DataTable
         columns={columns}
         data={users}
+        isLoading={isLoadingUsers}
         searchPlaceholder="Search users..."
         toolbar={() => (
           canInvite ? (
@@ -501,7 +549,6 @@ export function UsersTab({ roles }: { roles: Role[] }) {
         emptyDescription="Invite team members to get started"
       />
 
-      {/* Bulk actions bar */}
       {selectedIds.length > 0 && (canEditUser || canDeleteUser) && (
         <div className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 flex items-center gap-3 bg-primary text-primary-foreground px-5 py-3 rounded-full shadow-lg flex-wrap justify-center sm:flex-nowrap sm:justify-start max-w-max mx-auto">
           <span className="text-sm font-medium">{selectedIds.length} selected</span>
@@ -510,9 +557,10 @@ export function UsersTab({ roles }: { roles: Role[] }) {
             <Button
               size="sm"
               className="h-7 text-xs bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground border-0 shadow-none"
+              disabled={isBulkBusy}
               onClick={handleBulkDeactivate}
             >
-              <ShieldOff className="h-3.5 w-3.5 mr-1" />
+              {isBulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldOff className="h-3.5 w-3.5 mr-1" />}
               Deactivate
             </Button>
           )}
@@ -520,9 +568,10 @@ export function UsersTab({ roles }: { roles: Role[] }) {
             <Button
               size="sm"
               className="h-7 text-xs bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground border-0 shadow-none"
+              disabled={isBulkBusy}
               onClick={handleBulkRemove}
             >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              {isBulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
               Remove
             </Button>
           )}
@@ -538,15 +587,19 @@ export function UsersTab({ roles }: { roles: Role[] }) {
       <InviteUserDialog
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        onInvite={handleInvite}
+        onInvite={(email, roleId) => inviteMutation({ email, roleId })}
         roles={roles}
+        isLoadingRoles={isLoadingRoles}
+        isInviting={isInviting}
       />
 
       <EditUserDialog
         user={editUser}
         onClose={() => setEditUser(null)}
-        onSave={handleSave}
+        onSave={(id, roleId) => updateMutation({ id, roleId })}
         roles={roles}
+        isLoadingRoles={isLoadingRoles}
+        isSaving={isUpdating}
       />
     </div>
   )

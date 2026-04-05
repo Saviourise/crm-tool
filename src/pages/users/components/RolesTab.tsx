@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Users } from 'lucide-react'
-import { toast } from 'sonner'
+import { Plus, Pencil, Trash2, Users, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -58,10 +57,12 @@ function CreateRoleDialog({
   open,
   onClose,
   onCreate,
+  isCreating,
 }: {
   open: boolean
   onClose: () => void
   onCreate: (data: Pick<Role, 'name' | 'description'>) => void
+  isCreating: boolean
 }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -83,15 +84,15 @@ function CreateRoleDialog({
           description={description} setDescription={setDescription}
         />
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose} disabled={isCreating}>Cancel</Button>
           <Button
-            disabled={!name.trim()}
+            disabled={!name.trim() || isCreating}
             onClick={() => {
               onCreate({ name: name.trim(), description: description.trim() })
               handleClose()
             }}
           >
-            Create Role
+            {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Role'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -105,10 +106,12 @@ function EditRoleDialog({
   role,
   onClose,
   onSave,
+  isUpdating,
 }: {
   role: Role | null
   onClose: () => void
   onSave: (id: string, data: Pick<Role, 'name' | 'description'>) => void
+  isUpdating: boolean
 }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -133,15 +136,15 @@ function EditRoleDialog({
           description={description} setDescription={setDescription}
         />
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={isUpdating}>Cancel</Button>
           <Button
-            disabled={!name.trim()}
+            disabled={!name.trim() || isUpdating}
             onClick={() => {
               onSave(role.id, { name: name.trim(), description: description.trim() })
               onClose()
             }}
           >
-            Save Changes
+            {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -155,10 +158,12 @@ function RoleCard({
   role,
   onEdit,
   onDelete,
+  isDeleting,
 }: {
   role: Role
   onEdit: (role: Role) => void
   onDelete: (role: Role) => void
+  isDeleting: boolean
 }) {
   return (
     <Card className={cn('border-l-4', role.borderColor)}>
@@ -186,6 +191,7 @@ function RoleCard({
             size="sm"
             className="h-7 text-xs gap-1"
             onClick={() => onEdit(role)}
+            disabled={isDeleting}
           >
             <Pencil className="h-3 w-3" />
             Edit
@@ -195,11 +201,34 @@ function RoleCard({
             size="sm"
             className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
             onClick={() => onDelete(role)}
+            disabled={isDeleting}
           >
-            <Trash2 className="h-3 w-3" />
+            {isDeleting
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Trash2 className="h-3 w-3" />
+            }
             Delete
           </Button>
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Skeleton card ─────────────────────────────────────────────────────────────
+
+function RoleSkeleton() {
+  return (
+    <Card className="border-l-4 border-l-muted">
+      <CardHeader className="pb-2 pt-4 px-4">
+        <div className="h-5 w-24 rounded bg-muted animate-pulse" />
+      </CardHeader>
+      <CardContent className="px-4 pb-4 space-y-3">
+        <div className="space-y-1.5">
+          <div className="h-3 w-full rounded bg-muted animate-pulse" />
+          <div className="h-3 w-3/4 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="h-7 w-20 rounded bg-muted animate-pulse" />
       </CardContent>
     </Card>
   )
@@ -209,31 +238,30 @@ function RoleCard({
 
 export function RolesTab({
   roles,
+  isLoading,
+  isCreating,
+  isUpdating,
+  isDeleting,
   onCreate,
   onUpdate,
   onDelete,
 }: {
   roles: Role[]
+  isLoading: boolean
+  isCreating: boolean
+  isUpdating: boolean
+  isDeleting: boolean
   onCreate: (data: Pick<Role, 'name' | 'description'>) => void
   onUpdate: (id: string, data: Pick<Role, 'name' | 'description'>) => void
   onDelete: (role: Role) => void
 }) {
   const [createOpen, setCreateOpen] = useState(false)
-  const [editRole, setEditRole] = useState<Role | null>(null)
-
-  const handleCreate = (data: Pick<Role, 'name' | 'description'>) => {
-    onCreate(data)
-    toast.success(`Role "${data.name}" created`)
-  }
-
-  const handleSave = (id: string, data: Pick<Role, 'name' | 'description'>) => {
-    onUpdate(id, data)
-    toast.success('Role updated')
-  }
+  const [editRole, setEditRole]     = useState<Role | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleDelete = (role: Role) => {
+    setDeletingId(role.id)
     onDelete(role)
-    toast.error(`Role "${role.name}" deleted`)
   }
 
   const systemRoles = roles.filter((r) => r.isSystem)
@@ -250,14 +278,18 @@ export function RolesTab({
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {systemRoles.map((role) => (
-            <RoleCard
-              key={role.id}
-              role={role}
-              onEdit={setEditRole}
-              onDelete={handleDelete}
-            />
-          ))}
+          {isLoading
+            ? Array.from({ length: 3 }).map((_, i) => <RoleSkeleton key={i} />)
+            : systemRoles.map((role) => (
+                <RoleCard
+                  key={role.id}
+                  role={role}
+                  onEdit={setEditRole}
+                  onDelete={handleDelete}
+                  isDeleting={isDeleting && deletingId === role.id}
+                />
+              ))
+          }
         </div>
       </div>
 
@@ -270,13 +302,17 @@ export function RolesTab({
               Roles tailored to your team's structure.
             </p>
           </div>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" onClick={() => setCreateOpen(true)} disabled={isLoading}>
             <Plus className="h-4 w-4 mr-1.5" />
             New Role
           </Button>
         </div>
 
-        {customRoles.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 2 }).map((_, i) => <RoleSkeleton key={i} />)}
+          </div>
+        ) : customRoles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {customRoles.map((role) => (
               <RoleCard
@@ -284,6 +320,7 @@ export function RolesTab({
                 role={role}
                 onEdit={setEditRole}
                 onDelete={handleDelete}
+                isDeleting={isDeleting && deletingId === role.id}
               />
             ))}
           </div>
@@ -306,12 +343,14 @@ export function RolesTab({
       <CreateRoleDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreate={handleCreate}
+        onCreate={onCreate}
+        isCreating={isCreating}
       />
       <EditRoleDialog
         role={editRole}
         onClose={() => setEditRole(null)}
-        onSave={handleSave}
+        onSave={onUpdate}
+        isUpdating={isUpdating}
       />
     </div>
   )

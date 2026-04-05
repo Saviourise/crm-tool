@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw, Info } from 'lucide-react'
+import { Save, RotateCcw, Info, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -88,11 +88,13 @@ export function PermissionsTab({
   roles,
   permissions,
   defaultPermissions,
+  isSaving = false,
   onSave,
 }: {
   roles: Role[]
   permissions: PermissionMatrix
   defaultPermissions: PermissionMatrix
+  isSaving?: boolean
   onSave: (updated: PermissionMatrix) => void
 }) {
   const [local, setLocal] = useState<PermissionMatrix>(() => clonePermissions(permissions))
@@ -141,8 +143,11 @@ export function PermissionsTab({
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
             Reset
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={!hasChanges}>
-            <Save className="h-3.5 w-3.5 mr-1.5" />
+          <Button size="sm" onClick={handleSave} disabled={!hasChanges || isSaving}>
+            {isSaving
+              ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              : <Save className="h-3.5 w-3.5 mr-1.5" />
+            }
             Save Changes
           </Button>
         </div>
