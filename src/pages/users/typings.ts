@@ -1,16 +1,28 @@
 export type UserStatus = 'active' | 'invited' | 'deactivated'
-export type PermissionAction = 'view' | 'create' | 'edit' | 'delete'
+
+export type PermissionAction =
+  | 'view' | 'create' | 'edit' | 'delete'   // standard CRUD
+  | 'invite'                                  // users
+  | 'import' | 'export'                       // contacts, leads
+  | 'assign'                                  // leads
+  | 'send'                                    // communication, marketing
+  | 'billing'                                 // settings
+  | 'use'                                     // ai
+
 export type AppModule =
-  | 'dashboard'
+  | 'users'
   | 'contacts'
+  | 'companies'
   | 'leads'
   | 'pipeline'
+  | 'deals'
   | 'tasks'
+  | 'calendar'
   | 'communication'
   | 'marketing'
   | 'reports'
   | 'settings'
-  | 'users'
+  | 'ai'
 
 export interface AppUser {
   id: string

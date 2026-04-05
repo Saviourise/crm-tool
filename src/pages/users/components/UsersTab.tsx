@@ -246,8 +246,8 @@ function buildColumns(
       accessorFn: (row) => getRoleName(row.roleId, roles),
       header: 'Role',
       cell: ({ row }) => (
-        <Badge variant="outline" className={cn('text-xs', getRoleBadgeClass(row.original.roleId, roles))}>
-          {getRoleName(row.original.roleId, roles)}
+        <Badge variant="outline" className={cn('text-xs capitalize', getRoleBadgeClass(row.original.roleId, roles))}>
+          {getRoleName(row.original.roleId, roles).replace(/-/g, ' ')}
         </Badge>
       ),
     },
@@ -354,16 +354,16 @@ function buildColumns(
 
 function UserStats({ users }: { users: AppUser[] }) {
   const counts = {
-    total:       users.length,
-    active:      users.filter((u) => u.status === 'active').length,
-    invited:     users.filter((u) => u.status === 'invited').length,
+    total: users.length,
+    active: users.filter((u) => u.status === 'active').length,
+    invited: users.filter((u) => u.status === 'invited').length,
     deactivated: users.filter((u) => u.status === 'deactivated').length,
   }
   const stats = [
-    { label: 'Total Users',  value: counts.total,       border: 'border-l-blue-500' },
-    { label: 'Active',       value: counts.active,      border: 'border-l-emerald-500' },
-    { label: 'Invited',      value: counts.invited,     border: 'border-l-amber-500' },
-    { label: 'Deactivated',  value: counts.deactivated, border: 'border-l-slate-400' },
+    { label: 'Total Users', value: counts.total, border: 'border-l-blue-500' },
+    { label: 'Active', value: counts.active, border: 'border-l-emerald-500' },
+    { label: 'Invited', value: counts.invited, border: 'border-l-amber-500' },
+    { label: 'Deactivated', value: counts.deactivated, border: 'border-l-slate-400' },
   ]
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -390,20 +390,20 @@ export function UsersTab({
 }) {
   const queryClient = useQueryClient()
   const { can } = useAuth()
-  const canInvite    = can('users.invite')
-  const canEditUser  = can('users.edit')
+  const canInvite = can('users.invite')
+  const canEditUser = can('users.edit')
   const canDeleteUser = can('users.delete')
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [inviteOpen, setInviteOpen]   = useState(false)
-  const [editUser, setEditUser]       = useState<AppUser | null>(null)
-  const [busyId, setBusyId]           = useState<string | null>(null)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [editUser, setEditUser] = useState<AppUser | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   // ─── Query ──────────────────────────────────────────────────────────────────
 
   const { data: membersData, isLoading: isLoadingUsers } = useQuery({
     queryKey: USERS_QUERY_KEY,
-    queryFn:  () => usersApi.list(),
+    queryFn: () => usersApi.list(),
   })
 
   const users: AppUser[] = (membersData?.data ?? []).map(mapApiMemberToUser)
@@ -444,36 +444,36 @@ export function UsersTab({
   const { mutate: statusMutation } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       usersApi.update(id, { status }),
-    onMutate:  ({ id }) => setBusyId(id),
+    onMutate: ({ id }) => setBusyId(id),
     onSuccess: (_, { status }) => {
       toast.success(status === 'deactivated' ? 'User deactivated' : 'User reactivated')
       invalidate()
     },
-    onError:   () => toast.error('Failed to update user status'),
+    onError: () => toast.error('Failed to update user status'),
     onSettled: () => setBusyId(null),
   })
 
   const { mutate: removeMutation } = useMutation({
     mutationFn: (id: string) => usersApi.remove(id),
-    onMutate:   (id) => setBusyId(id),
-    onSuccess:  () => {
+    onMutate: (id) => setBusyId(id),
+    onSuccess: () => {
       toast.success('User removed')
       setSelectedIds((prev) => prev.filter((x) => x !== busyId))
       invalidate()
     },
-    onError:    () => toast.error('Failed to remove user'),
-    onSettled:  () => setBusyId(null),
+    onError: () => toast.error('Failed to remove user'),
+    onSettled: () => setBusyId(null),
   })
 
   const { mutate: resendMutation } = useMutation({
     mutationFn: (id: string) => usersApi.resendInvite(id),
-    onMutate:   (id) => setBusyId(id),
-    onSuccess:  (_, id) => {
+    onMutate: (id) => setBusyId(id),
+    onSuccess: (_, id) => {
       const user = users.find((u) => u.id === id)
       toast.success(`Invite resent to ${user?.email ?? 'user'}`)
     },
-    onError:    () => toast.error('Failed to resend invite'),
-    onSettled:  () => setBusyId(null),
+    onError: () => toast.error('Failed to resend invite'),
+    onSettled: () => setBusyId(null),
   })
 
   const handleAction = (
@@ -482,8 +482,8 @@ export function UsersTab({
   ) => {
     if (action === 'deactivate') { statusMutation({ id: user.id, status: 'deactivated' }); return }
     if (action === 'reactivate') { statusMutation({ id: user.id, status: 'active' }); return }
-    if (action === 'remove')     { removeMutation(user.id); return }
-    if (action === 'resend')     { resendMutation(user.id) }
+    if (action === 'remove') { removeMutation(user.id); return }
+    if (action === 'resend') { resendMutation(user.id) }
   }
 
   // ─── Bulk actions ────────────────────────────────────────────────────────────
@@ -512,7 +512,7 @@ export function UsersTab({
 
   // ─── Table ────────────────────────────────────────────────────────────────────
 
-  const handleToggle    = (id: string) =>
+  const handleToggle = (id: string) =>
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
   const handleToggleAll = () =>
     setSelectedIds((prev) => prev.length === users.length ? [] : users.map((u) => u.id))

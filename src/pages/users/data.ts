@@ -64,16 +64,21 @@ export const MOCK_USERS: AppUser[] = [
 ]
 
 // ─── Permission Matrix ────────────────────────────────────────────────────────
+// Fallback used only while the roles API is loading. After load, the live matrix
+// is built from API data via buildPermissionMatrix(). Role IDs match MOCK_ROLES.
 
 export const PERMISSIONS: PermissionMatrix = {
-  dashboard:     { admin: ['view','create','edit','delete'], manager: ['view','create','edit'],          'sales-rep': ['view'],                    marketing: ['view'],                    support: ['view']                        },
-  contacts:      { admin: ['view','create','edit','delete'], manager: ['view','create','edit','delete'], 'sales-rep': ['view','create','edit'],    marketing: ['view'],                    support: ['view','edit']                 },
-  leads:         { admin: ['view','create','edit','delete'], manager: ['view','create','edit','delete'], 'sales-rep': ['view','create','edit'],    marketing: ['view','create'],           support: ['view']                        },
-  pipeline:      { admin: ['view','create','edit','delete'], manager: ['view','create','edit','delete'], 'sales-rep': ['view','create','edit'],    marketing: ['view'],                    support: []                              },
-  tasks:         { admin: ['view','create','edit','delete'], manager: ['view','create','edit','delete'], 'sales-rep': ['view','create','edit','delete'], marketing: ['view','create','edit'], support: ['view','create','edit']      },
-  communication: { admin: ['view','create','edit','delete'], manager: ['view','create','edit'],          'sales-rep': ['view','create','edit','delete'], marketing: ['view'],            support: ['view','create','edit','delete'] },
-  marketing:     { admin: ['view','create','edit','delete'], manager: ['view','create','edit'],          'sales-rep': ['view'],                    marketing: ['view','create','edit','delete'], support: []                      },
-  reports:       { admin: ['view','create','edit','delete'], manager: ['view','create','edit','delete'], 'sales-rep': ['view'],                    marketing: ['view','create'],           support: []                              },
-  settings:      { admin: ['view','create','edit','delete'], manager: ['view'],                          'sales-rep': [],                          marketing: [],                          support: []                              },
-  users:         { admin: ['view','create','edit','delete'], manager: [],                                'sales-rep': [],                          marketing: [],                          support: []                              },
+  users:         { 'super-admin': ['view','invite','edit','delete'], admin: ['view','invite','edit'], manager: ['view'], 'sales-rep': [], marketing: [], viewer: [] },
+  contacts:      { 'super-admin': ['view','create','edit','delete','import','export'], admin: ['view','create','edit','delete','import','export'], manager: ['view','create','edit','delete','import','export'], 'sales-rep': ['view','create','edit','import'], marketing: ['view','import','export'], viewer: ['view'] },
+  companies:     { 'super-admin': ['view','create','edit','delete'], admin: ['view','create','edit','delete'], manager: ['view','create','edit'], 'sales-rep': ['view','create'], marketing: ['view'], viewer: ['view'] },
+  leads:         { 'super-admin': ['view','create','edit','delete','assign','import','export'], admin: ['view','create','edit','delete','assign','import','export'], manager: ['view','create','edit','assign'], 'sales-rep': ['view','create','edit'], marketing: ['view','create'], viewer: ['view'] },
+  pipeline:      { 'super-admin': ['view','create','edit','delete'], admin: ['view','create','edit','delete'], manager: ['view','edit'], 'sales-rep': ['view'], marketing: ['view'], viewer: ['view'] },
+  deals:         { 'super-admin': ['view','create','edit','delete'], admin: ['view','create','edit','delete'], manager: ['view','create','edit'], 'sales-rep': ['view','create','edit'], marketing: [], viewer: ['view'] },
+  tasks:         { 'super-admin': ['view','create','edit','delete'], admin: ['view','create','edit','delete'], manager: ['view','create','edit','delete'], 'sales-rep': ['view','create','edit'], marketing: ['view','create','edit'], viewer: ['view'] },
+  calendar:      { 'super-admin': ['view','create','edit','delete'], admin: ['view','create','edit','delete'], manager: ['view','create','edit'], 'sales-rep': ['view','create'], marketing: [], viewer: ['view'] },
+  communication: { 'super-admin': ['view','send'], admin: ['view','send'], manager: ['view','send'], 'sales-rep': ['view','send'], marketing: ['view'], viewer: ['view'] },
+  marketing:     { 'super-admin': ['view','create','edit','delete','send'], admin: ['view','create','edit','delete','send'], manager: ['view','create'], 'sales-rep': ['view'], marketing: ['view','create','edit','send'], viewer: ['view'] },
+  reports:       { 'super-admin': ['view','export'], admin: ['view','export'], manager: ['view','export'], 'sales-rep': ['view'], marketing: ['view'], viewer: ['view'] },
+  settings:      { 'super-admin': ['view','edit','billing'], admin: ['view','edit'], manager: ['view'], 'sales-rep': [], marketing: [], viewer: [] },
+  ai:            { 'super-admin': ['use'], admin: ['use'], manager: ['use'], 'sales-rep': ['use'], marketing: ['use'], viewer: [] },
 }

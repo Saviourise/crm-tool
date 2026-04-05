@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from 'date-fns'
 import type { ApiWorkspaceMember, ApiRole } from '@/api/users'
 import type { AppUser, Role, PermissionMatrix, AppModule, PermissionAction } from './typings'
+import { MODULE_ACTIONS } from './utils'
 
 // ─── Avatar helpers ────────────────────────────────────────────────────────────
 
@@ -132,27 +133,25 @@ export function mapApiMemberToUser(member: ApiWorkspaceMember): AppUser {
 
 // ─── Permissions ───────────────────────────────────────────────────────────────
 
-const ALL_MODULES: AppModule[] = [
-  'dashboard', 'contacts', 'leads', 'pipeline', 'tasks',
-  'communication', 'marketing', 'reports', 'settings', 'users',
-]
-
-const VALID_ACTIONS = new Set<PermissionAction>(['view', 'create', 'edit', 'delete'])
+// Canonical module order — must match MODULE_ACTIONS keys
+const ALL_MODULES = Object.keys(MODULE_ACTIONS) as AppModule[]
 
 /**
  * Build a PermissionMatrix from the permissions arrays of all API roles.
  * Each role's `permissions` is ["contacts.view", "leads.create", ...].
+ * Only actions listed in MODULE_ACTIONS for that module are kept.
  */
 export function buildPermissionMatrix(apiRoles: ApiRole[]): PermissionMatrix {
   const matrix: PermissionMatrix = {} as PermissionMatrix
 
   for (const mod of ALL_MODULES) {
+    const validActions = new Set<string>(MODULE_ACTIONS[mod])
     matrix[mod] = {}
     for (const role of apiRoles) {
       matrix[mod][role.id] = role.permissions
         .filter((p) => p.startsWith(`${mod}.`))
         .map((p) => p.slice(mod.length + 1))
-        .filter((a): a is PermissionAction => VALID_ACTIONS.has(a as PermissionAction))
+        .filter((a): a is PermissionAction => validActions.has(a))
     }
   }
 

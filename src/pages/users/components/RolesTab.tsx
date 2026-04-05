@@ -170,8 +170,8 @@ function RoleCard({
       <CardHeader className="pb-2 pt-4 px-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Badge variant="outline" className={cn('text-xs shrink-0', role.color)}>
-              {role.name}
+            <Badge variant="outline" className={cn('text-xs capitalize shrink-0', role.color)}>
+              {role.name.replace(/-/g, ' ')}
             </Badge>
             {role.isSystem && (
               <span className="text-xs text-muted-foreground shrink-0">System</span>
@@ -256,7 +256,7 @@ export function RolesTab({
   onDelete: (role: Role) => void
 }) {
   const [createOpen, setCreateOpen] = useState(false)
-  const [editRole, setEditRole]     = useState<Role | null>(null)
+  const [editRole, setEditRole] = useState<Role | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleDelete = (role: Role) => {
@@ -265,7 +265,7 @@ export function RolesTab({
   }
 
   const systemRoles = roles.filter((r) => r.isSystem)
-  const customRoles  = roles.filter((r) => !r.isSystem)
+  const customRoles = roles.filter((r) => !r.isSystem)
 
   return (
     <div className="space-y-6">
@@ -281,14 +281,14 @@ export function RolesTab({
           {isLoading
             ? Array.from({ length: 3 }).map((_, i) => <RoleSkeleton key={i} />)
             : systemRoles.map((role) => (
-                <RoleCard
-                  key={role.id}
-                  role={role}
-                  onEdit={setEditRole}
-                  onDelete={handleDelete}
-                  isDeleting={isDeleting && deletingId === role.id}
-                />
-              ))
+              <RoleCard
+                key={role.id}
+                role={role}
+                onEdit={setEditRole}
+                onDelete={handleDelete}
+                isDeleting={isDeleting && deletingId === role.id}
+              />
+            ))
           }
         </div>
       </div>
