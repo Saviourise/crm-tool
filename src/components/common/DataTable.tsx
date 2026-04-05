@@ -130,6 +130,7 @@ export function DataTable<TData>({
               if (!useServerSearch) table.setPageIndex(0)
             }}
             className="pl-8"
+            autoComplete="off"
           />
         </div>
         {toolbar && (

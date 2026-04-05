@@ -26,7 +26,7 @@ import { usersApi } from '@/api/users'
 import { WORKSPACE_USERS_QUERY_KEY } from '@/hooks/useWorkspaceUsers'
 import { mapApiMemberToUser } from '../apiMappers'
 import { getRoleBadgeClass, getRoleName, getStatusConfig } from '../utils'
-import type { AppUser, Role, UserStatus } from '../typings'
+import type { AppUser, Role } from '../typings'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/auth/context'
 
@@ -52,9 +52,15 @@ function InviteUserDialog({
   const [email, setEmail] = useState('')
   const [roleId, setRoleId] = useState('')
 
+  // Reset form state every time the dialog opens
+  useEffect(() => {
+    if (open) {
+      setEmail('')
+      setRoleId('')
+    }
+  }, [open])
+
   const handleClose = () => {
-    setEmail('')
-    setRoleId('')
     onClose()
   }
 
@@ -70,14 +76,16 @@ function InviteUserDialog({
             <Input
               id="invite-email"
               type="email"
+              autoComplete="off"
               placeholder="jordan@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isInviting}
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="invite-role">Role</Label>
-            <Select value={roleId} onValueChange={setRoleId} disabled={isLoadingRoles}>
+            <Select value={roleId} onValueChange={setRoleId} disabled={isLoadingRoles || isInviting}>
               <SelectTrigger id="invite-role">
                 <SelectValue placeholder={isLoadingRoles ? 'Loading roles...' : 'Select a role'} />
               </SelectTrigger>

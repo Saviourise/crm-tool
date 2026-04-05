@@ -107,7 +107,7 @@ export const router = createBrowserRouter([
     element: <P><ResetPasswordPage /></P>,
   },
   {
-    path: 'invite/:token',
+    path: 'invite/accept',
     element: <P><InviteAcceptPage /></P>,
   },
   {

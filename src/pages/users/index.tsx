@@ -58,7 +58,7 @@ export default function UserManagement() {
 
   // ─── Role mutations ───────────────────────────────────────────────────────────
 
-  const { mutate: createRoleMutation, isPending: isCreatingRole } = useMutation({
+  const { mutateAsync: createRoleMutateAsync, isPending: isCreatingRole } = useMutation({
     mutationFn: (data: Pick<Role, 'name' | 'description'>) =>
       usersApi.createRole({ name: data.name, description: data.description, permissions: [] }),
     onSuccess: (res) => {
@@ -68,7 +68,7 @@ export default function UserManagement() {
     onError: () => toast.error('Failed to create role'),
   })
 
-  const { mutate: updateRoleMutation, isPending: isUpdatingRole } = useMutation({
+  const { mutateAsync: updateRoleMutateAsync, isPending: isUpdatingRole } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Pick<Role, 'name' | 'description'> }) =>
       usersApi.updateRole(id, { name: data.name, description: data.description }),
     onSuccess: () => {
@@ -161,8 +161,8 @@ export default function UserManagement() {
           isCreating={isCreatingRole}
           isUpdating={isUpdatingRole}
           isDeleting={isDeletingRole}
-          onCreate={(data) => createRoleMutation(data)}
-          onUpdate={(id, data) => updateRoleMutation({ id, data })}
+          onCreate={(data) => createRoleMutateAsync(data)}
+          onUpdate={(id, data) => updateRoleMutateAsync({ id, data })}
           onDelete={(role) => deleteRoleMutation(role.id)}
         />
       )}

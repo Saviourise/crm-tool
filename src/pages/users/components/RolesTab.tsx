@@ -61,7 +61,7 @@ function CreateRoleDialog({
 }: {
   open: boolean
   onClose: () => void
-  onCreate: (data: Pick<Role, 'name' | 'description'>) => void
+  onCreate: (data: Pick<Role, 'name' | 'description'>) => Promise<unknown>
   isCreating: boolean
 }) {
   const [name, setName] = useState('')
@@ -71,6 +71,16 @@ function CreateRoleDialog({
     setName('')
     setDescription('')
     onClose()
+  }
+
+  const handleSubmit = async () => {
+    if (!name.trim() || isCreating) return
+    try {
+      await onCreate({ name: name.trim(), description: description.trim() })
+      handleClose()
+    } catch {
+      // stay open — error toast already shown by mutation's onError
+    }
   }
 
   return (
@@ -85,13 +95,7 @@ function CreateRoleDialog({
         />
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isCreating}>Cancel</Button>
-          <Button
-            disabled={!name.trim() || isCreating}
-            onClick={() => {
-              onCreate({ name: name.trim(), description: description.trim() })
-              handleClose()
-            }}
-          >
+          <Button disabled={!name.trim() || isCreating} onClick={handleSubmit}>
             {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Role'}
           </Button>
         </DialogFooter>
@@ -110,7 +114,7 @@ function EditRoleDialog({
 }: {
   role: Role | null
   onClose: () => void
-  onSave: (id: string, data: Pick<Role, 'name' | 'description'>) => void
+  onSave: (id: string, data: Pick<Role, 'name' | 'description'>) => Promise<unknown>
   isUpdating: boolean
 }) {
   const [name, setName] = useState('')
@@ -125,6 +129,16 @@ function EditRoleDialog({
 
   if (!role) return null
 
+  const handleSubmit = async () => {
+    if (!name.trim() || isUpdating) return
+    try {
+      await onSave(role.id, { name: name.trim(), description: description.trim() })
+      onClose()
+    } catch {
+      // stay open — error toast already shown by mutation's onError
+    }
+  }
+
   return (
     <Dialog open={!!role} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[440px]">
@@ -137,13 +151,7 @@ function EditRoleDialog({
         />
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isUpdating}>Cancel</Button>
-          <Button
-            disabled={!name.trim() || isUpdating}
-            onClick={() => {
-              onSave(role.id, { name: name.trim(), description: description.trim() })
-              onClose()
-            }}
-          >
+          <Button disabled={!name.trim() || isUpdating} onClick={handleSubmit}>
             {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
           </Button>
         </DialogFooter>
@@ -251,8 +259,8 @@ export function RolesTab({
   isCreating: boolean
   isUpdating: boolean
   isDeleting: boolean
-  onCreate: (data: Pick<Role, 'name' | 'description'>) => void
-  onUpdate: (id: string, data: Pick<Role, 'name' | 'description'>) => void
+  onCreate: (data: Pick<Role, 'name' | 'description'>) => Promise<unknown>
+  onUpdate: (id: string, data: Pick<Role, 'name' | 'description'>) => Promise<unknown>
   onDelete: (role: Role) => void
 }) {
   const [createOpen, setCreateOpen] = useState(false)
