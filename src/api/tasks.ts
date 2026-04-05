@@ -82,7 +82,7 @@ export const tasksApi = {
   delete: (id: string) => api.delete(`/api/tasks/${id}/`),
 
   bulkDelete: (ids: string[]) =>
-    api.post<{ deleted: number }>('/api/tasks/bulk-delete/', { ids }),
+    api.post<{ deleted: number }>('/api/tasks/bulk/', { action: 'delete', ids }),
 
   stats: () => api.get<TaskStatsResponse>('/api/tasks/stats/'),
 }
