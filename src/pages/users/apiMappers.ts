@@ -120,7 +120,6 @@ export function mapApiMemberToUser(member: ApiWorkspaceMember): AppUser {
   const status = (member.status as AppUser['status'])
     ?? (member.is_active ? 'active' : 'deactivated')
 
-  console.log('member', member)
   return {
     id: member.id,
     name,
