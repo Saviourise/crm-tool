@@ -425,7 +425,7 @@ function buildColumns(
       id: 'title',
       accessorFn: (row) => row.title,
       header: 'Task',
-      size: 380,
+      size: 280,
       cell: ({ row }) => {
         const task = row.original
         const overdue = isOverdue(task.dueDate, task.status)
@@ -435,14 +435,14 @@ function buildColumns(
           ? task.relatedTo.type === 'deal' ? Briefcase : task.relatedTo.type === 'lead' ? Target : User
           : null
         return (
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-2.5 max-w-[260px]">
             <CategoryIcon className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-              <p className={cn('text-sm font-medium leading-snug', done && 'line-through text-muted-foreground')}>
+              <p className={cn('text-sm font-medium leading-snug truncate', done && 'line-through text-muted-foreground')}>
                 {task.title}
               </p>
               {task.description && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{task.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
               )}
               {task.relatedTo && RelatedIcon && (
                 <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
