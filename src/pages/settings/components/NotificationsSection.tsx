@@ -26,11 +26,11 @@ const API_TO_FE: Record<string, NotificationKey> = Object.fromEntries(
   Object.entries(FE_TO_API).map(([fe, api]) => [api, fe as NotificationKey])
 )
 
-const DIGEST_OPTIONS: { value: EmailDigest; label: string }[] = [
-  { value: 'daily', label: 'Daily digest at 8:00 AM' },
-  { value: 'weekly', label: 'Weekly summary on Mondays' },
-  { value: 'never', label: 'Never' },
-]
+// const DIGEST_OPTIONS: { value: EmailDigest; label: string }[] = [
+//   { value: 'daily', label: 'Daily digest at 8:00 AM' },
+//   { value: 'weekly', label: 'Weekly summary on Mondays' },
+//   { value: 'never', label: 'Never' },
+// ]
 
 function apiToPrefs(apiPrefs: Record<string, { email: boolean; in_app: boolean }>): NotificationPrefs {
   const result = { ...NOTIFICATION_PREFS }
