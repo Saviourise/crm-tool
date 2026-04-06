@@ -37,7 +37,7 @@ export function UserMenu() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
             <Avatar className="h-9 w-9">
-              <AvatarFallback className={cn('text-white text-sm font-semibold', user.avatarColor)}>
+              <AvatarFallback className="text-white text-sm font-semibold" style={{ backgroundColor: user.avatarColor }}>
                 {user.initials}
               </AvatarFallback>
             </Avatar>

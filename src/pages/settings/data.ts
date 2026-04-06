@@ -30,14 +30,14 @@ export const DATE_FORMATS = [
 ]
 
 export const AVATAR_COLORS = [
-  { value: 'bg-blue-500',    label: 'Blue' },
-  { value: 'bg-violet-500',  label: 'Violet' },
-  { value: 'bg-rose-500',    label: 'Rose' },
-  { value: 'bg-emerald-500', label: 'Emerald' },
-  { value: 'bg-amber-500',   label: 'Amber' },
-  { value: 'bg-cyan-500',    label: 'Cyan' },
-  { value: 'bg-orange-500',  label: 'Orange' },
-  { value: 'bg-pink-500',    label: 'Pink' },
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#8b5cf6', label: 'Violet' },
+  { value: '#f43f5e', label: 'Rose' },
+  { value: '#10b981', label: 'Emerald' },
+  { value: '#f59e0b', label: 'Amber' },
+  { value: '#06b6d4', label: 'Cyan' },
+  { value: '#f97316', label: 'Orange' },
+  { value: '#ec4899', label: 'Pink' },
 ]
 
 export const PROFILE: ProfileData = {

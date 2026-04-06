@@ -28,6 +28,9 @@ export interface AuthUser {
   initials: string
   jobTitle: string
   isVerified: boolean
+  phone?: string
+  timezone?: string
+  language?: string
 }
 
 export interface AuthState {

@@ -3,10 +3,15 @@ import { api } from '@/lib/api'
 export interface ApiUserObject {
   id: string
   email: string
-  name: string
-  job_title: string
-  timezone: string
+  name: string | null
+  job_title: string | null
+  phone: string | null
+  avatar_color: string | null
+  initials: string | null
+  timezone: string | null
+  language: string | null
   is_active: boolean
+  is_verified?: boolean
   created_at: string
 }
 

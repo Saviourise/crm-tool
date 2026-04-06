@@ -3,6 +3,7 @@ import type { AuthUser, AuthState, RoleId, Permission, Feature, PlanId } from '.
 import { hasPermission, hasFeature, planMeetsMinimum } from './permissions'
 import { useAuthStore } from '@/store/authStore'
 import { authApi, workspaceSwitchApi, usersApi, workspaceApi } from '@/api/auth'
+import { usersApi as workspaceUsersApi } from '@/api/users'
 import type { ApiUser } from '@/api/types'
 import { mapApiUserToAuthUser, mapApiUserToAuthUserMinimal, getRoleNameFromRole } from './apiMappers'
 import { STORAGE_KEYS } from '@/utils/constants'
@@ -10,12 +11,22 @@ import { navigateToLogin } from '@/lib/logoutNavigate'
 
 const AUTH_KEY = STORAGE_KEYS.AUTH_USER
 
+export interface ProfileUpdatePayload {
+  name?: string
+  jobTitle?: string
+  phone?: string
+  avatarColor?: string
+  timezone?: string
+  language?: string
+}
+
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresVerification?: boolean }>
   signup: (data: { name: string; email: string; password: string }) => Promise<{ success: boolean; error?: string }>
   acceptInvite: (token: string, name: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   completeOnboarding: () => void
+  updateProfile: (data: ProfileUpdatePayload) => Promise<void>
   can: (permission: Permission) => boolean
   hasPlan: (feature: Feature) => boolean
   planAtLeast: (plan: PlanId) => boolean
@@ -285,6 +296,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return planMeetsMinimum(user.plan, plan)
   }, [user])
 
+  const updateProfile = useCallback(async (data: ProfileUpdatePayload) => {
+    if (!user) return
+    const { data: member } = await workspaceUsersApi.update(user.id, {
+      name:         data.name,
+      job_title:    data.jobTitle,
+      phone:        data.phone,
+      avatar_color: data.avatarColor,
+      timezone:     data.timezone,
+      language:     data.language,
+    })
+    const u = member.user
+    const updatedName = u.name ?? user.name
+    const updatedUser: AuthUser = {
+      ...user,
+      name:        updatedName,
+      initials:    u.initials ?? (updatedName.split(/\s+/).map((p) => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?'),
+      jobTitle:    u.job_title ?? user.jobTitle,
+      avatarColor: u.avatar_color ?? user.avatarColor,
+      phone:       u.phone ?? undefined,
+      timezone:    u.timezone ?? undefined,
+      language:    u.language ?? undefined,
+    }
+    setUser(updatedUser)
+    localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser))
+  }, [user])
+
   const completeOnboarding = useCallback(() => {
     setOnboardingComplete(true)
   }, [])
@@ -304,6 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         acceptInvite,
         logout,
         completeOnboarding,
+        updateProfile,
         can,
         hasPlan,
         planAtLeast,

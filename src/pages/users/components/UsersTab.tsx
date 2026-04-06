@@ -150,10 +150,10 @@ function EditUserDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <div className={cn(
-              'h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0',
-              user.avatarColor
-            )}>
+            <div
+              className="h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
+              style={{ backgroundColor: user.avatarColor }}
+            >
               {user.initials}
             </div>
             <div>
@@ -235,10 +235,10 @@ function buildColumns(
         const u = row.original
         return (
           <div className="flex items-center gap-3 min-w-0">
-            <div className={cn(
-              'h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0',
-              u.avatarColor
-            )}>
+            <div
+              className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+              style={{ backgroundColor: u.avatarColor }}
+            >
               {u.initials}
             </div>
             <div className="min-w-0">

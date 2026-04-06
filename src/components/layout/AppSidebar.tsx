@@ -194,7 +194,7 @@ export function AppSidebar() {
             className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors text-left"
           >
             <Avatar className="h-7 w-7 shrink-0">
-              <AvatarFallback className={cn('text-white text-xs font-semibold', user.avatarColor)}>
+              <AvatarFallback className="text-white text-xs font-semibold" style={{ backgroundColor: user.avatarColor }}>
                 {user.initials}
               </AvatarFallback>
             </Avatar>
@@ -240,7 +240,7 @@ export function AppSidebar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Avatar className="h-8 w-8 cursor-pointer">
-                <AvatarFallback className={cn('text-white text-xs font-semibold', user.avatarColor)}>
+                <AvatarFallback className="text-white text-xs font-semibold" style={{ backgroundColor: user.avatarColor }}>
                   {user.initials}
                 </AvatarFallback>
               </Avatar>

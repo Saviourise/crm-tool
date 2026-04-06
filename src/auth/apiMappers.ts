@@ -10,6 +10,11 @@ const ROLE_NAME_MAP: Record<string, RoleId> = {
   viewer: 'viewer',
 }
 
+function deriveInitials(name: string | null, email: string): string {
+  const src = name?.trim() || email
+  return src.split(/\s+/).map((p) => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?'
+}
+
 export function mapApiUserToAuthUser(
   apiUser: ApiUser,
   roleName: string,
@@ -17,17 +22,21 @@ export function mapApiUserToAuthUser(
   workspaceName: string
 ): AuthUser {
   const role = ROLE_NAME_MAP[roleName] ?? 'viewer'
+  const name = apiUser.name ?? apiUser.email
   return {
     id: apiUser.id,
-    name: apiUser.name,
+    name,
     email: apiUser.email,
     role,
     plan,
     company: workspaceName,
-    avatarColor: apiUser.avatar_color ?? '#6366f1',
-    initials: apiUser.initials ?? apiUser.name.slice(0, 2).toUpperCase(),
+    avatarColor: apiUser.avatar_color ?? '#3b82f6',
+    initials: apiUser.initials ?? deriveInitials(apiUser.name, apiUser.email),
     jobTitle: apiUser.job_title ?? '',
     isVerified: apiUser.is_verified ?? true,
+    phone: apiUser.phone ?? undefined,
+    timezone: apiUser.timezone ?? undefined,
+    language: apiUser.language ?? undefined,
   }
 }
 
@@ -41,16 +50,20 @@ export function getRoleNameFromRole(role: ApiRole): string {
 
 /** Map API user for signup/onboarding when workspace/role not yet available */
 export function mapApiUserToAuthUserMinimal(apiUser: ApiUser): AuthUser {
+  const name = apiUser.name ?? apiUser.email
   return {
     id: apiUser.id,
-    name: apiUser.name,
+    name,
     email: apiUser.email,
     role: 'super-admin',
     plan: 'free',
     company: '',
-    avatarColor: apiUser.avatar_color ?? '#6366f1',
-    initials: apiUser.initials ?? apiUser.name.slice(0, 2).toUpperCase(),
+    avatarColor: apiUser.avatar_color ?? '#3b82f6',
+    initials: apiUser.initials ?? deriveInitials(apiUser.name, apiUser.email),
     jobTitle: apiUser.job_title ?? '',
     isVerified: apiUser.is_verified ?? true,
+    phone: apiUser.phone ?? undefined,
+    timezone: apiUser.timezone ?? undefined,
+    language: apiUser.language ?? undefined,
   }
 }

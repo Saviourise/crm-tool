@@ -6,9 +6,9 @@ import { MODULE_ACTIONS } from './utils'
 // ─── Avatar helpers ────────────────────────────────────────────────────────────
 
 const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-rose-500', 'bg-violet-500', 'bg-emerald-500',
-  'bg-amber-500', 'bg-cyan-500', 'bg-orange-500', 'bg-pink-500',
-  'bg-teal-500', 'bg-indigo-500',
+  '#3b82f6', '#f43f5e', '#8b5cf6', '#10b981',
+  '#f59e0b', '#06b6d4', '#f97316', '#ec4899',
+  '#14b8a6', '#6366f1',
 ]
 
 function deriveAvatarColor(userId: string): string {
@@ -124,7 +124,7 @@ export function mapApiMemberToUser(member: ApiWorkspaceMember): AppUser {
     id: member.id,
     name,
     initials: deriveInitials(name),
-    avatarColor: deriveAvatarColor(member.user.id),
+    avatarColor: member.user.avatar_color ?? deriveAvatarColor(member.user.id),
     email: member.user.email,
     roleId: member?.role?.id ?? 'Invited',
     status,

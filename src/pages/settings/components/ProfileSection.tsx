@@ -1,23 +1,134 @@
 import { useState, useRef } from 'react'
-import { Upload, X } from 'lucide-react'
+import { Upload, X, Loader2, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { openChat } from '@/lib/chatStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { PROFILE, TIMEZONES, LANGUAGES, AVATAR_COLORS } from '../data'
-import type { ProfileData } from '../typings'
+import { TIMEZONES, LANGUAGES, AVATAR_COLORS } from '../data'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/auth/context'
+
+// ─── Color Picker Popover ──────────────────────────────────────────────────────
+
+function ColorPickerPopover({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (hex: string) => void
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-background hover:bg-muted transition-colors text-sm"
+        >
+          <span
+            className="h-4 w-4 rounded-full border border-border shrink-0"
+            style={{ backgroundColor: value }}
+          />
+          <span className="font-mono text-xs text-muted-foreground">{value}</span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3 space-y-3" align="start">
+        {/* Preset swatches */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Presets</p>
+          <div className="flex gap-2 flex-wrap">
+            {AVATAR_COLORS.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => onChange(c.value)}
+                style={{ backgroundColor: c.value }}
+                className={cn(
+                  'h-7 w-7 rounded-full transition-all border-2',
+                  value === c.value
+                    ? 'border-foreground scale-110'
+                    : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
+                )}
+                aria-label={c.label}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Custom color input */}
+        <div className="border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Custom</p>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="color"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="h-9 w-9 cursor-pointer rounded-md border border-input p-0.5 bg-background"
+              />
+            </div>
+            <Input
+              value={value}
+              onChange={(e) => {
+                const v = e.target.value
+                if (/^#[0-9a-fA-F]{0,6}$/.test(v)) onChange(v)
+              }}
+              onBlur={(e) => {
+                // Pad short hex to full 6-digit on blur
+                if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) return
+                onChange(value) // revert if invalid
+              }}
+              className="font-mono text-xs h-9"
+              maxLength={7}
+              placeholder="#000000"
+            />
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 export function ProfileSection() {
-  const [profile, setProfile] = useState<ProfileData>(PROFILE)
+  const { user, updateProfile } = useAuth()
+
+  // ─── Per-card form state ──────────────────────────────────────────────────────
+
+  const [avatarColor, setAvatarColor] = useState(user?.avatarColor ?? '#3b82f6')
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+
+  const [name, setName]         = useState(user?.name ?? '')
+  const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? '')
+  const [phone, setPhone]       = useState(user?.phone ?? '')
+
+  const [timezone, setTimezone] = useState(user?.timezone ?? 'America/New_York')
+  const [language, setLanguage] = useState(user?.language ?? 'en')
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const set = (key: keyof ProfileData) => (val: string) =>
-    setProfile((p) => ({ ...p, [key]: val }))
+  // ─── Loading state per card ────────────────────────────────────────────────────
+
+  const [saving, setSaving] = useState<'avatar' | 'info' | 'prefs' | null>(null)
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+  const save = async (section: 'avatar' | 'info' | 'prefs', payload: Parameters<typeof updateProfile>[0]) => {
+    setSaving(section)
+    try {
+      await updateProfile(payload)
+      toast.success('Changes saved')
+    } catch {
+      toast.error('Failed to save changes')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  // ─── Photo handlers ────────────────────────────────────────────────────────────
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -32,23 +143,24 @@ export function ProfileSection() {
     }
     const url = URL.createObjectURL(file)
     setPhotoUrl(url)
-    toast.success('Photo ready — click Save to apply.')
+    toast.success('Photo preview ready — note: photo upload requires a server endpoint (see docs/profile_settings_remaining_api.md).')
   }
 
   const handleRemovePhoto = () => {
     if (photoUrl) URL.revokeObjectURL(photoUrl)
     setPhotoUrl(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
-    toast.success('Photo removed')
   }
 
-  const handleSave = () => {
-    toast.success('Profile updated')
-  }
+  // ─── Derived display ────────────────────────────────────────────────────────────
+
+  const displayInitials = user?.initials ?? ((user?.name ?? '').split(/\s+/).map((p) => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?')
+
+  if (!user) return null
 
   return (
     <div className="space-y-6">
-      {/* Profile Photo */}
+      {/* ── Profile Photo ──────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>Profile Photo</CardTitle>
@@ -58,7 +170,6 @@ export function ProfileSection() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center gap-6">
-            {/* Avatar preview */}
             <div className="relative shrink-0">
               {photoUrl ? (
                 <img
@@ -67,16 +178,15 @@ export function ProfileSection() {
                   className="h-20 w-20 rounded-full object-cover ring-2 ring-border"
                 />
               ) : (
-                <div className={cn(
-                  'h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold ring-2 ring-border',
-                  profile.avatarColor
-                )}>
-                  {profile.initials}
+                <div
+                  className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold ring-2 ring-border"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  {displayInitials}
                 </div>
               )}
             </div>
 
-            {/* Upload controls */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Button
@@ -112,53 +222,32 @@ export function ProfileSection() {
             </div>
           </div>
 
-          {/* Fallback avatar customization — shown when no photo uploaded */}
+          {/* Initials avatar color — shown when no photo */}
           {!photoUrl && (
-            <div className="space-y-4 pt-2 border-t">
+            <div className="space-y-3 pt-2 border-t">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Initials Avatar
               </p>
-              <div className="flex items-center gap-6 flex-wrap">
-                <div className="space-y-1.5">
-                  <Label htmlFor="initials">Initials</Label>
-                  <Input
-                    id="initials"
-                    maxLength={2}
-                    className="w-20 uppercase"
-                    value={profile.initials}
-                    onChange={(e) => set('initials')(e.target.value.toUpperCase())}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Color</Label>
-                  <div className="flex gap-2 pt-0.5">
-                    {AVATAR_COLORS.map((c) => (
-                      <button
-                        key={c.value}
-                        type="button"
-                        onClick={() => set('avatarColor')(c.value)}
-                        className={cn(
-                          'h-7 w-7 rounded-full transition-all',
-                          c.value,
-                          profile.avatarColor === c.value
-                            ? 'ring-2 ring-offset-2 ring-foreground scale-110'
-                            : 'opacity-60 hover:opacity-100'
-                        )}
-                        aria-label={c.label}
-                      />
-                    ))}
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <Label>Color</Label>
+                <ColorPickerPopover value={avatarColor} onChange={setAvatarColor} />
               </div>
             </div>
           )}
         </CardContent>
         <CardFooter className="border-t justify-end">
-          <Button size="sm" onClick={handleSave}>Save Changes</Button>
+          <Button
+            size="sm"
+            disabled={saving === 'avatar'}
+            onClick={() => save('avatar', { avatarColor })}
+          >
+            {saving === 'avatar' ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+            Save Changes
+          </Button>
         </CardFooter>
       </Card>
 
-      {/* Personal Info */}
+      {/* ── Personal Information ────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
@@ -170,16 +259,18 @@ export function ProfileSection() {
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                value={profile.name}
-                onChange={(e) => set('name')(e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={saving === 'info'}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="job-title">Job Title</Label>
               <Input
                 id="job-title"
-                value={profile.jobTitle}
-                onChange={(e) => set('jobTitle')(e.target.value)}
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                disabled={saving === 'info'}
               />
             </div>
           </div>
@@ -191,13 +282,15 @@ export function ProfileSection() {
                 <Input
                   id="email"
                   type="email"
-                  value={profile.email}
+                  value={user.email}
                   readOnly
                   className="pr-20 bg-muted/50 text-muted-foreground cursor-not-allowed select-none"
                 />
-                <span className="absolute right-2.5 top-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
-                  Verified
-                </span>
+                {user.isVerified && (
+                  <span className="absolute right-2.5 top-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                    Verified
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 Email cannot be changed. Contact{' '}
@@ -216,18 +309,26 @@ export function ProfileSection() {
               <Input
                 id="phone"
                 type="tel"
-                value={profile.phone}
-                onChange={(e) => set('phone')(e.target.value)}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={saving === 'info'}
               />
             </div>
           </div>
         </CardContent>
         <CardFooter className="border-t justify-end">
-          <Button size="sm" onClick={handleSave}>Save Changes</Button>
+          <Button
+            size="sm"
+            disabled={saving === 'info' || !name.trim()}
+            onClick={() => save('info', { name: name.trim(), jobTitle: jobTitle.trim(), phone: phone.trim() })}
+          >
+            {saving === 'info' ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+            Save Changes
+          </Button>
         </CardFooter>
       </Card>
 
-      {/* Preferences */}
+      {/* ── Regional Preferences ────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>Regional Preferences</CardTitle>
@@ -237,7 +338,7 @@ export function ProfileSection() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="language">Language</Label>
-              <Select value={profile.language} onValueChange={set('language')}>
+              <Select value={language} onValueChange={setLanguage} disabled={saving === 'prefs'}>
                 <SelectTrigger id="language"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {LANGUAGES.map((l) => (
@@ -248,7 +349,7 @@ export function ProfileSection() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="timezone">Timezone</Label>
-              <Select value={profile.timezone} onValueChange={set('timezone')}>
+              <Select value={timezone} onValueChange={setTimezone} disabled={saving === 'prefs'}>
                 <SelectTrigger id="timezone"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TIMEZONES.map((t) => (
@@ -260,11 +361,18 @@ export function ProfileSection() {
           </div>
         </CardContent>
         <CardFooter className="border-t justify-end">
-          <Button size="sm" onClick={handleSave}>Save Changes</Button>
+          <Button
+            size="sm"
+            disabled={saving === 'prefs'}
+            onClick={() => save('prefs', { timezone, language })}
+          >
+            {saving === 'prefs' ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+            Save Changes
+          </Button>
         </CardFooter>
       </Card>
 
-      {/* Danger zone */}
+      {/* ── Danger Zone ──────────────────────────────────────────────────────────── */}
       <Card className="border-rose-200 dark:border-rose-900">
         <CardHeader>
           <CardTitle className="text-rose-600 dark:text-rose-400">Danger Zone</CardTitle>
@@ -282,7 +390,7 @@ export function ProfileSection() {
               variant="outline"
               size="sm"
               className="shrink-0 text-rose-600 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30"
-              onClick={() => toast.error('Account deletion is disabled for demo accounts.')}
+              onClick={() => toast.error('Account deletion is not yet available. Contact support to request account removal.')}
             >
               Delete Account
             </Button>
