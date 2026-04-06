@@ -52,7 +52,7 @@ const CONTACTS_QUERY_KEY = ['contacts']
 
 const statusStyles: Record<Contact['status'], string> = {
   active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
-  prospect: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
+  prospect: 'bg-metric-blue text-primary border-primary/20',
   inactive: 'bg-muted text-muted-foreground border-border',
 }
 

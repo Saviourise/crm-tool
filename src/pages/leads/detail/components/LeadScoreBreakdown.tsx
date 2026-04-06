@@ -1,13 +1,14 @@
+import { useId } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import { CHART_CONTAINER_COMPACT_CLASS } from '@/lib/chartLayout'
 import { api } from '@/lib/api'
 
 interface LeadScoreBreakdownProps {
@@ -32,6 +33,10 @@ interface AiScoreResponse {
   scored_at?: string
 }
 
+const chartConfig = {
+  value: { label: 'Score', color: 'var(--primary)' },
+} satisfies ChartConfig
+
 function buildChartData(score: number, breakdown?: AiScoreBreakdown) {
   if (breakdown && Object.keys(breakdown).length > 0) {
     return Object.entries(breakdown)
@@ -50,6 +55,7 @@ function buildChartData(score: number, breakdown?: AiScoreBreakdown) {
 }
 
 export function LeadScoreBreakdown({ score, leadId }: LeadScoreBreakdownProps) {
+  const gradId = useId().replace(/:/g, '')
   const { data } = useQuery({
     queryKey: ['ai', 'lead-scoring', leadId],
     queryFn: () => api.get<AiScoreResponse>(`/api/ai/lead-scoring/${leadId}/`),
@@ -62,46 +68,48 @@ export function LeadScoreBreakdown({ score, leadId }: LeadScoreBreakdownProps) {
 
   return (
     <Card>
-      <CardContent className="pt-6">
-        <h3 className="font-semibold text-sm mb-4">Score Breakdown</h3>
-        <ResponsiveContainer width="100%" height={160}>
+      <CardContent className="pt-2">
+        <h3 className="mb-4 text-sm font-semibold">Score Breakdown</h3>
+        <ChartContainer config={chartConfig} className={CHART_CONTAINER_COMPACT_CLASS}>
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
+            margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
           >
+            <defs>
+              <linearGradient id={`scoreBar-${gradId}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="var(--color-value)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--color-value)" stopOpacity={1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
             <XAxis
               type="number"
               domain={[0, 100]}
-              tick={{ fontSize: 11 }}
               tickLine={false}
               axisLine={false}
+              className="text-xs"
             />
             <YAxis
               type="category"
               dataKey="category"
-              tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={false}
-              width={80}
+              width={88}
+              className="text-xs"
             />
-            <Tooltip
-              cursor={{ fill: 'hsl(var(--muted))' }}
-              contentStyle={{
-                background: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                fontSize: 12,
-              }}
+            <ChartTooltip
+              content={<ChartTooltipContent />}
+              cursor={{ fill: 'var(--muted)', opacity: 0.25 }}
             />
             <Bar
               dataKey="value"
-              fill="hsl(var(--primary))"
-              radius={[0, 4, 4, 0]}
-              maxBarSize={24}
+              fill={`url(#scoreBar-${gradId})`}
+              radius={[0, 6, 6, 0]}
+              maxBarSize={28}
             />
           </BarChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   )

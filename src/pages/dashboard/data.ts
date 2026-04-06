@@ -8,9 +8,10 @@ export const PIPELINE_CHART_CONFIG: ChartConfig = {
   },
 }
 
+/** Matches reports Lead Volume Trend (`var(--primary)` area + stroke) */
 export const REVENUE_CHART_CONFIG: ChartConfig = {
   value: {
     label: 'Revenue',
-    color: 'oklch(0.58 0.22 245)', // Primary blue
+    color: 'var(--primary)',
   },
 }

@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import type { LucideIcon } from 'lucide-react'
 import { Users, UserPlus, CheckSquare, Sparkles, TrendingUp, DollarSign } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { MetricCard } from './components/MetricCard'
+import { StatCard, StatCardSkeleton, type StatCardAccent } from '@/components/common/StatCard'
 import { QuickActions } from './components/QuickActions'
 import { RecentActivity } from './components/RecentActivity'
 import { BarChartComponent } from './components/PerformanceChart'
@@ -27,6 +28,21 @@ function formatCurrency(value: string): string {
   if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`
   if (num >= 1_000) return `$${(num / 1_000).toFixed(1)}K`
   return `$${num.toFixed(0)}`
+}
+
+function metricColorToAccent(color: Metric['color']): StatCardAccent {
+  switch (color) {
+    case 'blue':
+      return 'primary'
+    case 'green':
+      return 'success'
+    case 'orange':
+      return 'warning'
+    case 'purple':
+      return 'secondary'
+    case 'red':
+      return 'destructive'
+  }
 }
 
 
@@ -95,8 +111,6 @@ export default function Dashboard() {
       id: 'leads',
       label: 'Total Leads',
       value: (leads?.total_leads ?? 0).toLocaleString(),
-      change: '—',
-      trend: 'up',
       color: 'blue',
       icon: UserPlus,
       isLoading: leadsLoading,
@@ -106,8 +120,6 @@ export default function Dashboard() {
       id: 'contacts',
       label: 'Active Contacts',
       value: contactsCount.toLocaleString(),
-      change: '—',
-      trend: 'up',
       color: 'green',
       icon: Users,
       isLoading: contactsLoading,
@@ -117,8 +129,6 @@ export default function Dashboard() {
       id: 'opportunities',
       label: 'Open Opportunities',
       value: openDeals.toLocaleString(),
-      change: '—',
-      trend: 'up',
       color: 'orange',
       icon: TrendingUp,
       isLoading: salesLoading,
@@ -128,8 +138,6 @@ export default function Dashboard() {
       id: 'deals-closed',
       label: 'Deals Closed',
       value: sales ? formatCurrency(String(getClosedWonValue(sales))) : '$0',
-      change: '—',
-      trend: 'up',
       color: 'purple',
       icon: DollarSign,
       isLoading: salesLoading,
@@ -139,8 +147,6 @@ export default function Dashboard() {
       id: 'tasks-due',
       label: 'Tasks Due',
       value: tasksDueCount.toLocaleString(),
-      change: '—',
-      trend: 'up',
       color: 'red',
       icon: CheckSquare,
       isLoading: tasksLoading,
@@ -173,8 +179,8 @@ export default function Dashboard() {
       const year = month.slice(2, 4)
       return {
         name: monthNum >= 0 ? `${MONTH_NAMES[monthNum]} '${year}` : month,
-        value: Math.round(total / 1000),
-        fullValue: total,
+        /** Full currency amount — plot & axis use the same scale as the tooltip */
+        value: total,
         isoDate: month,
       }
     })
@@ -268,19 +274,19 @@ export default function Dashboard() {
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {metrics.map((metric) => (
-          <MetricCard
-            key={metric.id}
-            title={metric.label}
-            value={metric.value}
-            change={metric.change}
-            trend={metric.trend}
-            icon={metric.icon}
-            color={metric.color}
-            isLoading={metric.isLoading}
-            isFetching={metric.isFetching}
-          />
-        ))}
+        {metrics.map((metric) =>
+          metric.isLoading ? (
+            <StatCardSkeleton key={metric.id} />
+          ) : (
+            <StatCard
+              key={metric.id}
+              icon={metric.icon as LucideIcon}
+              value={metric.value}
+              label={metric.label}
+              accent={metricColorToAccent(metric.color)}
+            />
+          )
+        )}
       </div>
 
       {/* Charts Row */}
@@ -296,6 +302,22 @@ export default function Dashboard() {
           data={revenueTrendData}
           chartConfig={REVENUE_CHART_CONFIG}
           isLoading={revenueLoading || revenueFetching}
+          yTickFormatter={(v) => {
+            if (!Number.isFinite(v)) return ''
+            const n = Math.abs(v)
+            if (n >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
+            if (n >= 1000) return `$${Math.round(v / 1000)}k`
+            return `$${Math.round(v)}`
+          }}
+          tooltipValueFormatter={(n) =>
+            Number.isFinite(n)
+              ? new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  maximumFractionDigits: 0,
+                }).format(n)
+              : '—'
+          }
         />
       </div>
 

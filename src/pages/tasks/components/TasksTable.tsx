@@ -329,7 +329,7 @@ function TaskRowActions({ task }: { task: Task }) {
             {isDone ? (
               <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
             ) : (
-              <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(var(--success))]" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
             )}
           </Button>
         )}
@@ -499,7 +499,7 @@ function buildColumns(
         return (
           <div className="flex items-center gap-1.5">
             {done ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(var(--success))] shrink-0" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
             ) : row.original.status === 'in-progress' ? (
               <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
             ) : (

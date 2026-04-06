@@ -1,6 +1,5 @@
 import { DollarSign, TrendingUp, Briefcase, Trophy, Target } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { StatCard, type StatCardAccent } from '@/components/common/StatCard'
 import { currencyFormat, getTotalPipelineValue, getWeightedPipelineValue } from '../utils'
 import type { Opportunity } from '../typings'
 
@@ -20,63 +19,29 @@ export function PipelineStats({ opportunities }: PipelineStatsProps) {
     ? Math.round((won.length / (won.length + lost.length)) * 100)
     : 0
 
-  const stats = [
-    {
-      label: 'Total Pipeline',
-      value: currencyFormat.format(totalValue),
-      icon: DollarSign,
-      bg: 'bg-[oklch(var(--metric-blue))]',
-      text: 'text-primary',
-      border: 'border-l-primary',
-    },
-    {
-      label: 'Weighted Value',
-      value: currencyFormat.format(weightedValue),
-      icon: TrendingUp,
-      bg: 'bg-[oklch(var(--metric-purple))]',
-      text: 'text-[oklch(var(--secondary))]',
-      border: 'border-l-[oklch(var(--secondary))]',
-    },
-    {
-      label: 'Open Deals',
-      value: String(open.length),
-      icon: Briefcase,
-      bg: 'bg-[oklch(var(--metric-orange))]',
-      text: 'text-[oklch(var(--warning))]',
-      border: 'border-l-[oklch(var(--warning))]',
-    },
-    {
-      label: 'Won Deals',
-      value: String(won.length),
-      icon: Trophy,
-      bg: 'bg-[oklch(var(--metric-green))]',
-      text: 'text-[oklch(var(--success))]',
-      border: 'border-l-[oklch(var(--success))]',
-    },
-    {
-      label: 'Win Rate',
-      value: `${winRate}%`,
-      icon: Target,
-      bg: 'bg-[oklch(var(--metric-green))]',
-      text: 'text-[oklch(var(--success))]',
-      border: 'border-l-[oklch(var(--success))]',
-    },
+  const stats: {
+    label: string
+    value: string
+    icon: typeof DollarSign
+    accent: StatCardAccent
+  }[] = [
+    { label: 'Total Pipeline', value: currencyFormat.format(totalValue), icon: DollarSign, accent: 'primary' },
+    { label: 'Weighted Value', value: currencyFormat.format(weightedValue), icon: TrendingUp, accent: 'secondary' },
+    { label: 'Open Deals', value: String(open.length), icon: Briefcase, accent: 'warning' },
+    { label: 'Won Deals', value: String(won.length), icon: Trophy, accent: 'success' },
+    { label: 'Win Rate', value: `${winRate}%`, icon: Target, accent: 'success' },
   ]
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
       {stats.map((stat) => (
-        <Card key={stat.label} className={cn('border-l-4 overflow-hidden', stat.border)}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className={cn('p-2.5 rounded-lg shrink-0', stat.bg, stat.text)}>
-              <stat.icon className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl font-bold truncate">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          key={stat.label}
+          icon={stat.icon}
+          value={stat.value}
+          label={stat.label}
+          accent={stat.accent}
+        />
       ))}
     </div>
   )

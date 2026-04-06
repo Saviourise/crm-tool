@@ -55,7 +55,7 @@ import { useAuth } from '@/auth/context'
 function MetricPill({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="text-center">
-      <p className={cn('text-sm font-semibold tabular-nums', highlight && 'text-[oklch(var(--success))]')}>{value}</p>
+      <p className={cn('text-sm font-semibold tabular-nums', highlight && 'text-success')}>{value}</p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   )

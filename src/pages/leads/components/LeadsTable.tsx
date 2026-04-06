@@ -53,8 +53,8 @@ import { patchLeadsListCaches } from '@/lib/listQueryCache'
 import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 
 const statusStyles: Record<LeadStatus, string> = {
-  new: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
-  contacted: 'bg-[oklch(var(--metric-orange))] text-[oklch(var(--warning))] border-[oklch(var(--warning))]/20',
+  new: 'bg-metric-blue text-primary border-primary/20',
+  contacted: 'bg-metric-orange text-warning border-warning/20',
   qualified: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
   unqualified: 'bg-muted text-muted-foreground border-border',
   converted: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800',
@@ -73,9 +73,9 @@ const sourceLabels: Record<LeadSource, string> = {
 
 function ScoreIndicator({ score }: { score: number }) {
   const color = score >= 70
-    ? 'bg-[oklch(var(--success))]'
+    ? 'bg-success'
     : score >= 40
-      ? 'bg-[oklch(var(--warning))]'
+      ? 'bg-warning'
       : 'bg-destructive'
   return (
     <div className="flex items-center gap-2">

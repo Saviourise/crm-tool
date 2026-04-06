@@ -1,7 +1,8 @@
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import { TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import {
   type ChartConfig,
   ChartContainer,
@@ -9,12 +10,11 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { DashboardEmptyState } from './DashboardEmptyState'
+import { CHART_CONTAINER_CLASS } from '@/lib/chartLayout'
 
 interface ChartData {
   name: string
   value: number
-  /** Raw amount for tooltip while `value` stays scaled for the plot */
-  fullValue?: number
   /** API month key e.g. 2026-04-01 — tooltip shows a long date */
   isoDate?: string
 }
@@ -24,19 +24,28 @@ interface LineChartComponentProps {
   data: ChartData[]
   chartConfig: ChartConfig
   isLoading?: boolean
+  yTickFormatter?: (value: number) => string
+  tooltipValueFormatter?: (value: number) => string
 }
 
-export function LineChartComponent({ title, data, chartConfig, isLoading }: LineChartComponentProps) {
+export function LineChartComponent({
+  title,
+  data,
+  chartConfig,
+  isLoading,
+  yTickFormatter,
+  tooltipValueFormatter,
+}: LineChartComponentProps) {
   const isEmpty = !data?.length
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="h-[200px] sm:h-[300px] w-full flex items-center justify-center">
+          <div className={cn(CHART_CONTAINER_CLASS, 'flex items-center justify-center')}>
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
           </div>
         ) : isEmpty ? (
@@ -46,22 +55,29 @@ export function LineChartComponent({ title, data, chartConfig, isLoading }: Line
             description="Revenue forecast will appear here as you add deals to your pipeline."
           />
         ) : (
-          <ChartContainer config={chartConfig} className="h-[200px] w-full sm:h-[300px]">
+          <ChartContainer config={chartConfig} className={CHART_CONTAINER_CLASS}>
             <AreaChart accessibilityLayer data={data}>
               <defs>
-                <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.05} />
+                <linearGradient id="fillRevenueTrend" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-value)" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="var(--color-value)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={10}
+                tickMargin={8}
                 tickFormatter={(value) => value}
                 className="text-xs"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                className="text-xs"
+                tickFormatter={yTickFormatter ?? ((v) => String(v))}
               />
               <ChartTooltip
                 content={
@@ -84,11 +100,17 @@ export function LineChartComponent({ title, data, chartConfig, isLoading }: Line
                     }}
                     formatter={(value, _name, item, _index, payload) => {
                       const p = payload as unknown as ChartData | undefined
-                      const raw = p?.fullValue != null ? p.fullValue : Number(value)
+                      const raw = Number(p?.value ?? value)
                       const label =
                         typeof chartConfig.value?.label === 'string'
                           ? chartConfig.value.label
                           : 'Revenue'
+                      const display =
+                        tooltipValueFormatter && Number.isFinite(raw)
+                          ? tooltipValueFormatter(raw)
+                          : Number.isFinite(raw)
+                            ? raw.toLocaleString()
+                            : '—'
                       return (
                         <div className="flex w-full flex-wrap items-center gap-2">
                           <div
@@ -101,7 +123,7 @@ export function LineChartComponent({ title, data, chartConfig, isLoading }: Line
                           <div className="flex flex-1 justify-between gap-2 leading-none items-center">
                             <span className="text-muted-foreground">{label}</span>
                             <span className="text-foreground font-mono font-medium tabular-nums">
-                              {Number.isFinite(raw) ? raw.toLocaleString() : '—'}
+                              {display}
                             </span>
                           </div>
                         </div>
@@ -119,7 +141,7 @@ export function LineChartComponent({ title, data, chartConfig, isLoading }: Line
                 }
                 dataKey="value"
                 type="monotone"
-                fill="url(#fillRevenue)"
+                fill="url(#fillRevenueTrend)"
                 fillOpacity={1}
                 stroke="var(--color-value)"
                 strokeWidth={2.5}

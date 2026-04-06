@@ -9,19 +9,21 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
+import { StatCard, type StatCardAccent } from '@/components/common/StatCard'
 import { cn } from '@/lib/utils'
+import { CHART_CONTAINER_CLASS } from '@/lib/chartLayout'
 import { MONTHLY_REVENUE, WON_LOST_DATA, SALES_REPS } from '../data'
 import { formatCurrency, formatPercent, getAttainmentColor, getAttainmentBarColor } from '../utils'
 
 // ─── Chart configs ────────────────────────────────────────────────────────────
 
 const revenueConfig: ChartConfig = {
-  revenue: { label: 'Revenue', color: '#10b981' },
+  revenue: { label: 'Revenue', color: 'var(--success)' },
 }
 
 const wonLostConfig: ChartConfig = {
-  won:  { label: 'Won',  color: '#10b981' },
-  lost: { label: 'Lost', color: '#ef4444' },
+  won: { label: 'Won', color: 'var(--success)' },
+  lost: { label: 'Lost', color: 'var(--danger)' },
 }
 
 // ─── Stat cards ───────────────────────────────────────────────────────────────
@@ -33,12 +35,18 @@ const avgDealSize = totalRevenue / totalDeals
 const winRate = 63.2
 const avgAttainment = SALES_REPS.reduce((s, r) => s + r.attainment, 0) / SALES_REPS.length
 
-const STATS = [
-  { label: 'Revenue (6 mo.)',  value: formatCurrency(totalRevenue, true),    sub: '+18% vs prior period', icon: DollarSign, border: 'border-l-emerald-500', icon_bg: 'bg-emerald-50 dark:bg-emerald-950/40', icon_color: 'text-emerald-600 dark:text-emerald-400' },
-  { label: 'This Month',       value: formatCurrency(currentMonthRevenue, true), sub: '+9.2% vs last month', icon: TrendingUp, border: 'border-l-blue-500',   icon_bg: 'bg-blue-50 dark:bg-blue-950/40',       icon_color: 'text-blue-600 dark:text-blue-400' },
-  { label: 'Avg Deal Size',    value: formatCurrency(avgDealSize, true),       sub: `${totalDeals} deals total`,   icon: BarChart2,  border: 'border-l-violet-500', icon_bg: 'bg-violet-50 dark:bg-violet-950/40',   icon_color: 'text-violet-600 dark:text-violet-400' },
-  { label: 'Win Rate',         value: formatPercent(winRate),                  sub: 'Qualified → Closed',          icon: Trophy,     border: 'border-l-amber-500',  icon_bg: 'bg-amber-50 dark:bg-amber-950/40',     icon_color: 'text-amber-600 dark:text-amber-400' },
-  { label: 'Quota Attainment', value: formatPercent(avgAttainment),            sub: 'Team average',                icon: Target,     border: 'border-l-rose-500',   icon_bg: 'bg-rose-50 dark:bg-rose-950/40',       icon_color: 'text-rose-600 dark:text-rose-400' },
+const STATS: {
+  label: string
+  value: string
+  sub: string
+  icon: typeof DollarSign
+  accent: StatCardAccent
+}[] = [
+  { label: 'Revenue (6 mo.)', value: formatCurrency(totalRevenue, true), sub: '+18% vs prior period', icon: DollarSign, accent: 'success' },
+  { label: 'This Month', value: formatCurrency(currentMonthRevenue, true), sub: '+9.2% vs last month', icon: TrendingUp, accent: 'primary' },
+  { label: 'Avg Deal Size', value: formatCurrency(avgDealSize, true), sub: `${totalDeals} deals total`, icon: BarChart2, accent: 'secondary' },
+  { label: 'Win Rate', value: formatPercent(winRate), sub: 'Qualified → Closed', icon: Trophy, accent: 'warning' },
+  { label: 'Quota Attainment', value: formatPercent(avgAttainment), sub: 'Team average', icon: Target, accent: 'destructive' },
 ]
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -47,22 +55,16 @@ export function SalesPerformance() {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {STATS.map((s) => (
-          <Card key={s.label} className={cn('border-l-4', s.border)}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">{s.label}</p>
-                  <p className="text-xl font-bold tracking-tight mt-0.5">{s.value}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{s.sub}</p>
-                </div>
-                <div className={cn('p-2.5 rounded-lg shrink-0', s.icon_bg)}>
-                  <s.icon className={cn('h-5 w-5', s.icon_color)} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            key={s.label}
+            icon={s.icon}
+            value={s.value}
+            label={s.label}
+            sub={s.sub}
+            accent={s.accent}
+          />
         ))}
       </div>
 
@@ -74,13 +76,22 @@ export function SalesPerformance() {
             <CardTitle className="text-sm font-semibold">Monthly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={revenueConfig} className="h-[200px] w-full sm:h-[260px]">
+            <ChartContainer config={revenueConfig} className={CHART_CONTAINER_CLASS}>
               <BarChart accessibilityLayer data={MONTHLY_REVENUE}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+                <defs>
+                  <linearGradient id="fillReportRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-revenue)" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="var(--color-revenue)" stopOpacity={0.95} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
                 <YAxis tickLine={false} axisLine={false} tickMargin={8} className="text-xs" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatCurrency(Number(v))} />} cursor={{ fill: 'hsl(var(--muted))' }} />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={6} />
+                <ChartTooltip
+                  content={<ChartTooltipContent formatter={(v) => formatCurrency(Number(v))} />}
+                  cursor={{ fill: 'var(--muted)', opacity: 0.25 }}
+                />
+                <Bar dataKey="revenue" fill="url(#fillReportRevenue)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -92,15 +103,25 @@ export function SalesPerformance() {
             <CardTitle className="text-sm font-semibold">Won vs Lost Deals</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={wonLostConfig} className="h-[200px] w-full sm:h-[260px]">
+            <ChartContainer config={wonLostConfig} className={CHART_CONTAINER_CLASS}>
               <BarChart accessibilityLayer data={WON_LOST_DATA} barGap={4}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+                <defs>
+                  <linearGradient id="fillReportWon" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-won)" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="var(--color-won)" stopOpacity={0.95} />
+                  </linearGradient>
+                  <linearGradient id="fillReportLost" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-lost)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--color-lost)" stopOpacity={0.92} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
                 <YAxis tickLine={false} axisLine={false} tickMargin={8} className="text-xs" />
-                <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
+                <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'var(--muted)', opacity: 0.25 }} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="won"  fill="var(--color-won)"  radius={4} />
-                <Bar dataKey="lost" fill="var(--color-lost)" radius={4} />
+                <Bar dataKey="won" fill="url(#fillReportWon)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="lost" fill="url(#fillReportLost)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -108,8 +129,8 @@ export function SalesPerformance() {
       </div>
 
       {/* Sales rep table */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-3">
+      <Card className="gap-0 overflow-hidden p-0">
+        <CardHeader className="border-b border-border/50 px-6 pb-3 pt-6">
           <CardTitle className="text-sm font-semibold">Sales Rep Performance</CardTitle>
         </CardHeader>
         <CardContent className="p-0">

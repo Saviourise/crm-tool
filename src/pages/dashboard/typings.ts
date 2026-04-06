@@ -3,8 +3,6 @@ export interface Metric {
   id: string
   label: string
   value: string
-  change: string
-  trend: 'up' | 'down'
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red'
   icon: React.ElementType
 }

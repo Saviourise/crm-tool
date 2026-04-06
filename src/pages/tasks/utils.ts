@@ -10,7 +10,7 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: s
   },
   medium: {
     label: 'Medium',
-    className: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
+    className: 'bg-metric-blue text-primary border-primary/20',
     dot: 'bg-primary',
   },
   high: {
@@ -20,7 +20,7 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: s
   },
   urgent: {
     label: 'Urgent',
-    className: 'bg-[oklch(var(--metric-red))] text-destructive border-destructive/20',
+    className: 'bg-metric-red text-destructive border-destructive/20',
     dot: 'bg-destructive',
   },
 }
@@ -32,7 +32,7 @@ export const STATUS_CONFIG: Record<TaskStatus, { label: string; className: strin
   },
   'in-progress': {
     label: 'In Progress',
-    className: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
+    className: 'bg-metric-blue text-primary border-primary/20',
   },
   'completed': {
     label: 'Completed',

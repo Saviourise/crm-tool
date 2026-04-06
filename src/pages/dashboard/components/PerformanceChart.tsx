@@ -8,6 +8,8 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { DashboardEmptyState } from './DashboardEmptyState'
+import { CHART_CONTAINER_CLASS } from '@/lib/chartLayout'
+import { cn } from '@/lib/utils'
 
 interface ChartData {
   name: string
@@ -32,7 +34,7 @@ export function BarChartComponent({ title, data, chartConfig, isLoading }: BarCh
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="h-[200px] sm:h-[300px] w-full flex items-center justify-center">
+          <div className={cn(CHART_CONTAINER_CLASS, 'flex items-center justify-center')}>
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
           </div>
         ) : isEmpty ? (
@@ -42,9 +44,15 @@ export function BarChartComponent({ title, data, chartConfig, isLoading }: BarCh
             description="Lead pipeline data will appear here as you add and qualify leads."
           />
         ) : (
-        <ChartContainer config={chartConfig} className="h-[200px] w-full sm:h-[300px]">
+        <ChartContainer config={chartConfig} className={CHART_CONTAINER_CLASS}>
           <BarChart accessibilityLayer data={data}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+            <defs>
+              <linearGradient id="fillDashboardBar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-value)" stopOpacity={0.45} />
+                <stop offset="100%" stopColor="var(--color-value)" stopOpacity={0.92} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
               dataKey="name"
               tickLine={false}
@@ -53,8 +61,11 @@ export function BarChartComponent({ title, data, chartConfig, isLoading }: BarCh
               tickFormatter={(value) => value}
               className="text-xs"
             />
-            <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
-            <Bar dataKey="value" fill="var(--color-value)" radius={8} />
+            <ChartTooltip
+              content={<ChartTooltipContent />}
+              cursor={{ fill: 'var(--muted)', opacity: 0.35 }}
+            />
+            <Bar dataKey="value" fill="url(#fillDashboardBar)" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ChartContainer>
         )}

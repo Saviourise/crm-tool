@@ -10,7 +10,7 @@ export const CAMPAIGN_STATUS_CONFIG: Record<CampaignStatus, { label: string; cla
   },
   scheduled: {
     label: 'Scheduled',
-    className: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20',
+    className: 'bg-metric-blue text-primary border-primary/20',
     dot: 'bg-primary',
   },
   active: {
@@ -39,11 +39,11 @@ export const CAMPAIGN_TYPE_CONFIG: Record<CampaignType, { label: string }> = {
 
 export const TEMPLATE_CATEGORY_CONFIG: Record<TemplateCategory, { label: string; color: string }> = {
   welcome: { label: 'Welcome', color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800' },
-  nurture: { label: 'Nurture', color: 'bg-[oklch(var(--metric-blue))] text-primary border-primary/20' },
+  nurture: { label: 'Nurture', color: 'bg-metric-blue text-primary border-primary/20' },
   promotional: { label: 'Promotional', color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800' },
-  'follow-up': { label: 'Follow-up', color: 'bg-[oklch(var(--metric-orange))] text-[oklch(var(--warning))] border-[oklch(var(--warning))]/20' },
+  'follow-up': { label: 'Follow-up', color: 'bg-metric-orange text-warning border-warning/20' },
   newsletter: { label: 'Newsletter', color: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800' },
-  're-engagement': { label: 'Re-engagement', color: 'bg-[oklch(var(--metric-red))] text-destructive border-destructive/20' },
+  're-engagement': { label: 'Re-engagement', color: 'bg-metric-red text-destructive border-destructive/20' },
 }
 
 export const CAMPAIGN_STATUS_OPTIONS: { value: CampaignStatus | 'all'; label: string }[] = [
