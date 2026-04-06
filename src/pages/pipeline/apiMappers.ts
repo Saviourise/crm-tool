@@ -39,7 +39,10 @@ export function mapApiDealToOpportunity(api: ApiDeal): Opportunity {
   const stage: Stage = API_TO_FRONTEND_STAGE[api.stage] ?? 'prospecting'
 
   let expectedCloseDate = ''
+  let expectedCloseDateIso: string | undefined
   if (api.expected_close_date) {
+    const ymd = api.expected_close_date.split('T')[0]
+    expectedCloseDateIso = /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd : undefined
     try {
       expectedCloseDate = format(new Date(api.expected_close_date), 'MMM d, yyyy')
     } catch {
@@ -58,6 +61,7 @@ export function mapApiDealToOpportunity(api: ApiDeal): Opportunity {
     stage,
     probability: api.probability ?? 0,
     expectedCloseDate,
+    expectedCloseDateIso,
     assignedTo: resolveName(api.assigned_to),
     assignedToId: resolveId(api.assigned_to),
     pipelineId: resolveId(api.pipeline),

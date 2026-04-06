@@ -43,6 +43,8 @@ export interface Opportunity {
   stage: Stage
   probability: number
   expectedCloseDate: string
+  /** `yyyy-MM-dd` from API — for forms (display uses `expectedCloseDate`) */
+  expectedCloseDateIso?: string
   assignedTo: string
   assignedToId?: string
   pipelineId?: string

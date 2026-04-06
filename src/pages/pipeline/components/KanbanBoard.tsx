@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { format, parse } from 'date-fns'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -46,6 +47,7 @@ import { useWorkspaceUsers } from '@/hooks/useWorkspaceUsers'
 import { cn } from '@/lib/utils'
 import { currencyFormat } from '../utils'
 import { PIPELINE_STAGES, STAGE_CONFIG, STAGE_COLORS } from '../data'
+import { DatePicker } from '@/components/common/DatePicker'
 import { AddDealDialog } from './AddDealDialog'
 import type { Opportunity, Stage, BoardConfig, ColorConfig, CardFieldSettings, StageSettings } from '../typings'
 import { ROUTES } from '@/router/routes'
@@ -69,6 +71,7 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
   const [stage, setStage] = useState<Stage>(opportunity.stage)
   const [notes, setNotes] = useState(opportunity.notes ?? '')
   const [assignedToId, setAssignedToId] = useState(opportunity.assignedToId ?? '')
+  const [closeDate, setCloseDate] = useState<Date | undefined>(undefined)
 
   const { users, isLoading: usersLoading } = useWorkspaceUsers()
 
@@ -80,6 +83,11 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
       setStage(opportunity.stage)
       setNotes(opportunity.notes ?? '')
       setAssignedToId(opportunity.assignedToId ?? '')
+      setCloseDate(
+        opportunity.expectedCloseDateIso
+          ? parse(opportunity.expectedCloseDateIso, 'yyyy-MM-dd', new Date())
+          : undefined
+      )
     }
   }, [open, opportunity])
 
@@ -92,6 +100,7 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
         stage: FRONTEND_TO_API_STAGE[stage],
         notes: notes.trim() || undefined,
         assigned_to: assignedToId || null,
+        expected_close_date: closeDate ? format(closeDate, 'yyyy-MM-dd') : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PIPELINE_DEALS_QUERY_KEY })
@@ -150,20 +159,31 @@ function EditDealDialog({ opportunity, open, onOpenChange }: {
                 />
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-stage">Stage</Label>
-              <Select value={stage} onValueChange={(v) => setStage(v as Stage)}>
-                <SelectTrigger id="edit-stage">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PIPELINE_STAGES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {STAGE_CONFIG[s].label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-stage">Stage</Label>
+                <Select value={stage} onValueChange={(v) => setStage(v as Stage)}>
+                  <SelectTrigger id="edit-stage">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PIPELINE_STAGES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {STAGE_CONFIG[s].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-close-date">Expected close</Label>
+                <DatePicker
+                  id="edit-close-date"
+                  value={closeDate}
+                  onChange={setCloseDate}
+                  placeholder="Pick a date"
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-notes">Notes</Label>
