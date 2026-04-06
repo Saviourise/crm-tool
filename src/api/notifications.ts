@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios'
 import { api } from '@/lib/api'
 
 export type EmailDigest = 'daily' | 'weekly' | 'never'
@@ -31,8 +32,47 @@ export interface NotificationsListResponse {
   previous?: string | null
 }
 
+/** Backend may return DRF cursor shape or a bare array; normalize for the UI. */
+function normalizeNotificationsListResponse(
+  raw: unknown
+): NotificationsListResponse {
+  if (Array.isArray(raw)) {
+    const results = raw as ApiNotification[]
+    const unread_count = results.filter((n) => !n.is_read).length
+    return {
+      count: results.length,
+      unread_count,
+      results,
+      next: null,
+      previous: null,
+    }
+  }
+  if (raw && typeof raw === 'object' && Array.isArray((raw as NotificationsListResponse).results)) {
+    const o = raw as Partial<NotificationsListResponse> & { results: ApiNotification[] }
+    const results = o.results
+    const unread_count =
+      typeof o.unread_count === 'number'
+        ? o.unread_count
+        : results.filter((n) => !n.is_read).length
+    return {
+      count: typeof o.count === 'number' ? o.count : results.length,
+      unread_count,
+      results,
+      next: o.next ?? null,
+      previous: o.previous ?? null,
+    }
+  }
+  return { count: 0, unread_count: 0, results: [], next: null, previous: null }
+}
+
 export const notificationsApi = {
-  list: (params?: { is_read?: boolean; search?: string; page_size?: number; limit?: number; cursor?: string }) => {
+  list: async (params?: {
+    is_read?: boolean
+    search?: string
+    page_size?: number
+    limit?: number
+    cursor?: string
+  }): Promise<AxiosResponse<NotificationsListResponse>> => {
     const qs = new URLSearchParams()
     if (params?.is_read === false) qs.set('is_read', 'false')
     if (params?.search) qs.set('search', params.search)
@@ -40,7 +80,10 @@ export const notificationsApi = {
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.cursor) qs.set('cursor', params.cursor)
     const query = qs.toString()
-    return api.get<NotificationsListResponse>(`/api/notifications/${query ? `?${query}` : ''}`)
+    const res = await api.get<NotificationsListResponse | ApiNotification[]>(
+      `/api/notifications/${query ? `?${query}` : ''}`
+    )
+    return { ...res, data: normalizeNotificationsListResponse(res.data) }
   },
 
   markRead: (id: string) =>

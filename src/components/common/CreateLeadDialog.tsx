@@ -88,6 +88,7 @@ export function CreateLeadDialog({ trigger, open: controlledOpen, onOpenChange, 
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['companies'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
     onError: () => {
       toast.error('Failed to create lead', { description: 'Please try again.' })

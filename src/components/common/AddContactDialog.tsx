@@ -64,6 +64,7 @@ export function AddContactDialog({ trigger, onListReload }: AddContactDialogProp
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
       queryClient.invalidateQueries({ queryKey: ['activity'] })
       queryClient.invalidateQueries({ queryKey: ['companies'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
     onError: () => {
       toast.error('Failed to add contact', { description: 'Please try again.' })

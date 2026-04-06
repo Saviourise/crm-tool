@@ -223,6 +223,7 @@ export default function Pipeline() {
       queryClient.invalidateQueries({ queryKey: [...PIPELINE_DEALS_QUERY_KEY, activePipelineId] })
       invalidateDashboardPipelineMetrics(queryClient)
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
     onError: (_, { id }) => {
       // Revert the optimistic override so the card snaps back to the original stage.
