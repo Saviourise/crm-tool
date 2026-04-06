@@ -52,7 +52,7 @@ export function UserMenu() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link to={`${ROUTES.SETTINGS}?section=profile`} className="flex items-center gap-2 cursor-pointer">
+            <Link to="/settings/profile" className="flex items-center gap-2 cursor-pointer">
               <User className="h-4 w-4" />
               <span>Profile</span>
             </Link>
@@ -64,7 +64,7 @@ export function UserMenu() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link to={`${ROUTES.SETTINGS}?section=billing`} className="flex items-center gap-2 cursor-pointer">
+            <Link to={ROUTES.SETTINGS_BILLING} className="flex items-center gap-2 cursor-pointer">
               <CreditCard className="h-4 w-4" />
               <span>Billing</span>
             </Link>

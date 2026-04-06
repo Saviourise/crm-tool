@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   User, Lock, Bell, Users, CreditCard, Plug, ShieldCheck,
   Sliders, Zap, GitBranch, Shield, ClipboardList,
@@ -83,7 +83,8 @@ const SECTION_TITLES: Record<SettingsSection, { title: string; description: stri
 
 export default function Settings() {
   const { can, hasPlan } = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const { section } = useParams<{ section?: string }>()
+  const navigate = useNavigate()
 
   function isAccessible(item: SettingsNavItem): boolean {
     if (item.planRequired && !hasPlan(item.planRequired)) return false
@@ -98,10 +99,10 @@ export default function Settings() {
 
   const allVisibleSections = visibleGroups.flatMap((g) => g.items.map((i) => i.id))
 
-  const sectionParam = searchParams.get('section') as SettingsSection | null
+  const sectionParam = section as SettingsSection | undefined
 
   // Resolve the active section — fall back to first accessible if requested section is blocked
-  function resolveSection(param: SettingsSection | null): SettingsSection {
+  function resolveSection(param: SettingsSection | undefined): SettingsSection {
     if (param && allVisibleSections.includes(param)) return param
     return allVisibleSections[0] ?? 'profile'
   }
@@ -117,8 +118,7 @@ export default function Settings() {
   }, [sectionParam])
 
   function handleNavClick(id: SettingsSection) {
-    setActiveSection(id)
-    setSearchParams({ section: id }, { replace: true })
+    navigate(`/settings/${id}`, { replace: true })
   }
 
   const { title, description } = SECTION_TITLES[activeSection] ?? SECTION_TITLES['profile']

@@ -119,7 +119,7 @@ function UpgradePrompt({ feature, inline }: { feature: Feature; inline?: boolean
         <Lock className="h-3.5 w-3.5 shrink-0" />
         <span>Requires <strong>{PLAN_NAMES[requiredPlan]}</strong> plan.</span>
         <button
-          onClick={() => navigate(`${ROUTES.SETTINGS}?section=billing`)}
+          onClick={() => navigate(ROUTES.SETTINGS_BILLING)}
           className="text-primary underline underline-offset-2 hover:no-underline font-medium"
         >
           Upgrade
@@ -139,7 +139,7 @@ function UpgradePrompt({ feature, inline }: { feature: Feature; inline?: boolean
           This feature requires the <strong>{PLAN_NAMES[requiredPlan]}</strong> plan or higher.
         </p>
       </div>
-      <Button onClick={() => navigate(`${ROUTES.SETTINGS}?section=billing`)}>
+      <Button onClick={() => navigate(ROUTES.SETTINGS_BILLING)}>
         <Zap className="h-4 w-4 mr-2" />
         View Plans
       </Button>

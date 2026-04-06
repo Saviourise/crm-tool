@@ -21,7 +21,8 @@ export const ROUTES = {
   ACTIVITY: '/activity',
   NOTIFICATIONS: '/notifications',
   SETTINGS: '/settings',
-  SETTINGS_BILLING: '/settings?section=billing',
+  SETTINGS_SECTION: (s: string) => `/settings/${s}`,
+  SETTINGS_BILLING: '/settings/billing',
 } as const
 
 export type RouteKey = keyof typeof ROUTES

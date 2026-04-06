@@ -249,6 +249,9 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.SETTINGS,
         element: <P><Guard permission="settings.view"><Settings /></Guard></P>,
+        children: [
+          { path: ':section', element: null },
+        ],
       },
     ],
   },

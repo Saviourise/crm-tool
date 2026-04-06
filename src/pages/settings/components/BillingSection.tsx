@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Download, CreditCard, Zap, Loader2 } from 'lucide-react'
+import { Download, CreditCard, Zap, Loader2, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,20 @@ function UsageBar({ label, used, limit, unit = '' }: { label: string; used: numb
 
 export function BillingSection() {
   const [cycle, setCycle] = useState<BillingCycle>('monthly')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [showSuccess, setShowSuccess] = useState(() => searchParams.get('checkout') === 'success')
+
+  useEffect(() => {
+    if (searchParams.get('checkout') === 'success') {
+      setShowSuccess(true)
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('checkout')
+        return next
+      }, { replace: true })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const { data: plans = [], isLoading: plansLoading, error: plansError } = useQuery({
     queryKey: ['pricing-plans'],
@@ -99,6 +114,27 @@ export function BillingSection() {
 
   return (
     <div className="space-y-8">
+      {/* Checkout success banner */}
+      {showSuccess && (
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/40">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Subscription activated</p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+              Your plan has been upgraded successfully. New features are available immediately.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSuccess(false)}
+            className="ml-auto text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-200 transition-colors"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Hero + Plans */}
       <div id="plan-comparison" className="space-y-6">
         <div className="text-center space-y-2">

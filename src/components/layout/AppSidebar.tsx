@@ -108,7 +108,7 @@ export function AppSidebar() {
   }
 
   function goToBilling() {
-    navigate(`${ROUTES.SETTINGS}?section=billing`)
+    navigate(ROUTES.SETTINGS_BILLING)
   }
 
   function handleLogout() {
@@ -190,7 +190,7 @@ export function AppSidebar() {
           {/* User row — click to go to profile */}
           <button
             type="button"
-            onClick={() => navigate(`${ROUTES.SETTINGS}?section=profile`)}
+            onClick={() => navigate('/settings/profile')}
             className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors text-left"
           >
             <Avatar className="h-7 w-7 shrink-0">
