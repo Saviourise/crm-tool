@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/auth/context'
 import { ROUTES } from '@/router/routes'
-import { cn } from '@/lib/utils'
 
 export function UserMenu() {
   const { user, logout } = useAuth()

@@ -21,7 +21,7 @@ export function useWorkspaceUsers() {
     .filter((m) => m.is_active)
     .map((m) => ({
       id: m.user.id,
-      name: m.user.name,
+      name: m.user.name ?? '',
       email: m.user.email,
     }))
 

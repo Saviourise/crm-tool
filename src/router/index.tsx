@@ -51,6 +51,7 @@ const Help = lazy(() => import('@/pages/help'))
 const Activity = lazy(() => import('@/pages/activity'))
 const Notifications = lazy(() => import('@/pages/notifications'))
 const Settings = lazy(() => import('@/pages/settings'))
+const NotFoundPage = lazy(() => import('@/pages/errors/NotFoundPage'))
 
 // Loading component
 const PageLoader = () => (
@@ -259,6 +260,8 @@ export const router = createBrowserRouter([
           { path: ':section', element: null },
         ],
       },
+
+      { path: '*', element: <P><NotFoundPage /></P> },
     ],
   },
     ],

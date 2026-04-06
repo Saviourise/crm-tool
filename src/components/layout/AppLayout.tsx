@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
 import { ChatWidget } from '@/components/common/ChatWidget'
+import { AppErrorBoundary } from '@/components/error/AppErrorBoundary'
 
 export default function AppLayout() {
   return (
@@ -13,7 +14,9 @@ export default function AppLayout() {
         <div className="flex flex-1 flex-col min-w-0">
           <AppHeader />
           <main className="flex-1 p-4 md:p-6 lg:p-8">
-            <Outlet />
+            <AppErrorBoundary variant="embedded">
+              <Outlet />
+            </AppErrorBoundary>
           </main>
         </div>
       </div>
