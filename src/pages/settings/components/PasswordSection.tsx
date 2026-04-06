@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getPasswordStrength } from '../utils'
 import { cn } from '@/lib/utils'
+import { meApi } from '@/api/auth'
 
 function PasswordInput({
   id,
@@ -14,12 +15,14 @@ function PasswordInput({
   hint,
   value,
   onChange,
+  disabled,
 }: {
   id: string
   label: string
   hint?: string
   value: string
   onChange: (v: string) => void
+  disabled?: boolean
 }) {
   const [show, setShow] = useState(false)
   return (
@@ -32,6 +35,7 @@ function PasswordInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="pr-10"
+          disabled={disabled}
         />
         <button
           type="button"
@@ -51,16 +55,31 @@ export function PasswordSection() {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const strength = getPasswordStrength(next)
   const mismatch = confirm.length > 0 && next !== confirm
   const canSave = current.length > 0 && next.length >= 8 && next === confirm
 
-  const handleSave = () => {
-    toast.success('Password updated successfully')
-    setCurrent('')
-    setNext('')
-    setConfirm('')
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await meApi.changePassword(current, next)
+      toast.success('Password updated successfully')
+      setCurrent('')
+      setNext('')
+      setConfirm('')
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: { error?: string; message?: string; current_password?: string[] } } }
+      const msg =
+        axErr.response?.data?.current_password?.[0] ??
+        axErr.response?.data?.message ??
+        axErr.response?.data?.error ??
+        'Failed to update password'
+      toast.error(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -78,6 +97,7 @@ export function PasswordSection() {
             label="Current Password"
             value={current}
             onChange={setCurrent}
+            disabled={saving}
           />
           <PasswordInput
             id="new-password"
@@ -85,6 +105,7 @@ export function PasswordSection() {
             hint="Minimum 8 characters."
             value={next}
             onChange={setNext}
+            disabled={saving}
           />
 
           {/* Strength meter */}
@@ -117,6 +138,7 @@ export function PasswordSection() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className={cn(mismatch && 'border-rose-400 focus-visible:ring-rose-400')}
+              disabled={saving}
             />
             {mismatch && (
               <p className="text-xs text-rose-500">Passwords do not match.</p>
@@ -124,7 +146,8 @@ export function PasswordSection() {
           </div>
         </CardContent>
         <CardFooter className="border-t justify-end">
-          <Button size="sm" onClick={handleSave} disabled={!canSave}>
+          <Button size="sm" onClick={handleSave} disabled={!canSave || saving}>
+            {saving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
             Update Password
           </Button>
         </CardFooter>

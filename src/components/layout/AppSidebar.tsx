@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ROUTES } from '@/router/routes'
 import { cn } from '@/lib/utils'
@@ -194,6 +194,7 @@ export function AppSidebar() {
             className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors text-left"
           >
             <Avatar className="h-7 w-7 shrink-0">
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
               <AvatarFallback className="text-white text-xs font-semibold" style={{ backgroundColor: user.avatarColor }}>
                 {user.initials}
               </AvatarFallback>
@@ -240,6 +241,7 @@ export function AppSidebar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Avatar className="h-8 w-8 cursor-pointer">
+                {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.name} />}
                 <AvatarFallback className="text-white text-xs font-semibold" style={{ backgroundColor: user.avatarColor }}>
                   {user.initials}
                 </AvatarFallback>

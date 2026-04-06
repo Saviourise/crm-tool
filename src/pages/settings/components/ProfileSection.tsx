@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TIMEZONES, LANGUAGES, AVATAR_COLORS } from '../data'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/auth/context'
@@ -94,12 +95,18 @@ function ColorPickerPopover({
 }
 
 export function ProfileSection() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, uploadAvatar, deleteAccount } = useAuth()
 
   // ─── Per-card form state ──────────────────────────────────────────────────────
 
   const [avatarColor, setAvatarColor] = useState(user?.avatarColor ?? '#3b82f6')
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(user?.avatarUrl ?? null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
+  // Delete account dialog
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const [name, setName]         = useState(user?.name ?? '')
   const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? '')
@@ -130,7 +137,7 @@ export function ProfileSection() {
 
   // ─── Photo handlers ────────────────────────────────────────────────────────────
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
@@ -141,15 +148,43 @@ export function ProfileSection() {
       toast.error('Image must be smaller than 5 MB.')
       return
     }
-    const url = URL.createObjectURL(file)
-    setPhotoUrl(url)
-    toast.success('Photo preview ready — note: photo upload requires a server endpoint (see docs/profile_settings_remaining_api.md).')
+    setUploadingPhoto(true)
+    // Create a preview immediately while uploading
+    const previewUrl = URL.createObjectURL(file)
+    setPhotoUrl(previewUrl)
+    try {
+      await uploadAvatar(file)
+      toast.success('Profile photo updated')
+    } catch {
+      toast.error('Failed to upload photo')
+      setPhotoUrl(null)
+      URL.revokeObjectURL(previewUrl)
+    } finally {
+      setUploadingPhoto(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const handleRemovePhoto = () => {
-    if (photoUrl) URL.revokeObjectURL(photoUrl)
     setPhotoUrl(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      await deleteAccount(deletePassword)
+      // deleteAccount navigates to login on success — no further action needed
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: { error?: string; message?: string; password?: string[] } } }
+      const msg =
+        axErr.response?.data?.password?.[0] ??
+        axErr.response?.data?.message ??
+        axErr.response?.data?.error ??
+        'Failed to delete account'
+      toast.error(msg)
+      setDeleting(false)
+    }
   }
 
   // ─── Derived display ────────────────────────────────────────────────────────────
@@ -192,9 +227,12 @@ export function ProfileSection() {
                 <Button
                   size="sm"
                   variant="outline"
+                  disabled={uploadingPhoto}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload className="h-4 w-4 mr-1.5" />
+                  {uploadingPhoto
+                    ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    : <Upload className="h-4 w-4 mr-1.5" />}
                   {photoUrl ? 'Change Photo' : 'Upload Photo'}
                 </Button>
                 {photoUrl && (
@@ -390,13 +428,51 @@ export function ProfileSection() {
               variant="outline"
               size="sm"
               className="shrink-0 text-rose-600 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30"
-              onClick={() => toast.error('Account deletion is not yet available. Contact support to request account removal.')}
+              onClick={() => { setDeletePassword(''); setDeleteOpen(true) }}
             >
               Delete Account
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Delete Account Dialog ───────────────────────────────────────────────── */}
+      <Dialog open={deleteOpen} onOpenChange={(o) => { if (!deleting) setDeleteOpen(o) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-rose-600 dark:text-rose-400">Delete Account</DialogTitle>
+            <DialogDescription>
+              This will permanently remove your account and all associated data. This action cannot be undone.
+              Enter your password to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label htmlFor="delete-confirm-password">Password</Label>
+            <Input
+              id="delete-confirm-password"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              disabled={deleting}
+              placeholder="Enter your current password"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={!deletePassword || deleting}
+              onClick={handleDeleteAccount}
+            >
+              {deleting && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+              Delete My Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import type {
   LoginResponse,
   SignupResponse,
   RefreshResponse,
+  ApiUser,
   ApiWorkspace,
   ApiWorkspaceMember,
   OnboardingStartResponse,
@@ -53,6 +54,36 @@ export const authApi = {
 
   acceptInvite: (data: { token: string; name: string; password: string }) =>
     publicApi.post<LoginResponse>('/api/auth/invites/accept/', data),
+}
+
+/** Current user profile — Bearer only, no workspace header needed */
+export const meApi = {
+  get: () =>
+    api.get<ApiUser>('/api/auth/me/'),
+
+  update: (data: Partial<{
+    name: string
+    job_title: string
+    phone: string
+    avatar_color: string
+    timezone: string
+    language: string
+  }>) =>
+    api.patch<ApiUser>('/api/auth/me/', data),
+
+  changePassword: (current_password: string, new_password: string) =>
+    api.post<{ message: string }>('/api/auth/change-password/', { current_password, new_password }),
+
+  deleteAccount: (password: string) =>
+    api.delete('/api/auth/me/delete/', { data: { password } }),
+
+  uploadAvatar: (file: File) => {
+    const form = new FormData()
+    form.append('avatar', file)
+    return api.post<{ avatar_url: string }>('/api/auth/avatar/', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 /** Requires Bearer token but NOT X-Workspace-ID */

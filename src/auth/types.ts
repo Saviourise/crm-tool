@@ -31,6 +31,7 @@ export interface AuthUser {
   phone?: string
   timezone?: string
   language?: string
+  avatarUrl?: string
 }
 
 export interface AuthState {

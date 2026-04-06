@@ -128,8 +128,8 @@ export function mapApiMemberToUser(member: ApiWorkspaceMember): AppUser {
     email: member.user.email,
     roleId: member?.role?.id ?? 'Invited',
     status,
-    lastLogin: formatLastLogin(member.last_login),
-    joinedAt: formatJoinedAt(member.joined_at),
+    lastLogin: member.last_login ? formatLastLogin(member.last_login) : '-',
+    joinedAt: member.joined_at ? formatJoinedAt(member.joined_at) : '-',
   }
 }
 

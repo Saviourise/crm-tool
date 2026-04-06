@@ -2,8 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import type { AuthUser, AuthState, RoleId, Permission, Feature, PlanId } from './types'
 import { hasPermission, hasFeature, planMeetsMinimum } from './permissions'
 import { useAuthStore } from '@/store/authStore'
-import { authApi, workspaceSwitchApi, usersApi, workspaceApi } from '@/api/auth'
-import { usersApi as workspaceUsersApi } from '@/api/users'
+import { authApi, meApi, workspaceSwitchApi, usersApi, workspaceApi } from '@/api/auth'
 import type { ApiUser } from '@/api/types'
 import { mapApiUserToAuthUser, mapApiUserToAuthUserMinimal, getRoleNameFromRole } from './apiMappers'
 import { STORAGE_KEYS } from '@/utils/constants'
@@ -27,6 +26,8 @@ interface AuthContextValue extends AuthState {
   logout: () => Promise<void>
   completeOnboarding: () => void
   updateProfile: (data: ProfileUpdatePayload) => Promise<void>
+  uploadAvatar: (file: File) => Promise<void>
+  deleteAccount: (password: string) => Promise<void>
   can: (permission: Permission) => boolean
   hasPlan: (feature: Feature) => boolean
   planAtLeast: (plan: PlanId) => boolean
@@ -298,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(async (data: ProfileUpdatePayload) => {
     if (!user) return
-    const { data: member } = await workspaceUsersApi.update(user.id, {
+    const { data: u } = await meApi.update({
       name:         data.name,
       job_title:    data.jobTitle,
       phone:        data.phone,
@@ -306,7 +307,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       timezone:     data.timezone,
       language:     data.language,
     })
-    const u = member.user
     const updatedName = u.name ?? user.name
     const updatedUser: AuthUser = {
       ...user,
@@ -314,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initials:    u.initials ?? (updatedName.split(/\s+/).map((p) => p[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?'),
       jobTitle:    u.job_title ?? user.jobTitle,
       avatarColor: u.avatar_color ?? user.avatarColor,
+      avatarUrl:   u.avatar_url ?? user.avatarUrl,
       phone:       u.phone ?? undefined,
       timezone:    u.timezone ?? undefined,
       language:    u.language ?? undefined,
@@ -321,6 +322,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updatedUser)
     localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser))
   }, [user])
+
+  const uploadAvatar = useCallback(async (file: File) => {
+    if (!user) return
+    const { data } = await meApi.uploadAvatar(file)
+    setUser((prev) => {
+      if (!prev) return prev
+      const updated: AuthUser = { ...prev, avatarUrl: data.avatar_url }
+      localStorage.setItem(AUTH_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }, [user])
+
+  const deleteAccount = useCallback(async (password: string) => {
+    await meApi.deleteAccount(password)
+    clearTokens()
+    localStorage.removeItem(AUTH_KEY)
+    setUser(null)
+    setOnboardingComplete(null)
+    navigateToLogin()
+  }, [clearTokens])
 
   const completeOnboarding = useCallback(() => {
     setOnboardingComplete(true)
@@ -342,6 +363,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         completeOnboarding,
         updateProfile,
+        uploadAvatar,
+        deleteAccount,
         can,
         hasPlan,
         planAtLeast,

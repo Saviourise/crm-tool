@@ -37,6 +37,7 @@ export function mapApiUserToAuthUser(
     phone: apiUser.phone ?? undefined,
     timezone: apiUser.timezone ?? undefined,
     language: apiUser.language ?? undefined,
+    avatarUrl: apiUser.avatar_url ?? undefined,
   }
 }
 
@@ -65,5 +66,6 @@ export function mapApiUserToAuthUserMinimal(apiUser: ApiUser): AuthUser {
     phone: apiUser.phone ?? undefined,
     timezone: apiUser.timezone ?? undefined,
     language: apiUser.language ?? undefined,
+    avatarUrl: apiUser.avatar_url ?? undefined,
   }
 }
