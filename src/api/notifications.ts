@@ -1,5 +1,18 @@
 import { api } from '@/lib/api'
 
+export type EmailDigest = 'daily' | 'weekly' | 'never'
+
+/** Per-event pref as returned by the API (snake_case) */
+export interface ApiEventPref {
+  email: boolean
+  in_app: boolean
+}
+
+export interface ApiNotificationPreferences {
+  preferences: Record<string, ApiEventPref>
+  email_digest: EmailDigest
+}
+
 export interface ApiNotification {
   id: string
   type: string
@@ -35,4 +48,12 @@ export const notificationsApi = {
 
   markAllRead: () =>
     api.post<{ message?: string; updated?: number }>('/api/notifications/read-all/'),
+}
+
+export const notificationPrefsApi = {
+  get: () =>
+    api.get<ApiNotificationPreferences>('/api/notifications/preferences/'),
+
+  update: (data: ApiNotificationPreferences) =>
+    api.patch<ApiNotificationPreferences>('/api/notifications/preferences/', data),
 }
