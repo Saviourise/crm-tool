@@ -41,7 +41,8 @@ export default function Dashboard() {
     can('leads.create') ||
     can('contacts.create') ||
     can('tasks.create') ||
-    (can('marketing.send') && hasPlan('marketing')) ||
+    /* Marketing is disabled for initial release */
+    // (can('marketing.send') && hasPlan('marketing')) ||
     (can('reports.view') && hasPlan('reports'))
 
   const { data: salesData, isLoading: salesLoading, isFetching: salesFetching } = useQuery({

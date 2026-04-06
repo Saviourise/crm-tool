@@ -128,23 +128,27 @@ export function LeadProfileCard({ lead }: LeadProfileCardProps) {
           {lead.email && (
             <div className="flex items-center gap-2.5 text-sm">
               <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-              <Link
+              {/* Communication is disabled for initial release */}
+              {/* <Link
                 to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
                 className="text-primary hover:underline truncate"
               >
                 {lead.email}
-              </Link>
+              </Link> */}
+              <span className="text-foreground truncate">{lead.email}</span>
             </div>
           )}
           {lead.phone && (
             <div className="flex items-center gap-2.5 text-sm">
               <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-              <Link
+              {/* Communication is disabled for initial release */}
+              {/* <Link
                 to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=call`}
                 className="hover:text-primary"
               >
                 {lead.phone}
-              </Link>
+              </Link> */}
+              <span className="text-foreground">{lead.phone}</span>
             </div>
           )}
           {lead.assignedTo && (

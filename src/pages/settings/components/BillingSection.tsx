@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Download, CreditCard, Zap, Loader2, CheckCircle2 } from 'lucide-react'
+import { Download, Zap, Loader2, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { PlanCard, type BillingCycle } from '@/components/common/PlanCard'
 import { pricingApi, billingApi } from '@/api/pricing'
 import { getUsagePercent, getUsageColor, formatNumber } from '../utils'
 import { cn } from '@/lib/utils'
-import { INVOICES, PAYMENT_METHOD, USAGE } from '../data'
+import { INVOICES, USAGE } from '../data'
 
 function downloadInvoice(inv: { id: string; date: string; description: string; amount: number; status: string }) {
   const csv = [
@@ -242,8 +242,8 @@ export function BillingSection() {
         </Card>
       )}
 
-      {/* Payment method */}
-      <Card>
+      {/* Payment Method is disabled for initial release */}
+      {/* <Card>
         <CardHeader>
           <CardTitle>Payment Method</CardTitle>
           <CardDescription>Manage your billing payment details.</CardDescription>
@@ -266,7 +266,7 @@ export function BillingSection() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Invoice history */}
       <Card className="overflow-hidden">

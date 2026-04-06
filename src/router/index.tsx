@@ -39,9 +39,12 @@ const DealDetail = lazy(() => import('@/pages/pipeline/detail'))
 const Companies = lazy(() => import('@/pages/companies'))
 const CompanyDetail = lazy(() => import('@/pages/companies/detail'))
 const Tasks = lazy(() => import('@/pages/tasks'))
-const Calendar = lazy(() => import('@/pages/calendar'))
-const Communication = lazy(() => import('@/pages/communication'))
-const Marketing = lazy(() => import('@/pages/marketing'))
+/* Calendar is disabled for initial release */
+// const Calendar = lazy(() => import('@/pages/calendar'))
+/* Communication is disabled for initial release */
+// const Communication = lazy(() => import('@/pages/communication'))
+/* Marketing is disabled for initial release */
+// const Marketing = lazy(() => import('@/pages/marketing'))
 const Reports = lazy(() => import('@/pages/reports'))
 const UserManagement = lazy(() => import('@/pages/users'))
 const Help = lazy(() => import('@/pages/help'))
@@ -197,23 +200,26 @@ export const router = createBrowserRouter([
         element: <P><Guard permission="tasks.view"><Tasks /></Guard></P>,
       },
 
-      // Calendar — requires basic plan + calendar.view
+      /* Calendar is disabled for initial release — route was:
       {
         path: ROUTES.CALENDAR,
         element: <P><Guard feature="calendar" permission="calendar.view"><Calendar /></Guard></P>,
       },
+      */
 
-      // Communication — requires basic plan + communication.view
+      /* Communication is disabled for initial release — route was:
       {
         path: ROUTES.COMMUNICATION,
         element: <P><Guard feature="communication" permission="communication.view"><Communication /></Guard></P>,
       },
+      */
 
-      // Marketing — requires professional plan + marketing.view (sales-rep/viewer blocked)
+      /* Marketing is disabled for initial release — route was:
       {
         path: ROUTES.MARKETING,
         element: <P><Guard feature="marketing" permission="marketing.view"><Marketing /></Guard></P>,
       },
+      */
 
       // Reports — requires professional plan + reports.view
       {

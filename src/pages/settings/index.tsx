@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  User, Lock, Bell, Users, CreditCard, Plug, ShieldCheck,
-  Sliders, Zap, GitBranch, Shield, ClipboardList,
+  User, Lock, Bell, Users, CreditCard, Plug,
+  Zap, GitBranch, Shield, ClipboardList,
 } from 'lucide-react'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProfileSection } from './components/ProfileSection'
@@ -11,14 +11,16 @@ import { NotificationsSection } from './components/NotificationsSection'
 import { TeamSection } from './components/TeamSection'
 import { BillingSection } from './components/BillingSection'
 import { IntegrationsSection } from './components/IntegrationsSection'
-import { SecuritySection } from './components/SecuritySection'
+/* Security is disabled for initial release */
+// import { SecuritySection } from './components/SecuritySection'
 import type { SettingsSection } from './typings'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/auth/context'
 import type { Permission, Feature } from '@/auth/types'
 import { AccessDenied } from '@/auth/guards'
 
-import { CustomFieldsSection } from './components/CustomFieldsSection'
+/* Custom Fields is disabled for initial release */
+// import { CustomFieldsSection } from './components/CustomFieldsSection'
 import { AutomationSection } from './components/AutomationSection'
 import { LeadRoutingSection } from './components/LeadRoutingSection'
 import { AuditLogSection } from './components/AuditLogSection'
@@ -48,7 +50,8 @@ const NAV_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
     items: [
       { id: 'team',          label: 'Team',          icon: Users,         permission: 'settings.team' },
       { id: 'billing',       label: 'Billing',       icon: CreditCard,    permission: 'settings.billing' },
-      { id: 'custom-fields', label: 'Custom Fields', icon: Sliders,       permission: 'settings.custom-fields', planRequired: 'custom-fields' },
+      /* Custom Fields is disabled for initial release */
+      // { id: 'custom-fields', label: 'Custom Fields', icon: Sliders,       permission: 'settings.custom-fields', planRequired: 'custom-fields' },
       { id: 'automation',    label: 'Automation',    icon: Zap,           permission: 'settings.automation',    planRequired: 'automation' },
       { id: 'lead-routing',  label: 'Lead Routing',  icon: GitBranch,     permission: 'settings.lead-routing',  planRequired: 'lead-routing' },
       { id: 'privacy',       label: 'Privacy',       icon: Shield,        permission: 'settings.privacy',       planRequired: 'privacy' },
@@ -58,7 +61,8 @@ const NAV_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
     label: 'Connections',
     items: [
       { id: 'integrations',  label: 'Integrations',  icon: Plug,          permission: 'settings.integrations' },
-      { id: 'security',      label: 'Security',      icon: ShieldCheck,   permission: 'settings.security' },
+      /* Security is disabled for initial release */
+      // { id: 'security',      label: 'Security',      icon: ShieldCheck,   permission: 'settings.security' },
       { id: 'audit-log',     label: 'Audit Log',     icon: ClipboardList, permission: 'settings.audit-log',     planRequired: 'audit-log' },
     ],
   },
@@ -202,12 +206,14 @@ export default function Settings() {
               {activeSection === 'notifications'  && <NotificationsSection />}
               {activeSection === 'team'           && <TeamSection />}
               {activeSection === 'billing'        && <BillingSection />}
-              {activeSection === 'custom-fields'  && <CustomFieldsSection />}
+              {/* Custom Fields is disabled for initial release */}
+              {/* {activeSection === 'custom-fields'  && <CustomFieldsSection />} */}
               {activeSection === 'automation'     && <AutomationSection />}
               {activeSection === 'lead-routing'   && <LeadRoutingSection />}
               {activeSection === 'privacy'        && <PrivacySection />}
               {activeSection === 'integrations'   && <IntegrationsSection />}
-              {activeSection === 'security'       && <SecuritySection />}
+              {/* Security is disabled for initial release */}
+              {/* {activeSection === 'security'       && <SecuritySection />} */}
               {activeSection === 'audit-log'      && <AuditLogSection />}
             </>
           )}

@@ -1,5 +1,4 @@
 import { Mail, Phone, Linkedin, Twitter } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -71,23 +70,27 @@ export function ContactProfileCard({ contact }: ContactProfileCardProps) {
             {contact.email && (
               <div className="flex items-center gap-2.5 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Link
+                {/* Communication is disabled for initial release */}
+                {/* <Link
                   to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=email`}
                   className="text-primary hover:underline truncate"
                 >
                   {contact.email}
-                </Link>
+                </Link> */}
+                <span className="text-foreground truncate">{contact.email}</span>
               </div>
             )}
             {contact.phone && (
               <div className="flex items-center gap-2.5 text-sm">
                 <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Link
+                {/* Communication is disabled for initial release */}
+                {/* <Link
                   to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=call`}
                   className="hover:text-primary"
                 >
                   {contact.phone}
-                </Link>
+                </Link> */}
+                <span className="text-foreground">{contact.phone}</span>
               </div>
             )}
             {contact.linkedin && (

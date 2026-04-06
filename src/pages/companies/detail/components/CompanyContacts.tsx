@@ -86,21 +86,33 @@ export function CompanyContacts({ companyId }: CompanyContactsProps) {
                   <p className="text-xs text-muted-foreground mt-0.5">{contact.position}</p>
                 )}
                 <div className="flex flex-col gap-1 mt-2">
-                  <Link
+                  {/* Communication is disabled for initial release */}
+                  {/* <Link
                     to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=email`}
                     className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
                   >
                     <Mail className="h-3 w-3 shrink-0" />
                     <span className="truncate">{contact.email}</span>
-                  </Link>
+                  </Link> */}
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Mail className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{contact.email}</span>
+                  </div>
                   {contact.phone && (
-                    <Link
-                      to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=call`}
-                      className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
-                    >
-                      <Phone className="h-3 w-3 shrink-0" />
-                      <span>{contact.phone}</span>
-                    </Link>
+                    <>
+                      {/* Communication is disabled for initial release */}
+                      {/* <Link
+                        to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=call`}
+                        className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                      >
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span>{contact.phone}</span>
+                      </Link> */}
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span>{contact.phone}</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

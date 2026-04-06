@@ -9,17 +9,17 @@ import { mapApiContactToContact } from '../apiMappers'
 import { ContactProfileCard } from './components/ContactProfileCard'
 import { RelatedDeals } from './components/RelatedDeals'
 import { RelatedTasks } from './components/RelatedTasks'
-import { ContactMessages } from './components/ContactMessages'
 import { cn } from '@/lib/utils'
 
-type Tab = 'overview' | 'activity' | 'tasks' | 'deals' | 'communication'
+type Tab = 'overview' | 'activity' | 'tasks' | 'deals'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'activity', label: 'Activity' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'deals', label: 'Deals' },
-  { id: 'communication', label: 'Communication' },
+  /* Communication is disabled for initial release */
+  // { id: 'communication', label: 'Communication' },
 ]
 
 export default function ContactDetail() {
@@ -113,9 +113,10 @@ export default function ContactDetail() {
         <RelatedDeals contactId={contact.id} />
       )}
 
-      {activeTab === 'communication' && (
+      {/* Communication is disabled for initial release */}
+      {/* {activeTab === 'communication' && (
         <ContactMessages contactId={contact.id} />
-      )}
+      )} */}
     </div>
   )
 }

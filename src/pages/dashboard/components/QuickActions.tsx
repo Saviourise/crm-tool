@@ -1,4 +1,4 @@
-import { UserPlus, Users, CheckSquare, BarChart3, Phone, Mail } from 'lucide-react'
+import { UserPlus, Users, CheckSquare, BarChart3, Phone } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,10 +15,11 @@ export function QuickActions() {
   const canCreateLead    = can('leads.create')
   const canAddContact    = can('contacts.create')
   const canCreateTask    = can('tasks.create')
-  const canSendCampaign  = can('marketing.send') && hasPlan('marketing')
+  /* Marketing is disabled for initial release */
+  // const canSendCampaign  = can('marketing.send') && hasPlan('marketing')
   const canViewAnalytics = can('reports.view') && hasPlan('reports')
 
-  const hasAnyAction = canCreateLead || canAddContact || canCreateTask || canSendCampaign || canViewAnalytics
+  const hasAnyAction = canCreateLead || canAddContact || canCreateTask || canViewAnalytics
 
   if (!hasAnyAction) return null
 
@@ -73,7 +74,8 @@ export function QuickActions() {
           </Button>
         )}
 
-        {canSendCampaign && (
+        {/* Marketing is disabled for initial release */}
+        {/* {canSendCampaign && (
           <Button
             variant="outline"
             className="w-full justify-start"
@@ -83,7 +85,7 @@ export function QuickActions() {
             <Mail className="mr-2 h-4 w-4" />
             Send Campaign
           </Button>
-        )}
+        )} */}
 
         {canViewAnalytics && (
           <Button

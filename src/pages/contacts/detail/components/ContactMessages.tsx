@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { ExternalLink, MessageSquare } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MessageSquare } from 'lucide-react'
 import { contactsApi } from '@/api/contacts'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -41,12 +39,13 @@ export function ContactMessages({ contactId }: ContactMessagesProps) {
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
           Recent Messages
         </h3>
-        <Button variant="outline" size="sm" asChild>
+        {/* Communication is disabled for initial release */}
+        {/* <Button variant="outline" size="sm" asChild>
           <Link to={`/communication?contactId=${contactId}`}>
             <ExternalLink className="h-4 w-4 mr-1.5" />
             Open Full Inbox
           </Link>
-        </Button>
+        </Button> */}
       </div>
 
       {isLoading ? (

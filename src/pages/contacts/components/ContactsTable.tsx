@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Mail, Phone, Linkedin, Trash2, Pencil, CheckSquare, Clock, Loader2 } from 'lucide-react'
+import { MoreHorizontal, Linkedin, Trash2, Pencil, CheckSquare, Clock, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -278,15 +278,16 @@ function ContactRowActions({ contact }: { contact: Contact }) {
   return (
     <>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+        {/* Communication is disabled for initial release */}
+        {/* <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
           <Link
             to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=email`}
             title="Send email"
           >
             <Mail className="h-3.5 w-3.5" />
           </Link>
-        </Button>
-        {contact.phone && (
+        </Button> */}
+        {/* {contact.phone && (
           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
             <Link
               to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=call`}
@@ -295,7 +296,7 @@ function ContactRowActions({ contact }: { contact: Contact }) {
               <Phone className="h-3.5 w-3.5" />
             </Link>
           </Button>
-        )}
+        )} */}
         {contact.linkedin && (
           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
             <a href={`https://${contact.linkedin}`} target="_blank" rel="noopener noreferrer" title="LinkedIn">
@@ -409,12 +410,16 @@ function buildColumns(
             >
               {contact.firstName} {contact.lastName}
             </Link>
-            <Link
+            {/* Communication is disabled for initial release */}
+            {/* <Link
               to={`/communication?contactId=${contact.id}&name=${encodeURIComponent(`${contact.firstName} ${contact.lastName}`)}&tab=email`}
               className="text-xs text-muted-foreground hover:text-primary truncate max-w-[160px] block"
             >
               {contact.email}
-            </Link>
+            </Link> */}
+            <span className="text-xs text-muted-foreground truncate max-w-[160px] block">
+              {contact.email}
+            </span>
           </div>
         </div>
       )

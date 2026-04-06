@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Mail, Phone, Trash2, Pencil, CheckSquare, Clock, ArrowRightLeft, UserCheck, Loader2 } from 'lucide-react'
+import { MoreHorizontal, Trash2, Pencil, CheckSquare, Clock, ArrowRightLeft, UserCheck, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -449,15 +449,16 @@ function LeadRowActions({ lead }: { lead: Lead }) {
   return (
     <>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+        {/* Communication is disabled for initial release */}
+        {/* <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
           <Link
             to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
             title="Send email"
           >
             <Mail className="h-3.5 w-3.5" />
           </Link>
-        </Button>
-        {lead.phone && (
+        </Button> */}
+        {/* {lead.phone && (
           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
             <Link
               to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=call`}
@@ -466,7 +467,7 @@ function LeadRowActions({ lead }: { lead: Lead }) {
               <Phone className="h-3.5 w-3.5" />
             </Link>
           </Button>
-        )}
+        )} */}
         {hasWriteAccess && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -587,12 +588,16 @@ function buildColumns(
               >
                 {lead.firstName} {lead.lastName}
               </Link>
-              <Link
+              {/* Communication is disabled for initial release */}
+              {/* <Link
                 to={`/communication?leadId=${lead.id}&name=${encodeURIComponent(`${lead.firstName} ${lead.lastName}`)}&tab=email`}
                 className="text-xs text-muted-foreground hover:text-primary truncate max-w-[150px] block"
               >
                 {lead.email}
-              </Link>
+              </Link> */}
+              <span className="text-xs text-muted-foreground truncate max-w-[150px] block">
+                {lead.email}
+              </span>
             </div>
           </div>
         )
